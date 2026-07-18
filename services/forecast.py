@@ -824,7 +824,8 @@ def _build_forecast_prompt(
     effective_start = max(du_start, current_year)
     lines.append(f"\n**重要约束：当前分析的大运范围是{du_start}-{du_end}年。"
                  f"现在是{current_year}年，断未来只能给{effective_start}年及之后的建议。"
-                 f"key_years和key_actions中的年份必须在{effective_start}-{du_end}之间，不得出现过去的年份。**")
+                 f"key_years和key_actions中的年份必须在{effective_start}-{du_end}之间，不得出现过去的年份。"
+                 f"【强制】每个维度必须至少给出2个key_years和2个key_actions，即使该大运在遥远的未来年份也必须给出。不能以'暂无数据'或空数组代替。分析的时间跨度必须覆盖整个大运的{du_start}-{du_end}年。**")
 
     # 流年数据（精确干支 + 用神判断）——只取所选大运范围内的年份
     yongshen_wx = ys_primary if ys_primary else ""
@@ -1050,6 +1051,22 @@ async def generate_forecast(
                         "key_actions": key_actions,
                         "score": entry.get("score", 50),
                     }
+                # Fallback: if any dimension has empty key_years, fill with deterministic years
+                du_years_full = list(range(es, du_ey + 1))
+                for dim in required_dims:
+                    if not forecast[dim].get("key_years"):
+                        # Pick 2 representative years: one early, one late in the dayun
+                        n = len(du_years_full)
+                        if n >= 2:
+                            picks = [du_years_full[n // 3], du_years_full[2 * n // 3]]
+                            forecast[dim]["key_years"] = picks
+                            forecast[dim]["key_actions"] = {
+                                str(picks[0]): "关注此年运势变化，提前规划",
+                                str(picks[1]): "把握关键年份的机遇",
+                            }
+                        elif n == 1:
+                            forecast[dim]["key_years"] = [du_years_full[0]]
+                            forecast[dim]["key_actions"] = {str(du_years_full[0]): "此年为该大运关键年"}
 
                 # 提取新增结构化字段
                 forecast["current_dayun_analysis"] = ai_result.get("current_dayun_analysis", {})
@@ -1086,6 +1103,12 @@ async def generate_forecast(
         mock_forecast[dim]["key_actions"] = {k: v for k, v in raw_actions.items()
             if (isinstance(k, int) and k >= es and k <= du_ey) or
             (isinstance(k, str) and any(int(p) >= es and int(p) <= du_ey for p in k.split() if p.isdigit()))}
+        # Fallback for empty
+        du_years = list(range(es, du_ey + 1))
+        if not mock_forecast[dim].get("key_years") and len(du_years) >= 2:
+            n = len(du_years)
+            mock_forecast[dim]["key_years"] = [du_years[n//3], du_years[2*n//3]]
+            mock_forecast[dim]["key_actions"] = {str(du_years[n//3]): "关注运势变化", str(du_years[2*n//3]): "把握关键机遇"}
 
     return {
         "forecast": mock_forecast,
