@@ -1053,26 +1053,32 @@ async def generate_forecast(
                         "key_actions": key_actions,
                         "score": entry.get("score", 50),
                     }
-                # Intelligent fallback: regenerate liunian data if needed
-                if not forecast[dim].get("key_years"):
-                    GAN_C = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"]
-                    ZHI_C = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"]
-                    liunian_fallback = []
-                    for y in range(es, du_ey + 1):
-                        idx = (y - 4) % 60
-                        gz = GAN_C[idx % 10] + ZHI_C[idx % 12]
-                        wx = WUXING_MAP.get(gz[0], "")
-                        is_yong = wx == (yongshen.get("primary","") or "")
-                        is_ji = wx == (yongshen.get("ji_shen","") or "")
-                        label = "用神年✅" if is_yong else ("忌神年⚠️" if is_ji else "平年")
-                        tg = classify_liunian({"stem": gz[0], "branch": gz[1]}, day_master, yongshen.get("primary","") or "", yongshen.get("ji_shen","") or "")["ten_god"]
-                        liunian_fallback.append({"year": y, "ganzhi": gz, "label": label, "ten_god": tg, "advice": f"{tg}星入命"})
-                    best = [ln for ln in liunian_fallback if "用神" in ln.get("label", "")]
-                    warn = [ln for ln in liunian_fallback if "忌神" in ln.get("label", "")]
-                    picks = best[:1] + warn[:1] if warn else best[:2]
-                    if picks:
-                        forecast[dim]["key_years"] = [p["year"] for p in picks]
-                        forecast[dim]["key_actions"] = {str(p["year"]): p.get("advice", "关注此年") for p in picks}
+                # Intelligent fallback for empty key_years on any dimension
+                ys_data = chart_data.get("yongshen", {})
+                day_master = chart_data.get("day_master", "")
+                for dim in required_dims:
+                    if not forecast[dim].get("key_years"):
+                        GAN_C = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"]
+                        ZHI_C = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"]
+                        du_sy2 = current_dayun.get("start_year", current_year) if isinstance(current_dayun, dict) else getattr(current_dayun, 'start_year', current_year)
+                        du_ey2 = current_dayun.get("end_year", current_year+10) if isinstance(current_dayun, dict) else getattr(current_dayun, 'end_year', current_year+10)
+                        es2 = max(du_sy2, current_year)
+                        liunian_fb = []
+                        for y in range(es2, du_ey2 + 1):
+                            idx = (y - 4) % 60
+                            gz = GAN_C[idx % 10] + ZHI_C[idx % 12]
+                            wx = WUXING_MAP.get(gz[0], "")
+                            is_yong = wx == (ys_data.get("primary","") or "")
+                            is_ji = wx == (ys_data.get("ji_shen","") or "")
+                            label = "用神年✅" if is_yong else ("忌神年⚠️" if is_ji else "平年")
+                            tg_data = classify_liunian({"stem": gz[0], "branch": gz[1]}, day_master, ys_data.get("primary","") or "", ys_data.get("ji_shen","") or "")
+                            liunian_fb.append({"year": y, "label": label, "advice": tg_data.get("advice", "关注此年")})
+                        best = [ln for ln in liunian_fb if "用神" in ln.get("label", "")]
+                        warn = [ln for ln in liunian_fb if "忌神" in ln.get("label", "")]
+                        picks = best[:1] + warn[:1] if warn else best[:2]
+                        if picks:
+                            forecast[dim]["key_years"] = [p["year"] for p in picks]
+                            forecast[dim]["key_actions"] = {str(p["year"]): p.get("advice", "关注此年") for p in picks}
 
                 # 提取新增结构化字段
                 forecast["current_dayun_analysis"] = ai_result.get("current_dayun_analysis", {})
