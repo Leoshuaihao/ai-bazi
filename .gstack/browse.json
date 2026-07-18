@@ -1,0 +1,9 @@
+{
+  "pid": 80220,
+  "port": 45628,
+  "token": "b3f84ddc-3126-4ed6-bb4d-42ec4065f7f8",
+  "startedAt": "2026-06-26T16:53:39.084Z",
+  "serverPath": "/Users/lee/.claude/skills/gstack/browse/src/server.ts",
+  "mode": "launched",
+  "configHash": "303a7eeccc03078b"
+}

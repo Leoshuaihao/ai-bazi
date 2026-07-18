@@ -1,0 +1,2328 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>命盘读盘器 · 探索你的命理星图</title>
+<script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%238b5cf6'/%3E%3Cstop offset='100%25' style='stop-color:%23ec4899'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='64' height='64' rx='14' fill='%231a1025'/%3E%3Ctext x='32' y='42' text-anchor='middle' font-size='32' fill='url(%23g)' font-family='serif' font-weight='bold'%3E命%3C/text%3E%3C/svg%3E">
+<link rel="stylesheet" href="bazi.css">
+</head>
+<body>
+
+<div id="bg-canvas" style="position:fixed;inset:0;z-index:-2;pointer-events:none;overflow:hidden;" aria-hidden="true"></div>
+
+<div class="app-shell">
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">命</div>
+      <div><h1>命盘读盘器</h1><p>探索你的命理星图</p></div>
+    </div>
+    <div class="top-actions">
+      <button id="auth-btn" class="btn btn-ghost" onclick="openAuthModal()">登录</button>
+      <span id="points-badge" class="points-badge" onclick="togglePointsCenter()" hidden>💎 <span id="points-balance-text">0</span></span>
+      <button id="chat-toggle-btn" class="btn btn-secondary chat-toggle-badge" onclick="toggleChat()" hidden>💬 问答<span id="chat-unread-dot" class="chat-unread-dot" hidden></span></button>
+      <button class="btn btn-ghost" type="button" id="sample-btn">填入示例</button>
+      <button class="btn btn-secondary top-cal-btn" type="button" id="top-calibration-btn" hidden>断前事校正</button>
+      <button class="btn btn-ghost" type="button" id="top-reset-btn">清空</button>
+    </div>
+  </div>
+</header>
+
+<main class="container" style="padding-top:0;">
+
+<section class="hero">
+  <div class="hero-badge"><span id="hero-badge-text">✦ AI 驱动的八字命盘分析</span></div>
+  <h2>把八字读成一份看得懂的报告</h2>
+  <p>从排盘到校准，从典籍推导到未来趋势——每一步都有依据、可追溯</p>
+  <div class="steps" id="step-indicator">
+    <div class="step active" data-step="input"><div class="step-circle">1</div><span class="step-label">输入生辰</span></div>
+    <div class="step-line" data-line="1"></div>
+    <div class="step" data-step="chart"><div class="step-circle">2</div><span class="step-label">初盘排定</span></div>
+    <div class="step-line" data-line="2"></div>
+    <div class="step" data-step="calibration"><div class="step-circle">3</div><span class="step-label">前事校准</span></div>
+  </div>
+</section>
+
+<div id="input-trigger" class="input-trigger" role="button" tabindex="0">
+  <span class="input-trigger-icon">✦</span>
+  <span class="input-trigger-text">输入信息</span>
+  <span class="input-trigger-hint">点击填写出生资料</span>
+  <span class="input-trigger-arrow">▾</span>
+</div>
+
+<section id="setup-panel" class="form-panel" aria-label="出生信息录入" hidden>
+  <div class="form-head"><h3>输入生辰，排定命盘</h3><p>输入你的出生信息，系统将为你生成八字命盘</p></div>
+  <form id="birth-form" class="form-body">
+    <div class="field">
+      <legend style="margin-bottom:4px;">历法</legend>
+      <div class="seg"><button type="button" class="seg-btn" data-calendar="solar" aria-pressed="true">☀ 阳历</button><button type="button" class="seg-btn" data-calendar="lunar" aria-pressed="false">🌙 农历</button></div>
+    </div>
+    <div class="field">
+      <label for="birth-datetime-trigger">出生日期</label>
+      <button class="date-btn is-empty" type="button" id="birth-datetime-trigger"><span class="dicon">日</span><span class="dtext" id="birth-datetime-label">请选择出生日期和时间</span></button>
+      <input id="birth-date" type="hidden"><input id="birth-time" type="hidden">
+    </div>
+    <div class="field">
+      <legend style="margin-bottom:4px;">性别</legend>
+      <div class="seg"><button type="button" class="seg-btn" data-gender="female" aria-pressed="false">♀ 女</button><button type="button" class="seg-btn" data-gender="male" aria-pressed="true">♂ 男</button></div>
+    </div>
+    <div class="field"><label for="birth-city">降生之地</label><input id="birth-city" class="ctrl" type="text" placeholder="例如：广州 / 上海 / 纽约" autocomplete="address-level2"></div>
+    <div class="field"><label for="chart-name">主角名字</label><input id="chart-name" class="ctrl" type="text" placeholder="请输入你的昵称"></div>
+    <div class="field">
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-weight:600;"><input id="time-approx" type="checkbox" style="width:16px;height:16px;accent-color:#8b5cf6;">出生时间只是大概记忆</label>
+      <span style="color:var(--muted);font-size:0.74rem;">断前事阶段会重点校验时辰</span>
+    </div>
+    <button id="submit-btn" class="btn btn-primary btn-lg" type="submit">✦ 生成基础盘</button>
+  </form>
+</section>
+
+<section id="result-shell" class="result-shell" aria-live="polite">
+  <div class="subject-card">
+    <div class="subject-head">
+      <div><h2 class="subject-title">命盘摘要</h2><p class="subject-subtitle">先确认固定盘，再进入前事校准</p></div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-secondary" type="button" id="copy-summary-btn">复制摘要</button><button class="btn btn-ghost" type="button" id="rerun-btn">重新录入</button></div>
+    </div>
+    <div id="subject-card-content"></div>
+  </div>
+
+  <div class="card" style="margin-top:12px;">
+    <div class="section-label" style="margin-bottom:4px;">命局纲要</div>
+    <div id="yongshen-flow"></div>
+  </div>
+
+<section id="chart-section" class="report-section">
+    <div class="section-label">✦ 八字排盘</div>
+    <div class="card" style="margin-bottom:12px;">
+      <p id="birth-echo" style="color:var(--muted);font-size:0.8rem;margin-bottom:12px;"></p>
+      <div id="pillars-grid" class="pillars-wrap"></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="card" style="overflow:hidden;position:relative;">
+        <div class="section-label" style="margin-bottom:4px;">十神分布</div>
+        <p style="color:var(--muted);font-size:0.74rem;margin-bottom:6px;">十神按生克关系分五组，围绕日主展开</p>
+        <div id="ten-god-svg" style="display:flex;justify-content:center;"></div>
+      </div>
+      <div class="card wx-rel">
+        <div class="section-label" style="margin-bottom:4px;">五行生克</div>
+        <p style="color:var(--muted);font-size:0.74rem;margin-bottom:8px;">五角星外圈相生 · 内线相克 · 节点大小=力量强弱</p>
+        <div id="wx-pentagram" style="display:flex;justify-content:center;"></div>
+        <div id="wx-summary" style="text-align:center;font-size:0.76rem;color:var(--muted);margin-top:6px;"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:12px;overflow:visible;">
+      <div class="section-label" style="margin-bottom:4px;">神煞人生图</div>
+      <p style="color:var(--muted);font-size:0.74rem;margin-bottom:6px;">四柱对应童年 · 青年 · 中年 · 晚年，上方吉神、下方凶煞</p>
+      <div id="shensha-life-map" style="min-height:160px;"></div>
+      <div id="shensha-narrative" style="text-align:center;font-size:0.76rem;color:var(--ink-2);margin-top:8px;line-height:1.6;"></div>
+    </div>
+
+    <div class="card" style="margin-top:12px;" id="dayun-card" hidden>
+      <div class="section-label" style="margin-bottom:2px;">大运流年</div>
+      <p style="color:var(--muted);font-size:0.68rem;margin-bottom:10px;">喜=用神运 · 忌=忌神运 · 平=中性运 &nbsp;|&nbsp; 校正后解锁完整分析</p>
+
+      <!-- Row 1: 大运总结 (calibration only) -->
+      <div id="dayun-summary" style="margin-bottom:10px;"></div>
+
+      <!-- Row 2: 一生大运横条 -->
+      <div class="dayun-strip" id="dayun-strip"></div>
+
+      <!-- Row 3: 流年横条 -->
+      <div style="margin-top:10px;" id="liunian-row"><div class="dayun-strip" id="liunian-strip"></div></div>
+
+      <!-- Row 4: 流月横条 -->
+      <div id="liuyue-section" style="margin-top:8px; display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px;">
+          <span style="font-weight:800;font-size:0.7rem;color:var(--ink-2);">📅 流月</span>
+          <span id="liuyue-year-label" style="color:var(--muted);font-size:0.62rem;"></span>
+        </div>
+        <div id="liuyue-gate" style="text-align:center;padding:6px;border:1px solid var(--line);border-radius:var(--radius-sm);">
+          <button class="btn btn-primary" onclick="unlockLiuYue()" style="font-size:0.72rem;">🔓 解锁流月 · ¥9.9</button>
+        </div>
+        <div class="dayun-strip" id="liuyue-strip" style="display:none;"></div>
+        <div id="liuyue-loading" style="display:none;text-align:center;padding:6px;color:var(--muted);font-size:0.68rem;">⏳</div>
+      </div>
+
+      <!-- Row 5: 五维卡片 (calibration only) -->
+      <div id="dayun-dims" style="margin-top:10px;"></div>
+
+      <!-- Row 5: AI 对话 (calibration only) -->
+      <div id="dayun-chat" style="margin-top:10px;"></div>
+    </div>
+    </div>
+
+  </section>
+</section>
+
+</main>
+</div>
+
+<!-- 登录弹层 -->
+<div id="auth-modal" class="modal" hidden>
+  <div class="modal-bg" onclick="closeAuthModal()"></div>
+  <div class="modal-card">
+    <h3>登录 / 注册</h3>
+    <p class="modal-desc">使用手机号登录，解锁全部功能</p>
+    <input id="auth-phone" type="tel" placeholder="手机号" maxlength="11">
+    <div class="code-row">
+      <input id="auth-code" type="text" placeholder="验证码" maxlength="6">
+      <button id="send-code-btn" class="btn btn-secondary" onclick="sendCode()">获取验证码</button>
+    </div>
+    <button class="btn btn-primary btn-lg" onclick="doLogin()" id="login-btn">登录</button>
+    <p id="auth-msg" class="auth-msg"></p>
+  </div>
+</div>
+
+<!-- 支付弹层 -->
+<div id="pay-modal" class="modal" hidden>
+  <div class="modal-bg" onclick="closePayModal()"></div>
+  <div class="modal-card">
+    <h3>✦ 购买服务</h3>
+    <p class="modal-desc">选择你需要购买的产品</p>
+    <div class="product-list">
+      <div class="product-item" data-product="liuyue" onclick="selectProduct('liuyue')">
+        <span class="product-icon">📅</span>
+        <div class="product-info"><div class="pname">流月详批</div><div class="pdesc">逐月运势分析 + 100积分</div></div>
+        <span class="product-price">¥9.9</span>
+      </div>
+      <div class="product-item" data-product="points_pack" onclick="selectProduct('points_pack')">
+        <span class="product-icon">💎</span>
+        <div class="product-info"><div class="pname">积分补充包</div><div class="pdesc">100积分，用于AI对话消耗</div></div>
+        <span class="product-price">¥6.9</span>
+      </div>
+      <div class="product-item" data-product="hepan" onclick="selectProduct('hepan')">
+        <span class="product-icon">🤝</span>
+        <div class="product-info"><div class="pname">合盘分析</div><div class="pdesc">双人八字合盘深度解读</div></div>
+        <span class="product-price">¥18.0</span>
+      </div>
+    </div>
+    <div id="pay-result" class="pay-result" hidden></div>
+    <button class="btn btn-primary btn-lg" onclick="doPay()" id="pay-confirm-btn" disabled>确认支付</button>
+    <p id="pay-msg" class="auth-msg"></p>
+  </div>
+</div>
+
+<div id="calibration-invite" class="popover" hidden>
+  <h3>是否进入断前事校正？</h3>
+  <p>八字已经排出，断前事会用你的真实过往校验后台草稿。</p>
+  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="invite-later-btn">我再看会</button><button class="btn btn-primary" type="button" id="invite-start-btn">开始校正</button></div>
+</div>
+
+<!-- 积分中心弹层 -->
+<div id="points-popover" class="popover" hidden>
+  <h3>💎 积分中心</h3>
+  <div class="points-balance"><span id="points-center-value">0</span><span> 积分</span></div>
+  <p style="text-align:center;">每轮AI对话消耗 <strong>5 积分</strong></p>
+  <div class="points-actions">
+    <button class="btn btn-primary" onclick="closePointsCenter();openPayModal()">💰 购买积分 / 服务</button>
+    <button class="btn btn-secondary" onclick="showGiftForm()" id="gift-btn">🎁 赠送积分</button>
+    <button class="btn btn-ghost" onclick="logout();closePointsCenter()" style="margin-top:4px;">🚪 退出登录</button>
+  </div>
+  <div id="gift-form" hidden style="margin-top:10px;display:grid;gap:8px;">
+    <input id="gift-user-id" class="ctrl" placeholder="对方用户ID">
+    <input id="gift-amount" class="ctrl" type="number" placeholder="赠送数量（本月上限50）" min="1" max="50">
+    <button class="btn btn-primary" onclick="doGift()">确认赠送</button>
+    <p id="gift-msg" style="font-size:0.72rem;text-align:center;"></p>
+  </div>
+</div>
+
+<aside id="calibration-dock" class="dock" hidden>
+  <div class="dock-head"><div><h3>断前事校正</h3><p>回答后可返回上一题修改</p></div><button class="btn btn-ghost" type="button" id="close-dock-btn" style="min-height:32px;min-width:32px;padding:0;">✕</button></div>
+  <div class="dock-body" id="dock-body"></div>
+  <div class="dock-actions">
+    <button class="btn btn-ghost" type="button" id="prev-question-btn">‹ 上一题</button>
+    <button class="btn btn-secondary" type="button" id="next-question-btn">下一题 ›</button>
+    <span style="color:var(--muted);font-size:0.76rem;flex:1;text-align:center;" id="dock-save-state"></span>
+    <button class="btn btn-primary" type="button" id="submit-calibration-btn">提交校正</button>
+  </div>
+</aside>
+
+<div id="time-dialog" class="popover" hidden>
+  <h3>出生时间是否精准？</h3><p>你的经历反馈与当前时柱推导存在偏差。</p>
+  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="time-accurate-btn">时间准确</button><button class="btn btn-primary" type="button" id="time-uncertain-btn">帮我匹配时辰</button></div>
+</div>
+
+<div id="matched-time-dialog" class="popover" hidden>
+  <h3>已匹配出更可能的出生时段</h3><p id="matched-time-copy"></p>
+  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="matched-back-btn">返回</button><button class="btn btn-primary" type="button" id="matched-confirm-btn">确认刷新</button></div>
+</div>
+
+<div id="date-modal-backdrop" class="modal-backdrop" hidden>
+  <section class="modal"><div class="modal-head"><h3>选择出生日期</h3><button class="modal-close" type="button" id="date-close-btn">✕</button></div>
+    <div class="compact-row"><input id="date-compact-input" type="text" inputmode="numeric" autocomplete="off" maxlength="12" placeholder="例如：199903241435（12位数字）"><button class="btn btn-secondary" type="button" id="date-compact-confirm">确认</button></div>
+    <p style="padding:0 28px 4px;color:var(--muted);font-size:0.76rem;" id="date-modal-hint">可输入12位数字快速定位</p>
+    <div class="wheel-wrap"><div class="wheel-cols">
+      <label><span class="wheel-head">年</span><select class="wheel-sel" id="date-year-select" size="7"></select></label>
+      <label><span class="wheel-head">月</span><select class="wheel-sel" id="date-month-select" size="7"></select></label>
+      <label><span class="wheel-head">日</span><select class="wheel-sel" id="date-day-select" size="7"></select></label>
+      <label><span class="wheel-head">时</span><select class="wheel-sel" id="date-hour-select" size="7"></select></label>
+      <label><span class="wheel-head">分</span><select class="wheel-sel" id="date-minute-select" size="7"></select></label>
+    </div></div>
+    <div class="modal-actions"><button class="btn btn-ghost" type="button" id="date-cancel-btn">取消</button><button class="btn btn-primary" type="button" id="date-confirm-btn">确认</button></div>
+  </section>
+</div>
+
+<div id="toast" class="toast"></div>
+<div id="tg-tooltip" style="display:none;position:fixed;z-index:999;max-width:260px;padding:10px 12px;border:1px solid var(--line-strong);border-radius:8px;background:rgba(14,8,28,0.97);box-shadow:0 8px 28px rgba(0,0,0,0.6);font-size:0.78rem;line-height:1.5;color:var(--ink-2);pointer-events:none;white-space:pre-line;"></div>
+
+<!-- AI 对话面板 -->
+<div id="chat-panel-backdrop" class="show" style="display:none;" onclick="closeChat()"></div>
+<aside id="chat-panel">
+  <div class="chat-head">
+    <div>
+      <h3>✨ AI 命盘问答</h3>
+      <div id="chat-status" class="chat-status">登录后可开始对话</div>
+    </div>
+    <button class="btn btn-ghost" onclick="closeChat()" style="min-height:32px;min-width:32px;padding:0;">✕</button>
+  </div>
+  <div class="chat-body" id="chat-body">
+    <div class="chat-msg ai" style="color:var(--muted);text-align:center;align-self:center;">👋 欢迎使用AI命盘问答<br>登录后即可提问</div>
+  </div>
+  <div class="chat-foot">
+    <input id="chat-input-main" class="ctrl" placeholder="输入你的问题，如：我适合创业吗？" onkeydown="if(event.key==='Enter')sendChatMsg()">
+    <button class="btn btn-primary" onclick="sendChatMsg()" id="chat-send-btn">发送</button>
+  </div>
+</aside>
+
+<script>
+// ============================================================
+// 3D COSMIC BACKGROUND — Three.js particle nebula
+// ============================================================
+
+const WX_HEX = {jin:0xf0c060,mu:0x4ade80,shui:0x38bdf8,huo:0xf87171,tu:0xd4a574,金:0xf0c060,木:0x4ade80,水:0x38bdf8,火:0xf87171,土:0xd4a574};
+const WX_COLORS_OBJ = {jin:'#f0c060',mu:'#4ade80',shui:'#38bdf8',huo:'#f87171',tu:'#d4a574',金:'#f0c060',木:'#4ade80',水:'#38bdf8',火:'#f87171',土:'#d4a574'};
+const WX_ORDER_3D = ['mu','huo','tu','jin','shui'];
+const WX_SHENG_3D = {mu:'huo',huo:'tu',tu:'jin',jin:'shui',shui:'mu'};
+const WX_KE_3D = {mu:'tu',tu:'shui',shui:'huo',huo:'jin',jin:'mu'};
+const WX_LABEL_3D = {jin:'金',mu:'木',shui:'水',huo:'火',tu:'土'};
+const STEM_WX_3D = {'甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水'};
+
+// --- Particle Nebula Background ---
+(function initBg(){
+  const container = document.getElementById('bg-canvas');
+  if(!container) return;
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.5, 80);
+  camera.position.set(0,0,18);
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  renderer.setSize(window.innerWidth, window.innerHeight);
+  container.appendChild(renderer.domElement);
+
+  // Core nebula — 3000 particles in a flattened sphere
+  const N = 3000;
+  const geo = new THREE.BufferGeometry();
+  const pos = new Float32Array(N*3), col = new Float32Array(N*3);
+  for(let i=0;i<N;i++){
+    const theta = Math.random()*Math.PI*2;
+    const phi = Math.acos(2*Math.random()-1);
+    const r = 12 + Math.random()*8;
+    pos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+    pos[i*3+1]=r*Math.sin(phi)*Math.sin(theta)*0.3;
+    pos[i*3+2]=r*Math.cos(phi);
+    const wx = ['jin','mu','shui','huo','tu'][i%5];
+    const c = new THREE.Color(WX_HEX[wx]);
+    col[i*3]=c.r*0.6; col[i*3+1]=c.g*0.6; col[i*3+2]=c.b*0.6;
+  }
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(col,3));
+  const mat = new THREE.PointsMaterial({size:0.06, vertexColors:true, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, opacity:0.7});
+  const pts = new THREE.Points(geo,mat);
+  scene.add(pts);
+
+  // Five element stream rings
+  const streams = [];
+  WX_ORDER_3D.forEach((wx,i)=>{
+    const sGeo = new THREE.BufferGeometry();
+    const sN = 200;
+    const sPos = new Float32Array(sN*3);
+    const sr = 6 + i*1.2;
+    for(let j=0;j<sN;j++){
+      const a = (j/sN)*Math.PI*2;
+      sPos[j*3]=Math.cos(a)*sr;
+      sPos[j*3+1]=Math.sin(a*0.1)*0.5;
+      sPos[j*3+2]=Math.sin(a)*sr;
+    }
+    sGeo.setAttribute('position',new THREE.BufferAttribute(sPos,3));
+    const sMat = new THREE.PointsMaterial({size:0.04, color:WX_HEX[wx], blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, opacity:0.5});
+    const ring = new THREE.Points(sGeo,sMat);
+    ring.userData={wx, baseR:sr, speed:0.0003+Math.random()*0.0004, tilt:(Math.random()-0.5)*0.4};
+    scene.add(ring);
+    streams.push(ring);
+  });
+
+  // Mouse parallax
+  let mx=0, my=0;
+  window.addEventListener('mousemove',e=>{mx=(e.clientX/window.innerWidth-0.5)*2; my=(e.clientY/window.innerHeight-0.5)*2});
+
+  function animate(t){
+    requestAnimationFrame(animate);
+    pts.rotation.y += 0.0001;
+    pts.rotation.x += 0.00005;
+    streams.forEach(s=>{
+      s.rotation.y += s.userData.speed;
+      s.rotation.x += s.userData.speed*0.3;
+    });
+    camera.position.x += (mx*2 - camera.position.x)*0.02;
+    camera.position.y += (-my*1.5 - camera.position.y)*0.02;
+    camera.lookAt(0,0,0);
+    renderer.render(scene,camera);
+  }
+  animate(0);
+
+  window.addEventListener('resize',()=>{
+    camera.aspect = window.innerWidth/window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+  });
+})();
+
+// --- 3D Wuxing Ring — replaces renderWxRel ---
+
+let wxScene, wxCamera, wxRenderer, wxNodes=[], wxFlows=[], wxCenter;
+
+function initWxScene(containerId){
+  const el = document.getElementById(containerId);
+  if(!el) return;
+  if(wxRenderer){ el.innerHTML=''; el.appendChild(wxRenderer.domElement); return; }
+  wxScene = new THREE.Scene();
+  wxCamera = new THREE.PerspectiveCamera(45, 1, 0.5, 40);
+  wxCamera.position.set(0,3,14);
+  wxCamera.lookAt(0,0,0);
+  wxRenderer = new THREE.WebGLRenderer({antialias:true, alpha:true});
+  wxRenderer.setPixelRatio(Math.min(devicePixelRatio,2));
+  wxRenderer.setSize(280,280);
+  el.innerHTML='';
+  el.appendChild(wxRenderer.domElement);
+
+  // Ambient light ring
+  const ringGeo = new THREE.TorusGeometry(4.2,0.04,32,80);
+  const ringMat = new THREE.MeshBasicMaterial({color:0x8b5cf6, transparent:true, opacity:0.15});
+  const ring = new THREE.Mesh(ringGeo,ringMat);
+  wxScene.add(ring);
+
+  // Create 5 element node spheres
+  for(let i=0;i<5;i++){
+    const angle = (i/5)*Math.PI*2 - Math.PI/2;
+    const r = 4;
+    const wx = WX_ORDER_3D[i];
+    const nodeGeo = new THREE.SphereGeometry(0.35,32,32);
+    const nodeMat = new THREE.MeshStandardMaterial({color:WX_HEX[wx], roughness:0.3, metalness:0.2, emissive:WX_HEX[wx], emissiveIntensity:0.4});
+    const node = new THREE.Mesh(nodeGeo,nodeMat);
+    node.position.set(Math.cos(angle)*r, 0, Math.sin(angle)*r);
+    node.userData = {wx, angle, baseR:r};
+    wxScene.add(node);
+    wxNodes.push(node);
+  }
+
+  // Center sphere
+  const cGeo = new THREE.SphereGeometry(0.65,48,48);
+  const cMat = new THREE.MeshStandardMaterial({color:0x0a0612, roughness:0.15, metalness:0.6, emissive:0x000000, emissiveIntensity:0});
+  wxCenter = new THREE.Mesh(cGeo,cMat);
+  wxScene.add(wxCenter);
+
+  // Lights
+  const ambient = new THREE.AmbientLight(0x222244,1.5);
+  wxScene.add(ambient);
+  const dir = new THREE.DirectionalLight(0xffffff,1.2);
+  dir.position.set(5,8,5);
+  wxScene.add(dir);
+  const pt = new THREE.PointLight(0x8b5cf6,2,15);
+  pt.position.set(0,0,0);
+  wxScene.add(pt);
+
+  function animWx(t){
+    requestAnimationFrame(animWx);
+    wxScene.rotation.y += 0.003;
+    wxRenderer.render(wxScene, wxCamera);
+  }
+  animWx(0);
+}
+
+window.updateWxRing = function(data){
+  const container = document.getElementById('wx-pentagram');
+  if(!container) return;
+  initWxScene('wx-pentagram');
+
+  const score = data.wuxing_score||{};
+  const vals = {mu:score.mu||0,huo:score.huo||0,tu:score.tu||0,jin:score.jin||0,shui:score.shui||0};
+  const max = Math.max(...Object.values(vals),1);
+  const dm = data.day_master||'';
+  const dmWx = STEM_WX_3D[dm]||'';
+  const dmColor = WX_HEX[dmWx]||0xa78bfa;
+
+  // Update node sizes based on scores
+  wxNodes.forEach(n=>{
+    const wx = n.userData.wx;
+    const v = vals[wx]||0;
+    const s = v<1?0.3:0.3+(v/max)*0.8;
+    n.scale.setScalar(s);
+    n.material.emissiveIntensity = v<1?0.1:0.3+(v/max)*0.6;
+  });
+
+  // Update center
+  if(wxCenter){
+    wxCenter.material.emissive = new THREE.Color(dmColor);
+    wxCenter.material.emissiveIntensity = 0.4;
+    wxCenter.material.color = new THREE.Color(dmColor);
+  }
+
+  // Rebuild flow lines
+  wxFlows.forEach(f=>wxScene.remove(f));
+  wxFlows=[];
+  // Sheng lines — green particles
+  for(let i=0;i<5;i++){
+    const from = WX_ORDER_3D[i], to = WX_SHENG_3D[from];
+    const fi = WX_ORDER_3D.indexOf(from), ti = WX_ORDER_3D.indexOf(to);
+    const fa = (fi/5)*Math.PI*2-Math.PI/2, ta = (ti/5)*Math.PI*2-Math.PI/2;
+    const midR = 2.8;
+    const flowGeo = new THREE.BufferGeometry();
+    const N=60; const fp = new Float32Array(N*3);
+    for(let j=0;j<N;j++){
+      const t=j/N; const a=fa+(ta-fa)*t;
+      fp[j*3]=Math.cos(a)*midR; fp[j*3+1]=0; fp[j*3+2]=Math.sin(a)*midR;
+    }
+    flowGeo.setAttribute('position',new THREE.BufferAttribute(fp,3));
+    const flowMat = new THREE.PointsMaterial({size:0.06, color:0x22c55e, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, opacity:0.6});
+    wxFlows.push(new THREE.Points(flowGeo,flowMat));
+  }
+  // Ke lines — red particles
+  for(let i=0;i<5;i++){
+    const from = WX_ORDER_3D[i], to = WX_KE_3D[from];
+    const fi = WX_ORDER_3D.indexOf(from), ti = WX_ORDER_3D.indexOf(to);
+    const fa = (fi/5)*Math.PI*2-Math.PI/2, ta = (ti/5)*Math.PI*2-Math.PI/2;
+    const midR = 1.8;
+    const flowGeo = new THREE.BufferGeometry();
+    const N=40; const fp = new Float32Array(N*3);
+    for(let j=0;j<N;j++){
+      const t=j/N; const a=fa+(ta-fa)*t;
+      fp[j*3]=Math.cos(a)*midR; fp[j*3+1]=0; fp[j*3+2]=Math.sin(a)*midR;
+    }
+    flowGeo.setAttribute('position',new THREE.BufferAttribute(fp,3));
+    const flowMat = new THREE.PointsMaterial({size:0.05, color:0xef4444, blending:THREE.AdditiveBlending, depthWrite:false, transparent:true, opacity:0.4});
+    wxFlows.push(new THREE.Points(flowGeo,flowMat));
+  }
+  wxFlows.forEach(f=>wxScene.add(f));
+};
+</script>
+
+<script>
+// ============================================================
+// CONSTANTS — Business Logic
+// ============================================================
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const WX_LABEL={jin:'金',mu:'木',shui:'水',huo:'火',tu:'土'};
+const STEM_WX={'甲':'木','乙':'木','丙':'火','丁':'火','戊':'土','己':'土','庚':'金','辛':'金','壬':'水','癸':'水'};
+const BRANCH_WX={'子':'水','丑':'土','寅':'木','卯':'木','辰':'土','巳':'火','午':'火','未':'土','申':'金','酉':'金','戌':'土','亥':'水'};
+const WX_COLOR={jin:'#f0c060',mu:'#4ade80',shui:'#38bdf8',huo:'#f87171',tu:'#d4a574',金:'#f0c060',木:'#4ade80',水:'#38bdf8',火:'#f87171',土:'#d4a574'};
+const WX_BG={jin:'rgba(240,192,96,0.12)',mu:'rgba(74,222,128,0.12)',shui:'rgba(56,189,248,0.12)',huo:'rgba(248,113,113,0.12)',tu:'rgba(212,165,116,0.12)'};
+const WX_ORDER=['mu','huo','tu','jin','shui']; // 相生顺序
+const WX_SHENG={mu:'huo',huo:'tu',tu:'jin',jin:'shui',shui:'mu'};
+const WX_KE={mu:'tu',tu:'shui',shui:'huo',huo:'jin',jin:'mu'};
+const PILLAR_LABELS={year:'年柱',month:'月柱',day:'日柱',hour:'时柱'};
+const TEN_GODS=['比肩','劫财','食神','伤官','正财','偏财','正官','七杀','正印','偏印'];
+const TG_SHORT={比肩:'比',劫财:'劫',食神:'食',伤官:'伤',正财:'财',偏财:'偏',正官:'官',七杀:'杀',正印:'印',偏印:'枭'};
+const TG_COLORS={比肩:'#f87171',劫财:'#fb923c',食神:'#fbbf24',伤官:'#facc15',正财:'#a3e635',偏财:'#4ade80',正官:'#38bdf8',七杀:'#818cf8',正印:'#c084fc',偏印:'#e879f9'};
+const FEEDBACK_LABELS={accurate:'说对了',partial:'方向对，细节偏',inaccurate:'不对',supplement:'补充背景'};
+const STATUS_OPTS=[['accurate','说对了'],['partial','方向对，细节偏'],['inaccurate','不对'],['supplement','补充背景']];
+
+// State
+const S={calendar:'solar',gender:'male',timeApprox:false,subjectName:'',payload:null,currentStep:'input',chart:null,initialChart:null,sessionId:'',predictions:[],feedbackDrafts:[],currentPredictionIndex:0,feedbacksSubmitted:false,calibrationResult:null,calibrating:false,forecast:null,classicsDraft:null,classicsReady:false,predictionsReady:false,reportPublished:false,inviteTimer:null,inviteShown:false,inviteDismissed:false,matchedTime:null,aiYongshenLoaded:false};
+
+// ============================================================
+// THEME
+// ============================================================
+
+
+// ============================================================
+// INIT
+// ============================================================
+document.addEventListener('DOMContentLoaded',()=>{
+  let t;try{t=localStorage.getItem('bazi-theme-v3')||'cosmic'}catch(e){t='cosmic'}
+  
+  bindControls();initDatePicker();updateBirthDateTimeLabel();
+});
+
+function bindControls(){
+  $$('[data-calendar]').forEach(b=>b.addEventListener('click',()=>setSeg('calendar',b.dataset.calendar)));
+  $$('[data-gender]').forEach(b=>b.addEventListener('click',()=>setSeg('gender',b.dataset.gender)));
+  $('#time-approx').addEventListener('change',e=>{S.timeApprox=e.target.checked});
+  $('#birth-form').addEventListener('submit',submitChart);
+  $('#copy-summary-btn').addEventListener('click',copySummary);
+  $('#sample-btn').addEventListener('click',fillSample);
+  $('#top-reset-btn').addEventListener('click',resetForm);
+  $('#top-calibration-btn').addEventListener('click',openCalibrationDock);
+  // Input trigger toggle
+  const trig=$('#input-trigger');
+  if(trig) trig.addEventListener('click',toggleInputPanel);
+  const silb=$('#start-inline-calibration-btn');if(silb)silb.addEventListener('click',openCalibrationDock);
+  $('#invite-start-btn').addEventListener('click',openCalibrationDock);
+  $('#invite-later-btn').addEventListener('click',dismissCalibrationInvite);
+  $('#close-dock-btn').addEventListener('click',()=>{$('#calibration-dock').hidden=true});
+  $('#prev-question-btn').addEventListener('click',prevQ);
+  $('#next-question-btn').addEventListener('click',nextQ);
+  $('#submit-calibration-btn').addEventListener('click',submitCalibration);
+  $('#time-accurate-btn').addEventListener('click',()=>confirmBirthTime(true));
+  $('#time-uncertain-btn').addEventListener('click',()=>confirmBirthTime(false));
+  $('#matched-back-btn').addEventListener('click',()=>{$('#matched-time-dialog').hidden=true;$('#time-dialog').hidden=false});
+  $('#matched-confirm-btn').addEventListener('click',applyMatchedTime);
+  $('#rerun-btn').addEventListener('click',()=>{resetReportOnly();window.scrollTo({top:0,behavior:'smooth'})});
+}
+
+function toggleInputPanel(){
+  const panel = $('#setup-panel');
+  const trig = $('#input-trigger');
+  if(!panel||!trig) return;
+  const open = !panel.hidden;
+  panel.hidden = open;
+  if(open){ trig.classList.remove('open'); }
+  else{ trig.classList.add('open'); panel.scrollIntoView({behavior:'smooth',block:'center'}); }
+}
+
+// Trigger shown on init
+document.addEventListener('DOMContentLoaded',()=>{ const t=$('#input-trigger'); if(t)t.hidden=false; });
+
+function setSeg(k,v){S[k]=v;$$(`[data-${k}]`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[k]===v)))}
+function pad2(v){return String(v||0).padStart(2,'0')}
+function escHtml(v){return String(v??'').replace(/[✅⚠️]/gu,'').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;')}
+function escAttr(v){return escHtml(v).replaceAll('`','&#096;')}
+function joinParts(p){return(p||[]).filter(Boolean).join('')}
+function structuredCloneSafe(v){try{return structuredClone(v)}catch(e){return JSON.parse(JSON.stringify(v))}}
+function showToast(m){const t=$('#toast');t.textContent=m;t.classList.add('visible');clearTimeout(showToast.timer);showToast.timer=setTimeout(()=>t.classList.remove('visible'),2400)}
+
+// ============================================================
+// DATE PICKER (abbreviated — same logic as before)
+// ============================================================
+function range(s,e){return Array.from({length:e-s+1},(_,i)=>s+i)}
+function initDatePicker(){
+  populateSel($('#date-year-select'),range(1900,2100),'2000');
+  populateSel($('#date-month-select'),range(1,12).map(pad2),'01');
+  populateSel($('#date-hour-select'),range(0,23).map(pad2),'08');
+  populateSel($('#date-minute-select'),range(0,59).map(pad2),'00');
+  syncDays(1);
+  $('#birth-datetime-trigger').addEventListener('click',openDP);
+  $('#date-close-btn').addEventListener('click',closeDP);
+  $('#date-cancel-btn').addEventListener('click',closeDP);
+  $('#date-confirm-btn').addEventListener('click',applyDP);
+  $('#date-compact-confirm').addEventListener('click',applyCompact);
+  $('#date-compact-input').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();applyCompact()}});
+  $('#date-modal-backdrop').addEventListener('click',e=>{if(e.target.id==='date-modal-backdrop')closeDP()});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('#date-modal-backdrop').hidden)closeDP()});
+  ['date-year-select','date-month-select'].forEach(id=>{$(`#${id}`).addEventListener('change',()=>syncDays())});
+}
+function populateSel(sel,vals,selV){const sp=Array.from({length:3},(_,i)=>`<option value="" disabled data-spacer="${i}">&nbsp;</option>`).join('');const op=vals.map(v=>`<option value="${escAttr(String(v))}"${String(v)===String(selV)?' selected':''}>${escHtml(String(v))}</option>`).join('');sel.innerHTML=sp+op+sp}
+function openDP(){const dv=$('#birth-date').value||'2000-01-01',tv=$('#birth-time').value||'08:00';const[y,m,d]=dv.split('-').map(Number);const[h,min]=tv.split(':').map(Number);setDParts({year:y,month:m,day:d,hour:h,minute:min});$('#date-modal-hint').textContent='可输入12位数字快速定位';$('#date-compact-input').value='';$('#date-modal-backdrop').hidden=false}
+function closeDP(){$('#date-modal-backdrop').hidden=true}
+function setDParts(p){const y=clamp(p.year,1900,2100,2000),m=clamp(p.month,1,12,1),h=clamp(p.hour,0,23,8),min=clamp(p.minute,0,59,0);$('#date-year-select').value=String(y);$('#date-month-select').value=pad2(m);syncDays(p.day);$('#date-hour-select').value=pad2(h);$('#date-minute-select').value=pad2(min)}
+function syncDays(pref){const y=Number($('#date-year-select').value||2000),m=Number($('#date-month-select').value||1);const cur=Number(pref||$('#date-day-select').value||1);const days=new Date(y,m,0).getDate();const sel=Math.min(Math.max(cur,1),days);populateSel($('#date-day-select'),range(1,days).map(pad2),pad2(sel))}
+function applyDP(){const y=Number($('#date-year-select').value),m=Number($('#date-month-select').value),d=Number($('#date-day-select').value),h=Number($('#date-hour-select').value),min=Number($('#date-minute-select').value);if(!isValidDate(y,m,d,h,min)){$('#date-modal-hint').textContent='日期不完整';return}$('#birth-date').value=`${y}-${pad2(m)}-${pad2(d)}`;$('#birth-time').value=`${pad2(h)}:${pad2(min)}`;updateBirthDateTimeLabel();closeDP()}
+function applyCompact(){const p=parseCompact($('#date-compact-input').value);if(!p.ok){$('#date-modal-hint').textContent=p.message;return}setDParts(p.value);$('#date-modal-hint').textContent='已识别，请确认'}
+function parseCompact(v){const d=String(v||'').replace(/\D/g,'');if(d.length!==12)return{ok:false,message:'请输入12位数字，如199903241435'};const y=Number(d.slice(0,4)),m=Number(d.slice(4,6)),day=Number(d.slice(6,8)),h=Number(d.slice(8,10)),min=Number(d.slice(10,12));if(!isValidDate(y,m,day,h,min))return{ok:false,message:'日期不存在'};return{ok:true,value:{year:y,month:m,day,hour:h,minute:min}}}
+function isValidDate(y,m,d,h,min){if(y<1900||y>2100||m<1||m>12||h<0||h>23||min<0||min>59)return false;const dt=new Date(y,m-1,d);return dt.getFullYear()===y&&dt.getMonth()===m-1&&dt.getDate()===d}
+function clamp(v,min,max,fb){const n=Number(v);return Number.isNaN(n)?fb:Math.min(Math.max(n,min),max)}
+function updateBirthDateTimeLabel(){const dv=$('#birth-date').value,tv=$('#birth-time').value;const l=$('#birth-datetime-label'),tr=$('#birth-datetime-trigger');if(dv&&tv){l.textContent=`${dv} ${tv}`;tr.classList.remove('is-empty')}else{l.textContent='请选择出生日期和时间';tr.classList.add('is-empty')}}
+
+function fillSample(){$('#birth-date').value='1990-06-15';$('#birth-time').value='12:20';updateBirthDateTimeLabel();setSeg('calendar','solar');setSeg('gender','male');$('#birth-city').value='广州';$('#time-approx').checked=false;S.timeApprox=false;$('#setup-panel').hidden=false;$('#input-trigger').classList.add('open');showToast('已填入示例 ✦')}
+function resetForm(){$('#birth-form').reset();setSeg('calendar','solar');setSeg('gender','male');updateBirthDateTimeLabel();S.timeApprox=false;S.subjectName='';resetReportOnly()}
+function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payload=null;S.chart=null;S.initialChart=null;S.subjectName='';S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;$('.hero').classList.remove('collapsed');$('#hero-badge-text').textContent='✦ AI 驱动的八字命盘分析';$('#setup-panel').hidden=true;$('#result-shell').classList.remove('visible');$('#calibration-invite').hidden=true;$('#calibration-dock').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=true;const trig=$('#input-trigger');if(trig){trig.classList.remove('open','done');trig.querySelector('.input-trigger-hint').textContent='点击填写出生资料'};setStep('input')}
+
+// ============================================================
+// API
+// ============================================================
+async function apiFetch(url,opts={}){const res=await fetch(url,opts);const data=await res.json().catch(()=>null);if(!res.ok)throw new Error((data&&data.detail)||`请求失败:${res.status}`);return data}
+function friendlyError(e,fb){const m=e&&e.message?e.message:fb;if(m.includes('Failed to fetch'))return'无法连接后端服务';return m||fb}
+
+// ============================================================
+// STEP INDICATOR
+// ============================================================
+function setStep(k){S.currentStep=k;const steps={input:1,chart:2,calibration:3};const n=steps[k]||1;$$('#step-indicator .step').forEach(s=>{const sn=steps[s.dataset.step]||0;s.classList.remove('active','done');if(sn<n)s.classList.add('done');if(sn===n)s.classList.add('active')});$$('#step-indicator .step-line').forEach(l=>{l.classList.toggle('done',Number(l.dataset.line)<n)})}
+
+// ============================================================
+// SUBMIT CHART
+// ============================================================
+async function submitChart(e){e.preventDefault();let payload;try{payload=buildPayload()}catch(err){showToast(err.message);return}
+  S.payload=payload;S.timeApprox=$('#time-approx').checked;S.subjectName=($('#chart-name').value||'').trim();
+  S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;
+  S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;
+  S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;
+  if(S.inviteTimer)clearTimeout(S.inviteTimer);
+  setBusy(true,'排盘中...');setStep('chart');
+  try{
+    const chart=await apiFetch('/api/chart',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+    S.chart=chart;S.initialChart=structuredCloneSafe(chart);renderChart(chart);
+    $('.hero').classList.add('collapsed'); $('#hero-badge-text').textContent='✦ 命盘已生成';
+    $('#setup-panel').hidden=true;$('#result-shell').classList.add('visible');
+    const trig=$('#input-trigger'); if(trig){trig.classList.remove('open');trig.classList.add('done');
+      trig.querySelector('.input-trigger-hint').textContent='命盘已生成 · 点击修改'};
+    $('#top-calibration-btn').hidden=true;
+    setStep('chart');
+    setTimeout(()=>$('#result-shell').scrollIntoView({behavior:'smooth',block:'start'}),100);
+    // AI 初始分析 → 串行：先出纲要，再出题目
+    loadAIYongshen(payload);
+  }catch(err){showToast(friendlyError(err,'排盘失败'));setStep('input')}finally{setBusy(false)}
+}
+function buildPayload(){const dv=$('#birth-date').value,tv=$('#birth-time').value;if(!dv)throw new Error('请选择出生日期');if(!tv)throw new Error('请选择出生时间');const[y,m,d]=dv.split('-').map(Number);const[h,min]=tv.split(':').map(Number);if(!y||!m||!d||Number.isNaN(h)||Number.isNaN(min))throw new Error('日期时间格式不完整');const city=($('#birth-city').value||'').trim();if(!city)throw new Error('请输入降生之地');return{year:y,month:m,day:d,hour:h,minute:min,gender:S.gender,calendar_type:S.calendar,province:'',city,use_true_solar:false}}
+function setBusy(b,t){const btn=$('#submit-btn');btn.disabled=b;btn.innerHTML=b?`<span class="loader"></span> ${escHtml(t||'处理中...')}`:'✦ 生成基础盘'}
+
+// ============================================================
+// RENDER — KEY: 天地上下结构的四柱 + 五行生克图
+// ============================================================
+function renderChart(data){
+  renderSummary(data);renderPillars(data.four_pillars||{},data);
+  renderTenGods(data.four_pillars||{},data);renderWxRel(data);
+  renderShenshaLifeMap(data);
+  if(data.dayun&&data.dayun.length)renderDayun(data.dayun);
+  renderYongshen(data.yongshen||{});
+  updateCalGate();
+
+  // Bind pillar shensha tooltips
+  setTimeout(()=>{
+    $$('#pillars-grid [data-tip]').forEach(el=>{
+      el.addEventListener('mouseenter',e=>{
+        const tip=$('#tg-tooltip');
+        tip.textContent=el.dataset.tip||'';
+        tip.style.display='block';
+        tip.style.left=Math.min(e.clientX+14,window.innerWidth-270)+'px';
+        tip.style.top=e.clientY-10+'px';
+      });
+      el.addEventListener('mouseleave',()=>{$('#tg-tooltip').style.display='none'});
+    });
+  },80);
+}
+
+function isReportPublished(){return Boolean(S.reportPublished)}
+
+function renderSummary(data){
+  const pub=isReportPublished();const gl=(data.gender||S.gender)==='female'?'女命':'男命';
+  const dm=data.day_master||'';const dmWx=STEM_WX[dm]||'';
+  const pt=formatFourPillars(data.four_pillars||{});
+  const bp=getBirthDisplayValue(data,'出生地点')||(S.payload||{}).city||'未填写';
+ 
+  const metaPills=[
+    {label:'日主',value:`${dm}${dmWx} · ${gl}`,color:WX_COLOR[dmWx]||'#a78bfa'},
+    {label:'降生',value:bp,color:'#a78bfa'},
+  ];
+
+  const pillsHtml=metaPills.map(m=>
+    `<span class="id-tag"><span class="id-tag-dot" style="background:${m.color};"></span>${escHtml(m.label)} <strong>${escHtml(m.value)}</strong></span>`
+  ).join('');
+
+  const calState=pub?'cal-done':(S.classicsReady?'cal-ready':'cal-wait');
+  const calText=pub?'校准完成，可解读大运流年':(S.classicsReady?'前事校准就绪，用过往经历校验后即可解盘':'断前事校准后可解读大运流年');
+
+  // Build a one-line chart overview
+  const ys=data.yongshen||{};const wxScore=data.wuxing_score||{};
+  const strength=ys.ri_zhu_strength||'';
+  const entries=Object.entries(wxScore).sort((a,b)=>b[1]-a[1]);
+  const top=entries[0]||[];const missing=WX_ORDER.filter(wx=>!(wxScore[wx]>0));
+  const tgCounts={};const fp=data.four_pillars||{};
+  for(const pos of ['year','month','day','hour']){const tg=fp[pos]?.stem_ten_god;if(tg)tgCounts[tg]=(tgCounts[tg]||0)+1;}
+  const topTG=Object.entries(tgCounts).sort((a,b)=>b[1]-a[1])[0];
+  const topTgName=topTG?topTG[0]:'';
+  const topWxLabel=WX_LABEL[top[0]]||'';
+  const overviewParts=[
+    `${dm}${dmWx}日主`,
+    strength||'旺衰待判',
+    top[0]&&top[0]!==dmWx?`${topWxLabel}重${top[1]}%`:'',
+    missing.length?`缺${missing.map(w=>WX_LABEL[w]||w).join('、')}`:'',
+    topTgName?`主${topTgName}`:''
+  ].filter(Boolean).join(' · ');
+
+  // Day master portrait
+  const portrait=DM_PORTRAITS[dm];
+  const dmColor=WX_COLOR[STEM_WX[dm]]||'#a78bfa';
+  const portraitHtml=portrait?`
+    <div style="display:flex;align-items:flex-start;gap:10px;margin:8px 0 6px;">
+      <div style="width:40px;height:40px;border-radius:50%;background:radial-gradient(circle at 40% 40%,${dmColor},${dmColor}33);display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 14px ${dmColor}33;">
+        <span style="font-family:var(--font-ming);font-size:1.1rem;font-weight:900;color:#fff;">${escHtml(dm)}</span>
+      </div>
+      <div style="min-width:0;">
+        <div style="font-size:0.78rem;font-weight:800;color:${dmColor};margin-bottom:2px;">${portrait.title} — ${escHtml(dm)}${portrait.wx}日主 · ${portrait.nature==='阳'?'阳干':'阴干'} · ${gl}</div>
+        <p style="color:var(--ink-2);font-size:0.72rem;line-height:1.55;margin:0;">${escHtml(portrait.desc)}</p>
+      </div>
+    </div>
+  `:'';
+
+  const sc=$('#subject-card-content');
+  if(sc)sc.innerHTML=`
+    <div class="id-bazi">${escHtml(pt||'四柱待排')}</div>
+    ${portraitHtml}
+    <div style="display:flex;align-items:center;gap:8px;margin:4px 0;">
+      <span class="id-tag" style="font-size:0.72rem;"><span class="id-tag-dot" style="background:var(--accent);"></span>降生 <strong>${escHtml(bp)}</strong></span>
+    </div>
+  `;
+}
+
+function formatFourPillars(ps){return['year','month','day','hour'].map(k=>{const p=ps[k]||{};return p.stem&&p.branch?p.stem+p.branch:''}).filter(Boolean).join(' ')}
+
+function getBirthDisplayValue(data,label){
+  const lines=data&&data.birth_display&&Array.isArray(data.birth_display.lines)?data.birth_display.lines:[];
+  const prefix=`${label}：`;
+  const line=lines.find(l=>String(l).startsWith(prefix));
+  return line?String(line).slice(prefix.length).trim():'';
+}
+function formatPayloadBirth(p){
+  if(!p||!p.year)return'';
+  return`${p.year}年${p.month}月${p.day}日 ${pad2(p.hour)}:${pad2(p.minute)}（${p.calendar_type==='lunar'?'农历':'阳历'}）`;
+}
+
+function updateCalGate(){
+  if(!S.chart)return;
+  renderSummary(S.chart);
+  renderYongshen(S.chart.yongshen||{});
+}
+
+// ============================================================
+// PILLARS — 表格结构 (ROW-LABELED TABLE)
+// ============================================================
+function renderPillars(ps,data){
+  const keys=['year','month','day','hour'];
+  const dm=data.day_master||'';
+  const ss=data.shensha||[];
+  const ssByPos={year:[],month:[],day:[],hour:[]};
+  ss.forEach(s=>{const pos=s.position||'';if(ssByPos[pos])ssByPos[pos].push(s);});
+
+  // 地势 (12-stage cycle) lookup
+  const DI_SHI='长生 沐浴 冠带 临官 帝旺 衰 病 死 墓 绝 胎 养'.split(' ');
+  const DI_SHI_MAP={ // stem -> [branch order starting from 长生 branch]
+    '甲':'亥子丑寅卯辰巳午未申酉戌', '乙':'午巳辰卯寅丑子亥戌酉申未',
+    '丙':'寅卯辰巳午未申酉戌亥子丑', '丁':'酉申未午巳辰卯寅丑子亥戌',
+    '戊':'寅卯辰巳午未申酉戌亥子丑', '己':'酉申未午巳辰卯寅丑子亥戌',
+    '庚':'巳午未申酉戌亥子丑寅卯辰', '辛':'子亥戌酉申未午巳辰卯寅丑',
+    '壬':'申酉戌亥子丑寅卯辰巳午未', '癸':'卯寅丑子亥戌酉申未午巳辰'
+  };
+  function getDishi(pillarStem, pillarBranch){
+    const seq=DI_SHI_MAP[pillarStem];
+    if(!seq)return'-';
+    const idx=seq.indexOf(pillarBranch);
+    return idx>=0?DI_SHI[idx]:'-';
+  }
+
+  function stemOnlyCell(p){
+    const wx=STEM_WX[p.stem]||'';const c=WX_COLOR[wx]||'#c4b5fd';
+    return`<td class="ptd"><span class="pt-gan" style="color:${c};">${escHtml(p.stem||'-')}</span><span style="display:block;font-size:0.58rem;color:${c};opacity:0.7;">${wx}</span></td>`;
+  }
+  function tgCell(p){
+    const tg=p.stem_ten_god||'';
+    return`<td class="ptd pt-tg">${tg==='日主'?'日主':tg?escHtml(tg):'-'}</td>`;
+  }
+  function branchCell(p){
+    const wx=BRANCH_WX[p.branch]||'';const c=WX_COLOR[wx]||'#a78bfa';
+    return`<td class="ptd"><span class="pt-gan" style="color:${c};">${escHtml(p.branch||'-')}</span><span style="display:block;font-size:0.58rem;color:${c};opacity:0.7;">${wx}</span></td>`;
+  }
+  function branchTgCell(p){
+    const tg=p.branch_ten_god||'';
+    return`<td class="ptd pt-tg">${tg&&tg!=='日支'?escHtml(tg):'-'}</td>`;
+  }
+  function hiddenCell(p){
+    const hs=(p.hidden_stems||[]).map(h=>{
+      const hWx=STEM_WX[h.stem]||'';const hColor=WX_COLOR[hWx]||'#888';
+      return`<span class="hs-chip" style="background:rgba(${hexToRgb(hColor)},0.15);color:${hColor};"><span class="hs-gan">${escHtml(h.stem)}<span style="font-size:0.5rem;opacity:0.7;">·${hWx}</span></span></span>`;
+    }).join('');
+    return`<td class="ptd pt-hs">${hs||'<span style="color:var(--faint);font-size:0.58rem;">-</span>'}</td>`;
+  }
+  function branchTgCell(p){
+    const tgs=(p.hidden_stems||[]).map(h=>h.ten_god||'').filter(Boolean);
+    return`<td class="ptd pt-tg">${tgs.length?tgs.map(t=>escHtml(t)).join(' '):'-'}</td>`;
+  }
+  function nayinCell(p){return`<td class="ptd pt-nayin">${escHtml(p.nayin||'-')}</td>`}
+  function kongwangRow(){const kw=data.kongwang||[];return`<td colspan="4" class="ptd pt-nayin">${kw.length?escHtml(kw.join(' ')):'-'}</td>`}
+  function dishiCell(k){
+    const p=ps[k]||{};const ds=getDishi(p.stem||'',p.branch||'');
+    return`<td class="ptd pt-nayin">${escHtml(ds)}</td>`;
+  }
+  function shenshaCell(k){
+    const items=(ssByPos[k]||[]).sort((a,b)=>{
+      const ca=AUSPICIOUS.has(a.name)?0:OMINOUS.has(a.name)?2:1;
+      return ca-(AUSPICIOUS.has(b.name)?0:OMINOUS.has(b.name)?2:1);
+    });
+    if(!items.length)return`<td class="ptd pt-ss"><span style="color:var(--faint);font-size:0.58rem;">-</span></td>`;
+    const chips=items.map(s=>{
+      const isAusp=AUSPICIOUS.has(s.name);
+      const color=isAusp?'#4ade80':OMINOUS.has(s.name)?'#f87171':'#c084fc';
+      // Prefer API description, fall back to our dictionary, then generic
+      const meaning=s.description||SHENSHA_MEANING[s.name]||'暂无解释';
+      return`<span class="ss-chip" style="color:${color};" data-tip="${escAttr(s.name+'\n'+meaning)}">${escHtml(s.name)}</span>`;
+    }).join('');
+    return`<td class="ptd pt-ss">${chips}</td>`;
+  }
+
+  const headers=keys.map(k=>{
+    const p=ps[k]||{};const isDM=p.stem===dm;
+    return`<th${isDM?' class="dm-th"':''}>${PILLAR_LABELS[k]}${isDM?'<br><span style="font-size:0.56rem;font-weight:400;">日主</span>':''}</th>`;
+  }).join('');
+
+  // Build each row: core = always visible, detail = collapsed
+  const coreRows=[['干神', keys.map(k=>tgCell(ps[k]||{})).join('')],['天干', keys.map(k=>stemOnlyCell(ps[k]||{})).join('')],['地支', keys.map(k=>branchCell(ps[k]||{})).join('')],['支神', keys.map(k=>branchTgCell(ps[k]||{})).join('')]];
+  const detailRows=[['藏干', keys.map(k=>hiddenCell(ps[k]||{})).join('')],['纳音', keys.map(k=>nayinCell(ps[k]||{})).join('')],['地势', keys.map(k=>dishiCell(k)).join('')],['空亡', kongwangRow()],['神煞', keys.map(k=>shenshaCell(k)).join('')]];
+
+  $('#pillars-grid').innerHTML=`<table class="pillars-tbl">
+    <thead><tr><th class="row-lbl"></th>${headers}</tr></thead>
+    <tbody>${coreRows.map(([lbl,tds])=>`<tr><td class="row-lbl">${lbl}</td>${tds}</tr>`).join('')}</tbody>
+    <tbody class="detail-rows" hidden>${detailRows.map(([lbl,tds])=>`<tr><td class="row-lbl">${lbl}</td>${tds}</tr>`).join('')}</tbody>
+  </table>
+  <div class="detail-toggle" id="detail-toggle-btn"><span class="detail-toggle-icon">▾</span> 展开排盘详情</div>`;
+
+  // Bind toggle
+  setTimeout(()=>{
+    const btn=$('#detail-toggle-btn');
+    if(!btn)return;
+    btn.addEventListener('click',()=>{
+      const rows=$('#pillars-grid').querySelector('.detail-rows');
+      const icon=btn.querySelector('.detail-toggle-icon');
+      if(!rows||!icon)return;
+      const hidden=rows.hidden;
+      rows.hidden=!hidden;
+      btn.classList.toggle('open',hidden);
+      icon.textContent=hidden?'▴':'▾';
+      btn.childNodes[1]&&(btn.childNodes[1].textContent=hidden?'收起排盘详情':'展开排盘详情');
+    });
+  },80);
+}
+
+function hexToRgb(hex){const r=parseInt(hex.slice(1,3),16),g=parseInt(hex.slice(3,5),16),b=parseInt(hex.slice(5,7),16);return`${r},${g},${b}`}
+
+// ============================================================
+// WUXING PENTAGRAM — 五行生克五角星图
+// ============================================================
+function renderWxRel(data){
+  if(window.updateWxRing){
+    try{ window.updateWxRing(data); }catch(e){ fallbackWxSVG(data); }
+  }else{
+    fallbackWxSVG(data);
+  }
+  $('#wx-summary').textContent='';
+}
+
+// SVG fallback for when Three.js is unavailable
+function fallbackWxSVG(data){
+  const score=data.wuxing_score||{};
+  const vals={mu:score.mu||0,huo:score.huo||0,tu:score.tu||0,jin:score.jin||0,shui:score.shui||0};
+  const max=Math.max(...Object.values(vals),1);
+  const dm=data.day_master||'';
+  const dmWx=STEM_WX[dm]||'';
+  const points=[{wx:'mu',label:'木',angle:-90},{wx:'huo',label:'火',angle:-18},{wx:'tu',label:'土',angle:54},{wx:'jin',label:'金',angle:126},{wx:'shui',label:'水',angle:198}];
+  const cx=140,cy=140,nodeR=80;
+  function xy(a,d){return{x:cx+d*Math.cos(a*Math.PI/180),y:cy+d*Math.sin(a*Math.PI/180)}}
+  let svg=`<svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">`;
+  for(let i=0;i<5;i++){const a=points[i],b=points[(i+1)%5];const p1=xy(a.angle,nodeR*0.85),p2=xy(b.angle,nodeR*0.85);svg+=`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="rgba(52,211,153,0.25)" stroke-width="1.5"/>`}
+  for(let i=0;i<5;i++){const a=points[i],b=points[(i+2)%5];const p1=xy(a.angle,nodeR*0.5),p2=xy(b.angle,nodeR*0.5);svg+=`<line x1="${p1.x}" y1="${p1.y}" x2="${p2.x}" y2="${p2.y}" stroke="rgba(248,113,113,0.2)" stroke-width="1" stroke-dasharray="4,3"/>`}
+  points.forEach(p=>{const v=vals[p.wx];const pos=xy(p.angle,nodeR);const r=v<1?5:9+(v/max)*18;const c=WX_COLOR[p.wx];const dim=v<1;svg+=`<circle cx="${pos.x}" cy="${pos.y}" r="${r}" fill="${c}" opacity="${dim?0.10:0.85}"/>`});
+  svg+=`<circle cx="${cx}" cy="${cy}" r="24" fill="rgba(10,6,18,0.9)" stroke="${WX_COLOR[dmWx]||'#a78bfa'}" stroke-width="2"/><text x="${cx}" y="${cy-3}" text-anchor="middle" fill="${WX_COLOR[dmWx]||'#c4b5fd'}" font-size="14" font-weight="900">${escHtml(dm)}</text>`;
+  svg+=`</svg>`;$('#wx-pentagram').innerHTML=svg;
+}
+
+// ============================================================
+// TEN GOD — SVG RING CHART + TOOLTIPS
+// ============================================================
+const TG_PLAIN={
+  '比肩':'比肩：代表自己、兄弟姐妹、同辈竞争。比肩多的人独立好强，凡事喜欢亲力亲为。',
+  '劫财':'劫财：代表朋友、合作伙伴。劫财旺的人社交能力强，但也容易为朋友花钱、被分财。',
+  '食神':'食神：代表才华、创造力、口福享受。食神旺的人温和聪明，有艺术天赋，懂生活。',
+  '伤官':'伤官：代表聪明才智、不拘一格。伤官旺的人悟性极高，但不喜约束、容易反传统。',
+  '正财':'正财：代表稳定收入、工资积蓄。正财旺的人务实稳重，善理财，对物质有规划。',
+  '偏财':'偏财：代表意外之财、投资回报、慷慨大方。偏财旺的人花钱大手笔，人缘好但难守财。',
+  '正官':'正官：代表事业运、上司领导、纪律规范。正官旺的人有责任感，做事守规矩重名声。',
+  '七杀':'七杀：代表压力挑战、竞争拼搏、权力欲。七杀旺的人敢闯敢拼，是开拓型将才。',
+  '正印':'正印：代表学业文书、母亲长辈、贵人扶持。正印旺的人爱学习，心地善良有人帮。',
+  '偏印':'偏印：代表特殊技能、偏门学问、钻研精神。偏印旺的人有一技之长，但容易孤僻。'
+};
+function renderTenGods(ps,data){
+  const dist=buildTGDist(ps);
+  const dm=data.day_master||'';
+  const dmWx=STEM_WX[dm]||'';
+
+  // Color each ten-god pair by its actual element (relative to 日主)
+  const genBy=WX_SHENG[dmWx]; // 日主生的五行 = 食伤
+  const overcomeBy=WX_KE[dmWx]; // 日主克的五行 = 财
+  // Find which overcomes 日主 and which generates 日主
+  let overcomesDm='',genDm='';
+  for(const wx of WX_ORDER){if(WX_KE[wx]===dmWx)overcomesDm=wx;if(WX_SHENG[wx]===dmWx)genDm=wx;}
+
+  const pairs=[
+    {name:'比劫',gods:['比肩','劫财'],color:WX_COLOR[dmWx]||'#f87171',angle:-90,label:'同我'},
+    {name:'食伤',gods:['食神','伤官'],color:WX_COLOR[genBy]||'#fbbf24',angle:-18,label:'我生'},
+    {name:'财',  gods:['正财','偏财'],color:WX_COLOR[overcomeBy]||'#4ade80',angle:54,label:'我克'},
+    {name:'官杀',gods:['正官','七杀'],color:WX_COLOR[overcomesDm]||'#38bdf8',angle:126,label:'克我'},
+    {name:'印',  gods:['正印','偏印'],color:WX_COLOR[genDm]||'#c084fc',angle:198,label:'生我'}
+  ];
+  pairs.forEach(p=>{p.pct=p.gods.reduce((s,g)=>s+(dist.find(d=>d.name===g)?.percent||0),0);});
+  const maxPct=Math.max(...pairs.map(p=>p.pct),1);
+
+  const cx=150,cy=150,outerR=118,innerR=48;
+  let svg=`<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg"><style>.arc{cursor:pointer;transition:opacity .2s}.arc:hover{opacity:.92;filter:brightness(1.2)}</style>`;
+
+  pairs.forEach((p,i)=>{
+    const span=72;
+    const startA=(p.angle-36)*Math.PI/180;
+    const endA=(p.angle+36)*Math.PI/180;
+    const hasData=p.pct>=1;
+    const r=hasData?innerR+(outerR-innerR)*(p.pct/maxPct):innerR+6;
+    const x1=cx+r*Math.cos(startA),y1=cy+r*Math.sin(startA);
+    const x2=cx+r*Math.cos(endA),y2=cy+r*Math.sin(endA);
+    const x1i=cx+innerR*Math.cos(startA),y1i=cy+innerR*Math.sin(startA);
+    const x2i=cx+innerR*Math.cos(endA),y2i=cy+innerR*Math.sin(endA);
+    const large=span>180?1:0;
+    const d=`M${x1i},${y1i} L${x1},${y1} A${r},${r} 0 ${large},1 ${x2},${y2} L${x2i},${y2i} A${innerR},${innerR} 0 ${large},0 ${x1i},${y1i} Z`;
+
+    if(hasData){
+      const g1=dist.find(d=>d.name===p.gods[0]);
+      const g2=dist.find(d=>d.name===p.gods[1]);
+      const tt=g1||g2?[
+        `${p.name} ${p.pct}%（${p.label}）`,
+        g1?`\n${p.gods[0]} ${g1.percent}%\n${TG_PLAIN[p.gods[0]]}`:'',
+        g2?`\n${p.gods[1]} ${g2.percent}%\n${TG_PLAIN[p.gods[1]]}`:''
+      ].filter(Boolean).join('\n'):'';
+      svg+=`<path class="arc" d="${d}" fill="${p.color}" opacity="0.75" stroke="rgba(255,255,255,0.1)" stroke-width="1" data-tg="${escAttr(p.name)}" data-tip="${escAttr(tt)}"/>`;
+      // Group label
+      const midA=(startA+endA)/2;
+      const labelR=(innerR+r)/2;
+      const lx=cx+labelR*Math.cos(midA),ly=cy+labelR*Math.sin(midA);
+      svg+=`<text x="${lx}" y="${ly-6}" text-anchor="middle" fill="white" font-size="11" font-weight="800" style="pointer-events:none">${p.name}</text>`;
+      svg+=`<text x="${lx}" y="${ly+9}" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="9" style="pointer-events:none">${p.pct}%</text>`;
+      // Individual god labels
+      const g1A=startA+(endA-startA)*0.35;
+      const g2A=startA+(endA-startA)*0.65;
+      const gR=outerR+18;
+      const g1x=cx+gR*Math.cos(g1A),g1y=cy+gR*Math.sin(g1A);
+      const g2x=cx+gR*Math.cos(g2A),g2y=cy+gR*Math.sin(g2A);
+      if(g1)svg+=`<text x="${g1x}" y="${g1y}" text-anchor="middle" fill="${p.color}" font-size="9" font-weight="700" style="pointer-events:none">${p.gods[0]}${g1.percent}%</text>`;
+      if(g2)svg+=`<text x="${g2x}" y="${g2y}" text-anchor="middle" fill="${p.color}" font-size="9" font-weight="700" style="pointer-events:none">${p.gods[1]}${g2.percent}%</text>`;
+    } else {
+      // 0% placeholder — thin dim arc, no hover
+      svg+=`<path d="${d}" fill="${p.color}" opacity="0.12" stroke="none"/>`;
+      const midA=(startA+endA)/2;
+      const lx=cx+(innerR+outerR)/2*Math.cos(midA),ly=cy+(innerR+outerR)/2*Math.sin(midA);
+      svg+=`<text x="${lx}" y="${ly}" text-anchor="middle" fill="var(--faint)" font-size="9" font-weight="700" style="pointer-events:none">${p.name}</text>`;
+    }
+  });
+
+  svg+=`<circle cx="${cx}" cy="${cy}" r="${innerR-2}" fill="rgba(10,6,18,0.9)" stroke="${WX_COLOR[dmWx]||'#a78bfa'}" stroke-width="2"/>`;
+  svg+=`<text x="${cx}" y="${cy-4}" text-anchor="middle" fill="${WX_COLOR[dmWx]||'#c4b5fd'}" font-size="18" font-weight="900" font-family="var(--font-ming)" style="pointer-events:none">${escHtml(dm)}</text>`;
+  svg+=`<text x="${cx}" y="${cy+14}" text-anchor="middle" fill="var(--muted)" font-size="9" style="pointer-events:none">${WX_LABEL[dmWx]||''} · 日主</text>`;
+
+  svg+=`</svg>`;
+  $('#ten-god-svg').innerHTML=svg;
+
+  // Bind hover tooltips
+  setTimeout(()=>{
+    $$('#ten-god-svg .arc').forEach(arc=>{
+      arc.addEventListener('mouseenter',e=>{
+        const tip=$('#tg-tooltip');
+        tip.textContent=arc.dataset.tip||'';
+        tip.style.display='block';
+        tip.style.left=Math.min(e.clientX+14,window.innerWidth-270)+'px';
+        tip.style.top=Math.min(e.clientY-10,window.innerHeight-200)+'px';
+      });
+      arc.addEventListener('mouseleave',()=>{$('#tg-tooltip').style.display='none'});
+    });
+  },50);
+}
+function buildTGDist(ps){const counts=Object.fromEntries(TEN_GODS.map(n=>[n,0]));Object.values(ps||{}).forEach(p=>{addTG(counts,normalizeTG(p.stem_ten_god),1);(p.hidden_stems||[]).forEach(h=>{const w=Number(h.weight);const nw=Number.isFinite(w)&&w>0?(w>1?w/100:w):0.35;addTG(counts,normalizeTG(h.ten_god),nw)})});const total=Object.values(counts).reduce((s,v)=>s+v,0)||1;let rt=0;const res=TEN_GODS.map(n=>{const p=Math.round(counts[n]/total*100);rt+=p;return{name:n,percent:p}});const delta=100-rt;if(res.length&&delta!==0){const best=res.reduce((b,d,i)=>d.percent>res[b].percent?i:b,0);res[best].percent=Math.max(0,res[best].percent+delta)}return res}
+function normalizeTG(v){if(v==='日主'||v==='日支')return'比肩';return TEN_GODS.includes(v)?v:''}
+function addTG(c,n,a){if(!n||!(n in c))return;c[n]+=a}
+
+// ============================================================
+// DAY MASTER PORTRAIT — 日主画像（第一层，不依赖校准）
+// ============================================================
+const DM_PORTRAITS={
+  '甲':{title:'参天大树',desc:'甲木如参天大树，正直、坚韧、有领导力。天生有担当，不喜弯弯绕绕，适合做决策者或开创者。木主仁，为人宽厚，但有时过于刚直。',wx:'木',nature:'阳'},
+  '乙':{title:'藤萝细草',desc:'乙木如藤萝花草，柔韧、细腻、善于适应。不像甲木那样硬扛，而是懂得借力生长。心思缜密，有艺术天赋，适合需要耐心和审美的领域。',wx:'木',nature:'阴'},
+  '丙':{title:'太阳之火',desc:'丙火如太阳，热情、开朗、光明磊落。走到哪里都是焦点，天生有感染力。但也容易急躁、三分钟热度。火主礼，为人慷慨大方。',wx:'火',nature:'阳'},
+  '丁':{title:'烛光星火',desc:'丁火如烛光星辰，温和、细腻、持久。不像丙火那样灼热张扬，而是内敛地发光。心思敏锐，有艺术天赋，适合需要洞察力和创造力的领域。',wx:'火',nature:'阴'},
+  '戊':{title:'城墙厚土',desc:'戊土如城墙大地，稳重、可靠、厚道。是朋友圈里最值得信任的人，做事扎实不浮夸。土主信，言出必行，但有时过于保守。',wx:'土',nature:'阳'},
+  '己':{title:'田园之土',desc:'己土如田园沃土，温和、包容、善于滋养他人。不像戊土那样刚硬，而是柔软中带着韧性。有耐心，适合教育、服务类工作。',wx:'土',nature:'阴'},
+  '庚':{title:'刀剑之金',desc:'庚金如刀剑利器，果断、刚毅、有魄力。做事雷厉风行，不拖泥带水。金主义，重情重义，但有时锋芒太露容易伤人。',wx:'金',nature:'阳'},
+  '辛':{title:'珠玉之金',desc:'辛金如珠玉首饰，精致、讲究、追求完美。对细节敏感，有自己的审美标准。不像庚金那么硬，而是以精致取胜，适合需要品味和精确度的领域。',wx:'金',nature:'阴'},
+  '壬':{title:'江河之水',desc:'壬水如江河奔流，智慧、豁达、善于变通。脑子快、反应快，是天生的谋略家。水主智，但有时想法太多执行跟不上。',wx:'水',nature:'阳'},
+  '癸':{title:'雨露之水',desc:'癸水如春雨晨露，细腻、敏锐、内向深沉。不像壬水那样奔放，而是在安静中洞察一切。直觉极强，适合需要深度思考和分析的领域。',wx:'水',nature:'阴'},
+};
+
+function renderDmPortrait(){
+  const dm=S.chart?.day_master||'';
+  const p=DM_PORTRAITS[dm];
+  if(!p)return;
+  const dmColor=WX_COLOR[p.wx]||'#a78bfa';
+  const natureLabel=p.nature==='阳'?'阳干':'阴干';
+  $('#dm-portrait').innerHTML=`
+    <div style="display:flex;align-items:flex-start;gap:12px;">
+      <div style="width:48px;height:48px;border-radius:50%;background:radial-gradient(circle at 40% 40%,${dmColor},${dmColor}33);display:grid;place-items:center;flex-shrink:0;box-shadow:0 0 18px ${dmColor}33;">
+        <span style="font-family:var(--font-ming);font-size:1.3rem;font-weight:900;color:#fff;">${escHtml(dm)}</span>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+          <span style="font-size:0.9rem;font-weight:900;color:${dmColor};">${escHtml(dm)}${p.wx}日主</span>
+          <span style="font-size:0.62rem;color:var(--muted);background:rgba(168,122,251,.1);padding:1px 6px;border-radius:3px;">${natureLabel}</span>
+          <span style="font-size:0.72rem;font-weight:800;color:var(--accent);">${escHtml(p.title)}</span>
+        </div>
+        <p style="color:var(--ink-2);font-size:0.78rem;line-height:1.6;margin:0;">${escHtml(p.desc)}</p>
+      </div>
+    </div>`;
+}
+
+// ============================================================
+// QUICK READ — 命盘速览（基于确定数据，不依赖校准）
+// ============================================================
+function renderQuickRead(){
+  const ys=S.chart?.yongshen||{};
+  const wxScore=S.chart?.wuxing_score||{};
+  const dm=S.chart?.day_master||'';
+  const dmWx=STEM_WX[dm]||'';
+  const dmColor=WX_COLOR[dmWx]||'#a78bfa';
+
+  // Find strongest and weakest elements
+  const entries=Object.entries(wxScore).sort((a,b)=>b[1]-a[1]);
+  const top=entries[0]||[];
+  const low=entries[entries.length-1]||[];
+  const missing=WX_ORDER.filter(wx=>!(wxScore[wx]>0));
+
+  // Ten-god character
+  const strength=ys.ri_zhu_strength||'';
+  const isStrong=strength.includes('强')||strength.includes('旺');
+  const isWeak=strength.includes('弱');
+
+  // Build summary paragraphs
+  const lines=[];
+
+  // Line 1: 日主 + 五行体质
+  lines.push(`<span style="color:${dmColor};font-weight:800;">${escHtml(dm)}${dmWx}日主</span>，${isStrong?'身强能担财官，是个扛得住事的体质':'身弱需印星帮身，是个靠智慧而非蛮力的体质'}。`);
+
+  // Line 2: 五行点评
+  if(top[0]&&top[0]!==dmWx){
+    const topLabel=WX_LABEL[top[0]]||top[0];
+    lines.push(`命局<span style="color:${WX_COLOR[top[0]]||'#888'};font-weight:700;">${topLabel}偏重</span>（${top[1]}%），${top[0]==='土'?'踏实稳重但有时固执':'精力充沛但需注意方向'}`);
+  }
+  if(missing.length){
+    lines.push(`<span style="color:var(--muted);">${missing.map(w=>WX_LABEL[w]||w).join('、')}缺失</span>，${missing.includes('金')?'做事有始有终但少了点决断力':'需在该领域后天补足'}。`);
+  }
+
+  // Line 3: 十神点睛
+  const tgCounts={};
+  const fp=S.chart?.four_pillars||{};
+  for(const pos of ['year','month','day','hour']){
+    const tg=fp[pos]?.stem_ten_god;if(tg)tgCounts[tg]=(tgCounts[tg]||0)+1;
+  }
+  const topTG=Object.entries(tgCounts).sort((a,b)=>b[1]-a[1])[0];
+  if(topTG){
+    const tgMap={比肩:'独立性、朋友',劫财:'社交力、竞争',食神:'创造力、表达',伤官:'才华、反叛',正财:'务实、理财',偏财:'投资、慷慨',正官:'纪律、责任',七杀:'魄力、压力',正印:'学习、贵人',偏印:'悟性、孤独'};
+    const tgDesc=tgMap[topTG[0]]||'';
+    lines.push(`十神以<span style="color:var(--accent);font-weight:700;">${escHtml(topTG[0])}为主</span>${tgDesc?'，天生在「'+tgDesc+'」这条线上有优势':''}。`);
+  }
+
+  $('#quick-read').innerHTML=`<p style="color:var(--ink-2);font-size:0.8rem;line-height:1.8;margin:0;">${lines.join(' ')}</p>`;
+}
+
+// ============================================================
+// PATTERN DETAIL — 格局子类分析
+// ============================================================
+function patternDetail(){
+  const fp=S.chart?.four_pillars||{};
+  const dm=S.chart?.day_master||'';
+  const dmWx=STEM_WX[dm]||'';
+  if(!fp.month)return'';
+
+  const parts=[];
+  const monthBranch=fp.month.branch||'';
+  const allStems=[fp.year?.stem,fp.month?.stem,fp.day?.stem,fp.hour?.stem].filter(Boolean);
+
+  // 1. 杂气格：月支为辰戌丑未
+  const zaqiMonths={辰:true,戌:true,丑:true,未:true};
+  if(zaqiMonths[monthBranch]){
+    const hid=fp.month?.hidden_stems||[];
+    // Get all天干十神 present in the four pillars
+    const allTGs=new Set(allStems.map(s=>findStemTenGod(dm,s)).filter(Boolean));
+    // Find which of month's hidden stems'十神 is透出 as a天干
+    const featured=hid.find(h=>allTGs.has(findStemTenGod(dm,h.stem)));
+    if(featured){
+      const tg=findStemTenGod(dm,featured.stem)||'';
+      if(tg)parts.push(`杂气${tg}格`);
+    }
+  }
+
+  // 2. 伤官佩印
+  const hasShangGuan=allStems.some(s=>findStemTenGod(dm,s)==='伤官');
+  const hasYinStar=allStems.some(s=>{
+    const tg=findStemTenGod(dm,s);
+    return tg==='正印'||tg==='偏印';
+  });
+  if(hasShangGuan&&hasYinStar&&!parts.some(p=>p.includes('伤官佩印')))parts.push('伤官佩印');
+
+  // 3. 食神制杀
+  const hasShiShen=allStems.some(s=>findStemTenGod(dm,s)==='食神');
+  const hasQiSha=allStems.some(s=>findStemTenGod(dm,s)==='七杀');
+  if(hasShiShen&&hasQiSha)parts.push('食神制杀');
+
+  // 4. 日贵格：日支为天乙贵人
+  const TG_REN={'甲':'丑未','乙':'子申','丙':'亥酉','丁':'亥酉','戊':'丑未','己':'子申','庚':'丑未','辛':'午寅','壬':'卯巳','癸':'卯巳'};
+  const dayBranch=fp.day?.branch||'';
+  const tgRen=TG_REN[dm]||'';
+  if(dayBranch&&tgRen.includes(dayBranch))parts.push('日贵格');
+
+  // 5. 财官双美
+  const hasZhengCai=allStems.some(s=>findStemTenGod(dm,s)==='正财');
+  const hasZhengGuan=allStems.some(s=>findStemTenGod(dm,s)==='正官');
+  if(hasZhengCai&&hasZhengGuan)parts.push('财官双美');
+
+  return parts.join(' · ');
+}
+
+function findStemTenGod(dm,stem){
+  if(!dm||!stem)return'';
+  const dmWx=STEM_WX[dm],sWx=STEM_WX[stem];
+  if(!dmWx||!sWx)return'';
+  if(sWx===dmWx)return dm===stem?'比肩':'劫财';
+  if(WX_SHENG[sWx]===dmWx)return dm===stem?'正印':'偏印';
+  if(WX_SHENG[dmWx]===sWx)return dm===stem?'食神':'伤官';
+  if(WX_KE[dmWx]===sWx)return dm===stem?'正财':'偏财';
+  if(WX_KE[sWx]===dmWx)return dm===stem?'正官':'七杀';
+  return'';
+}
+
+// ============================================================
+// YONGSHEN — color-coded pipeline with feedback source
+// ============================================================
+function renderYongshen(ys){
+  const pub=isReportPublished();
+  // Show skeleton while AI initial analysis is loading
+  if(!pub&&!S.aiYongshenLoaded){
+    $('#yongshen-flow').innerHTML=`
+    <div style="text-align:center;padding:24px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.35);">
+      <div class="cal-pulse-ring"></div><div class="cal-pulse-ring cal-pulse-ring-2"></div><div class="cal-pulse-ring cal-pulse-ring-3"></div>
+      <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">✦</div>
+      <div class="cal-wait-text" style="color:var(--ink-2);font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 正在解读命盘<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div style="color:var(--muted);font-size:0.74rem;">结合《滴天髓》《穷通宝鉴》典籍推导用神与喜忌</div>
+      <div class="cal-shimmer"></div>
+    </div>`;
+    return;
+  }
+  const init=S.initialChart&&S.initialChart.yongshen?S.initialChart.yongshen:{};
+  const hasCal=Boolean(S.calibrationResult);
+
+  if(!pub){
+    // Three distinct waiting states
+    if(!S.predictionsReady){
+      // State 1: Questions haven't loaded yet — AI is generating calibration questions
+      $('#yongshen-flow').innerHTML=`
+      <div style="text-align:center;padding:24px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.35);position:relative;overflow:hidden;">
+        <div class="cal-pulse-ring"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-2"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-3"></div>
+        <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">⚙</div>
+        <div class="cal-wait-text" style="color:var(--ink-2);font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 正在生成断前事题目<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div style="color:var(--muted);font-size:0.74rem;position:relative;z-index:1;">基于命盘特征为每一个维度生成校验问题</div>
+        <div class="cal-shimmer"></div>
+      </div>`;
+    }else if(S.calibrating){
+      // State 2: User submitted calibration — AI is re-analyzing
+      $('#yongshen-flow').innerHTML=`
+      <div style="text-align:center;padding:24px 16px;border:1px solid rgba(245,158,11,0.3);border-radius:var(--radius-sm);background:rgba(30,18,10,0.35);position:relative;overflow:hidden;">
+        <div class="cal-pulse-ring" style="border-color:rgba(245,158,11,0.35);"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-2" style="border-color:rgba(245,158,11,0.35);"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-3" style="border-color:rgba(245,158,11,0.35);"></div>
+        <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">🔄</div>
+        <div class="cal-wait-text" style="color:#fbbf24;font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 正在结合你的反馈重新审盘<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div style="color:var(--muted);font-size:0.74rem;position:relative;z-index:1;">根据断前事校验结果修正旺衰、格局与用神判断</div>
+        <div class="cal-shimmer" style="background:linear-gradient(90deg,transparent,rgba(245,158,11,0.04),transparent);"></div>
+      </div>`;
+    }else{
+      // State 3: Questions ready — waiting for user to calibrate
+      $('#yongshen-flow').innerHTML=`
+      <div style="text-align:center;padding:24px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.35);position:relative;overflow:hidden;">
+        <div class="cal-pulse-ring"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-2"></div>
+        <div class="cal-pulse-ring cal-pulse-ring-3"></div>
+        <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">✦</div>
+        <div class="cal-wait-text" style="color:var(--ink-2);font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 已生成审盘草稿<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+        <div style="color:var(--muted);font-size:0.74rem;margin-bottom:8px;position:relative;z-index:1;">请完成断前事校正以解锁完整命局纲要</div>
+        <button class="btn btn-primary cal-start-btn" onclick="openCalibrationDock()" style="position:relative;z-index:1;">✦ 开始断前事校正</button>
+        <div class="cal-shimmer"></div>
+      </div>`;}
+    return;
+  }
+
+  // Compute colors per step
+  const strength=ys.ri_zhu_strength||'';
+  const wsc=(strength.includes('强')||strength.includes('旺'))?'#f59e0b':(strength.includes('弱')?'#38bdf8':'#a8a29e');
+  const primaryWx=ys.primary||'';
+  const primaryColor=WX_COLOR[primaryWx]||'#a78bfa';
+  const secondary=ys.secondary||'';
+  const ji_shen=ys.ji_shen||'';
+
+  // Source line per step
+  function srcLine(key,i){
+    const now=key==='xiji'?((ys.secondary?'喜'+ys.secondary:'')+(ys.ji_shen?' 忌'+ys.ji_shen:'')):ys[key]||'';
+    const was=key==='xiji'?((init.secondary?'喜'+init.secondary:'')+(init.ji_shen?' 忌'+init.ji_shen:'')):init[key]||'';
+    if(!hasCal)return `<span style="color:var(--faint);">规则引擎初判</span>`;
+    if(was&&was!==now&&init[key]!==now)return `<span style="color:#fbbf24;font-weight:700;">用户反馈修正：从${escHtml(was)}调整为${escHtml(now)}</span>`;
+    return `<span style="color:#4ade80;font-weight:700;">经断前事校准确认 ✓</span>`;
+  }
+
+  const steps=[
+    {label:'日主旺衰',value:strength||'-',color:wsc,src:srcLine('ri_zhu_strength',0)},
+    {label:'格局判断',value:ys.pattern||'-',color:wsc,src:srcLine('pattern',1)},
+    {label:'用神取向',value:primaryWx||'-',color:primaryColor,src:srcLine('primary',2)},
+    {label:'喜忌',value:(secondary?'喜'+secondary:'')+(ji_shen?' 忌'+ji_shen:''),color:'#fbbf24',src:srcLine('xiji',3)},
+  ];
+
+  // Detailed pattern breakdown
+  const pd=patternDetail();
+  const dm=S.chart?.day_master||'';const dmWx=STEM_WX[dm]||'';const dmColor=WX_COLOR[dmWx]||'#a78bfa';
+
+  const desktop=window.innerWidth>640;
+  // Source lines
+  const wkSrc=srcLine('ri_zhu_strength',0);
+  const pSrc=srcLine('pattern',1);
+  const ysSrc=srcLine('primary',2);
+  const xjSrc=srcLine('xiji',3);
+
+  // Build the four cards
+  let currentVal=secondary?'喜'+secondary:'';currentVal+=ji_shen?' 忌'+ji_shen:'';
+  const cards=[
+    {icon:'丁',lbl:'日主旺衰',val:`${escHtml(dm)}${dmWx} · ${escHtml(strength)}`,color:dmColor,src:wkSrc},
+    {icon:'🏗',lbl:'格局子类',val:pd||ys.pattern||'-',color:wsc,src:pSrc},
+    {icon:'🎯',lbl:'用神',val:primaryWx||'-',color:primaryColor,src:ysSrc},
+    {icon:'🧭',lbl:'喜忌',val:currentVal||'-',color:'#fbbf24',src:xjSrc,chip:true},
+  ];
+
+  const html=`
+    <div style="display:${desktop?'grid':'block'};grid-template-columns:repeat(4,1fr);gap:8px;">
+      ${cards.map(c=>`<div style="padding:12px 6px;text-align:center;border:2px solid ${c.color}22;border-radius:10px;background:linear-gradient(180deg,${c.color}08,rgba(20,14,35,0.3));${desktop?'':'margin-bottom:8px;'}">
+        <div style="font-size:1.2rem;margin-bottom:2px;">${c.icon}</div>
+        <div style="font-size:0.58rem;color:var(--muted);font-weight:700;margin-bottom:3px;">${c.lbl}</div>
+        <div style="font-size:0.95rem;font-weight:900;color:${c.color};line-height:1.3;">${c.val}</div>
+        <div style="font-size:0.55rem;margin-top:4px;line-height:1.3;">${c.src}</div>
+      </div>`).join('')}
+    </div>`;
+
+  const fbLine=(()=>{
+    if(!hasCal)return'';
+    const rm=S.calibrationResult?.result_message||S.calibrationResult?.message||'';
+    if(rm)return`<div style="text-align:center;margin-top:8px;font-size:0.68rem;color:#4ade80;line-height:1.5;">${escHtml(rm)}</div>`;
+    const cats=S.feedbackDrafts?S.feedbackDrafts.filter(d=>d.status).map(d=>{const p=S.predictions.find(x=>x.id===d.prediction_id);return p?p.category:'';}).filter(Boolean).slice(0,5):[];
+    const uniq=[...new Set(cats)];
+    return uniq.length?`<div style="text-align:center;margin-top:8px;font-size:0.66rem;color:var(--muted);">已综合你对${uniq.map(c=>`「${escHtml(c)}」`).join('、')}的反馈重新研判</div>`:'';
+  })();
+
+  $('#yongshen-flow').innerHTML=`${html}${fbLine}`;
+}
+
+// ============================================================
+// DAYUN — Complete rewrite: 5-row layout with 喜忌 colors
+// ============================================================
+const GAN=['甲','乙','丙','丁','戊','己','庚','辛','壬','癸'];
+const ZHI=['子','丑','寅','卯','辰','巳','午','未','申','酉','戌','亥'];
+
+function getYearGanzhi(y){const i=((y-4)%60+60)%60;return GAN[i%10]+ZHI[i%12]}
+function judgeXiJi(stem,ys){const wx=STEM_WX[stem]||'';if(wx===ys.primary||wx===ys.secondary)return'喜';if(wx===ys.ji_shen)return'忌';return'平'}
+function xiJiColor(l){return l==='喜'?'#4ade80':l==='忌'?'#f87171':'var(--muted)'}
+function getCurrentDayun(dayun){const y=new Date().getFullYear();return dayun.find(d=>d.start_year<=y&&d.end_year>=y)||dayun[0]||null}
+
+function renderDayun(dayun){
+  $('#dayun-card').hidden=false;
+  const cur=getCurrentDayun(dayun);
+  const ys=S.chart?.yongshen||{};
+  const pub=isReportPublished();
+
+  $('#dayun-strip').innerHTML=dayun.map(d=>{
+    const isCur=cur&&cur.start_year===d.start_year&&cur.end_year===d.end_year;
+    const lvl=pub?judgeXiJi(d.stem,ys):'';
+    const sWx=STEM_WX[d.stem]||'';const bWx=BRANCH_WX[d.branch]||'';
+    const sc=WX_COLOR[sWx]||'var(--ink)';const bc=WX_COLOR[bWx]||'var(--ink)';
+    return`<div class="dayun-card${isCur?' current':''}" onclick="onDayunClick(${d.start_age})">
+      <div class="dayun-ganzhi"><span style="color:${sc};">${escHtml(d.stem)}</span><span style="color:${bc};">${escHtml(d.branch)}</span></div>
+      ${pub?`<span style="font-size:0.5rem;color:${xiJiColor(lvl)};font-weight:800;">${lvl}</span>`:''}
+      <div class="dayun-sub">${escHtml(d.ten_god||'')}</div>
+      <div class="dayun-sub">${d.start_age}-${d.end_age}岁</div>
+      <div class="dayun-sub" style="color:var(--faint);">${d.start_year}-${d.end_year}</div>
+    </div>`;
+  }).join('');
+
+  renderLiunian(cur,ys,pub);
+
+  if(pub){
+    renderDayunSummary(cur,ys);
+    renderDayunDims();
+    renderDayunChat();
+  }else{
+    $('#dayun-summary').innerHTML='';
+    $('#dayun-dims').innerHTML=`<div style="text-align:center;padding:14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.2);color:var(--muted);font-size:0.74rem;">校正后解锁详细分析与行动指南</div>`;
+    $('#dayun-chat').innerHTML='';
+  }
+}
+
+function renderLiunian(cur,ys,pub){
+  if(!cur)return;
+  const sy=cur.start_year, ey=cur.end_year;
+  const now=new Date().getFullYear();
+  const items=[];
+  for(let y=sy;y<=ey;y++){
+    const gz=getYearGanzhi(y);
+    const lvl=pub?judgeXiJi(gz[0],ys):'';
+    const isNow=y===now;
+    items.push(`<div class="dayun-card liunian-card-item${isNow?' current':''}" onclick="onLiunianClick(${y})" style="min-width:56px;padding:6px 5px;">
+      <div style="font-size:0.62rem;color:var(--faint);">${y}</div>
+      <div style="font-family:var(--font-ming);font-size:0.78rem;font-weight:800;">
+        <span style="color:${WX_COLOR[STEM_WX[gz[0]]]||'var(--ink-2)'};">${escHtml(gz[0])}</span><span style="color:${WX_COLOR[BRANCH_WX[gz[1]]]||'var(--ink-2)'};">${escHtml(gz[1])}</span>
+      </div>
+      ${pub?`<div style="font-size:0.5rem;color:${xiJiColor(lvl)};font-weight:800;">${lvl}</div>`:'<div style="font-size:0.5rem;color:var(--faint);">-</div>'}
+    </div>`);
+  }
+  $('#liunian-strip').innerHTML=items.join('');
+}
+
+async function onDayunClick(startAge) {
+  S_activeAnalysis = 'dayun';
+  const dayun = S.chart?.dayun || [];
+  const ys = S.chart?.yongshen || {};
+  const pub = isReportPublished();
+  S_currentDayunAge = startAge;
+  let cur = null;
+  document.querySelectorAll('#dayun-strip .dayun-card').forEach((el, i) => {
+    const d = dayun[i];
+    const match = d && d.start_age === startAge;
+    el.classList.toggle('current', match);
+    if (match) cur = d;
+  });
+  if (cur) renderLiunian(cur, ys, pub);
+  $('#liuyue-section').style.display = 'none';
+  document.querySelectorAll('.liunian-card-item').forEach(el => el.classList.remove('current'));
+  document.querySelectorAll('.liuyue-card-item').forEach(el => el.classList.remove('current'));
+  
+  // 缓存命中
+  if (S_dayunCache[startAge]) {
+    renderDayunDims({forecast: S_dayunCache[startAge]});
+    return;
+  }
+  // 加载中
+  renderDayunDims({loading: true});
+  try {
+    let body;
+    if (S.sessionId) {
+      body = { session_id: S.sessionId, dayun_start_age: startAge };
+      try {
+        const data = await apiFetch('/api/forecast', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const fc = data.forecast || data.current_dayun_analysis || {};
+        if (Object.keys(fc).length > 0) {
+          S_dayunCache[startAge] = fc;
+          S.forecast = fc;
+          renderDayunDims({forecast: fc});
+          return;
+        }
+      } catch (se) {
+        // Session expired — clear and fall through to chart_data
+        S.sessionId = '';
+      }
+    }
+    // Fallback: use chart_data directly
+    const data2 = await apiFetch('/api/forecast', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chart_data: S.chart, dayun_start_age: startAge }),
+    });
+    const fc2 = data2.forecast || data2.current_dayun_analysis || {};
+    S_dayunCache[startAge] = fc2;
+    S.forecast = fc2;
+    renderDayunDims({forecast: fc2});
+  } catch (e) {
+    renderDayunDims(); // last resort fallback
+  }
+}
+
+async function onLiunianClick(year) {
+  S_activeAnalysis = 'liunian';
+  // 流年高亮（不清除大运祖先）
+  document.querySelectorAll('.liunian-card-item').forEach(el => {
+    const yt = parseInt(el.querySelector('div').textContent);
+    el.classList.toggle('current', yt === year);
+  });
+  document.querySelectorAll('.liuyue-card-item').forEach(el => el.classList.remove('current'));
+  
+  // 展开流月
+  loadOrShowLiuYue(year);
+  
+  // 加载流年分析
+  if (S_liunianCache[year]) {
+    renderDayunDims({year: year, forecast: S_liunianCache[year]});
+    return;
+  }
+  renderDayunDims({year: year, loading: true});
+  try {
+    const cd = S.chart;
+    if (!cd || !cd.day_master) return;
+    const data = await authFetch('/api/liunian', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chart_data: cd, year: year, feedbacks: S.feedbackDrafts||[], predictions: S.predictions||[] }),
+    });
+    S_liunianCache[year] = { career: data.analysis.career, wealth: data.analysis.wealth, 
+                              marriage: data.analysis.marriage, relationship: data.analysis.relationship, 
+                              health: data.analysis.health };
+    renderDayunDims({year: year, forecast: S_liunianCache[year]});
+  } catch (e) {
+    renderDayunDims({year: year});
+  }
+}
+
+async function loadOrShowLiuYue(year) {
+  // 尝试加载流月数据
+  if (!AUTH_TOKEN) { showLiuYueGate(); return; }
+  try {
+    const cd = S.chart;
+    if (!cd || !cd.day_master) return;
+    showLiuYueLoading();
+    const data = await authFetch('/api/liuyue', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chart_data: cd, year: year }),
+    });
+    S_liuyueData = data;
+    renderLiuYueStrip(data);
+  } catch (e) {
+    if (e.message && e.message.includes('402')) {
+      showLiuYueGate();
+    } else {
+      showLiuYueGate();
+    }
+  }
+}
+
+function renderDayunSummary(cur,ys){
+  if(!cur)return;
+  const lvl=judgeXiJi(cur.stem,ys);
+  const tg=cur.ten_god||'';
+  const fc=S.forecast||{};
+  const da=fc.current_dayun_analysis||{};
+  let summary=da.overall_theme||da.detailed_analysis||'';
+  // Fallback: build from template if AI text empty
+  if(!summary){
+    if(lvl==='喜')summary=`${cur.stem}${cur.branch} ${tg}运正当时，这十年顺势而为，事业财运有实质支撑。`;
+    else if(lvl==='忌')summary=`${cur.stem}${cur.branch} ${tg}运需谨慎，守住已有的比开拓新的更重要。`;
+    else summary=`${cur.stem}${cur.branch} ${tg}运平稳过渡，顺其自然，不求大起大落。`;
+  }
+  $('#dayun-summary').innerHTML=`
+    <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.25);">
+      <span style="font-family:var(--font-ming);font-size:1.15rem;font-weight:900;"><span style="color:${WX_COLOR[STEM_WX[cur.stem]]||'var(--accent)'};">${escHtml(cur.stem)}</span><span style="color:${WX_COLOR[BRANCH_WX[cur.branch]]||'var(--accent)'};">${escHtml(cur.branch)}</span></span>
+      <span style="font-size:0.65rem;color:var(--muted);background:rgba(139,92,246,0.1);padding:1px 5px;border-radius:3px;">${escHtml(tg)}</span>
+      <span style="font-size:0.72rem;font-weight:700;padding:1px 6px;border-radius:3px;color:${xiJiColor(lvl)};background:${lvl==='喜'?'rgba(74,222,128,0.12)':lvl==='忌'?'rgba(248,113,113,0.12)':'rgba(200,200,200,0.08)'};">${lvl}</span>
+      <span style="flex:1;font-size:0.78rem;color:var(--ink-2);">${escHtml(summary)}</span>
+      <span style="font-size:0.65rem;color:var(--faint);white-space:nowrap;">${cur.start_age}-${cur.end_age}岁</span>
+    </div>`;
+}
+
+function renderDayunDims(opts){opts=opts||{};const isLiunian=!!opts.year;
+  const fc=opts.forecast||S.forecast||{};
+  const dims=[['career','事业'],['wealth','财富'],['marriage','婚姻'],['relationship','贵人'],['health','健康']];
+  // Loading state when fetching liunian data
+  if(opts.loading){
+    const skel=dims.map(([k,label])=>`<div class="dim-card dim-loading" style="min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:0.72rem;font-weight:800;color:var(--ink);">${escHtml(label)}</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;"><div class="skel-bar"></div></div>
+        <span style="font-size:0.7rem;color:var(--muted);">--</span>
+      </div>
+      <div class="skel-line" style="width:90%;"></div>
+      <div class="skel-line" style="width:70%;"></div>
+      <div class="skel-line" style="width:50%;"></div>
+    </div>`).join('');
+    $('#dayun-dims').innerHTML=`<div class="dim-grid">${skel}</div>`;
+    return;
+  }
+  const hasAny=!!(fc.career||fc.wealth||fc.marriage||fc.relationship||fc.health);
+  if(!hasAny){
+    const skel=dims.map(([k,label])=>`<div class="dim-card dim-loading" style="min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:0.72rem;font-weight:800;color:var(--ink);">${escHtml(label)}</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;"><div class="skel-bar"></div></div>
+        <span style="font-size:0.7rem;color:var(--muted);">--</span>
+      </div>
+      <div class="skel-line" style="width:90%;"></div>
+      <div class="skel-line" style="width:70%;"></div>
+      <div class="skel-line" style="width:50%;"></div>
+    </div>`).join('');
+    $('#dayun-dims').innerHTML=`<div class="dim-grid">${skel}</div>`;
+    return;
+  }
+  const cards=dims.map(([k,label])=>{
+    const d=fc[k]||{};
+    const score=typeof d.score==='number'?d.score:(d.summary?50:0);
+    const barW=Math.max(5,score);
+    const barColor=score>=70?'#4ade80':score>=40?'#fbbf24':'#f87171';
+    const tag=score>=70?'吉':score>=40?'平':'凶';
+    const yrBadge=isLiunian?`<span style="font-size:0.58rem;color:var(--accent);margin-left:4px;">${opts.year}年</span>`:'';
+    const yrActions=isLiunian&&d.key_actions?Object.entries(d.key_actions).filter(([y])=>String(y).includes(String(opts.year))).reduce((o,[k,v])=>({...o,[k]:v}),{}):(d.key_actions||{});
+    return`<div class="dim-card" style="min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:0.72rem;font-weight:800;color:var(--ink);white-space:nowrap;">${escHtml(label)}${yrBadge}</span>
+        <div style="flex:1;height:6px;border-radius:3px;background:var(--line);overflow:hidden;"><div style="width:${barW}%;height:100%;border-radius:3px;background:${barColor};transition:width 0.6s ease;"></div></div>
+        <span style="font-size:0.7rem;font-weight:800;color:${barColor};">${score}</span>
+        <span style="font-size:0.6rem;color:${barColor};font-weight:700;">${tag}</span>
+      </div>
+      <p style="font-size:0.7rem;color:var(--ink-2);line-height:1.5;margin-bottom:3px;">${escHtml(d.summary||d.detailed_analysis||'暂无数据')}</p>
+      ${Object.keys(yrActions).length?`<div style="font-size:0.6rem;color:var(--muted);margin-bottom:2px;line-height:1.6;">${Object.entries(yrActions).map(([y,act])=>`⏳ ${escHtml(y)} ${escHtml(act)}`).join('<br>')}</div>`:''}
+      ${d.key_years&&!isLiunian?`<div style="font-size:0.58rem;color:var(--faint);\">关键年：${escHtml(Array.isArray(d.key_years)?d.key_years.join('、'):d.key_years)}</div>`:''}
+    </div>`;
+  }).join('');
+  $('#dayun-dims').innerHTML=`<div class="dim-grid" style="grid-template-columns:repeat(5,1fr);">${cards}</div>`;
+}
+
+function renderDayunChat(){
+  $('#dayun-chat').innerHTML=`
+    <div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;background:rgba(14,9,28,0.2);">
+      <div style="padding:8px 12px;border-bottom:1px solid var(--line);font-size:0.7rem;color:var(--muted);">✦ 命盘问答 · 基于当前大运分析</div>
+      <div id="chat-msgs" style="max-height:240px;overflow-y:auto;padding:10px 12px;font-size:0.74rem;color:var(--ink-2);"><div style="color:var(--muted);text-align:center;">问你想问的，AI 结合命盘分析回答</div></div>
+      <div style="display:flex;gap:6px;padding:8px 12px;border-top:1px solid var(--line);">
+        <input id="chat-input" class="ctrl" placeholder="例如：我适合创业吗？" style="flex:1;min-height:32px;font-size:0.78rem;">
+        <button class="btn btn-primary btn-sm" onclick="sendChat()">发送</button>
+      </div>
+    </div>`;
+}
+
+window.sendChat=async function(){
+  const inp=$('#chat-input');if(!inp||!inp.value.trim())return;
+  const q=inp.value.trim();inp.value='';
+  const msgs=$('#chat-msgs');
+  msgs.innerHTML+=`<div style="margin-bottom:8px;"><span style="color:var(--accent);font-weight:700;">你：</span>${escHtml(q)}</div>`;
+  msgs.innerHTML+=`<div style="margin-bottom:8px;color:var(--muted);"><span style="font-weight:700;">命：</span><span class="loader" style="display:inline-block;margin-left:4px;"></span></div>`;
+  msgs.scrollTop=msgs.scrollHeight;
+  try{
+    const r=await apiFetch('/api/dayun/chat',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,question:q})});
+    msgs.lastElementChild.innerHTML=`<span style="font-weight:700;">命：</span>${escHtml(r.answer||'抱歉，暂时无法回答。')}`;
+  }catch(e){
+    msgs.lastElementChild.innerHTML=`<span style="font-weight:700;">命：</span><span style="color:#f87171;">请求失败，请稍后重试</span>`;
+  }
+  msgs.scrollTop=msgs.scrollHeight;
+};
+
+// ============ 流月详批 ============
+// ============ 流月详批（横条 + 联动） ============
+let S_liuyueData = null;
+let S_activeAnalysis = 'dayun';
+let S_liunianCache = {};  // { 2026: { analysis: {...} } }
+let S_dayunCache = {};    // { startAge: forecast_data }
+let S_currentDayunAge = null;
+
+async function unlockLiuYue() {
+  if (!AUTH_TOKEN) { openAuthModal(); return; }
+  openPayModal('liuyue');
+}
+
+function checkLiuYueAccess() {
+  if (!S.chart || !S.chart.day_master) { $('#liuyue-section').style.display = 'none'; return; }
+  const pub = isReportPublished();
+  $('#liuyue-section').style.display = pub ? '' : 'none';
+  if (!pub) return;
+  if (AUTH_TOKEN) { loadLiuYueIfEntitled(); }
+  else { showLiuYueGate(); }
+}
+
+async function loadLiuYueIfEntitled() {
+  try {
+    const cd = S.chart;
+    if (!cd || !cd.day_master) return;
+    showLiuYueLoading();
+    const data = await authFetch('/api/liuyue', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chart_data: cd, year: new Date().getFullYear() }),
+    });
+    S_liuyueData = data;
+    renderLiuYueStrip(data);
+  } catch (e) {
+    if (e.message && e.message.includes('402')) { showLiuYueGate(); }
+    else { showLiuYueGate(); }
+  }
+}
+
+function showLiuYueGate() {
+  $('#liuyue-gate').style.display = '';
+  $('#liuyue-strip').style.display = 'none';
+  $('#liuyue-loading').style.display = 'none';
+}
+
+function showLiuYueLoading() {
+  $('#liuyue-gate').style.display = 'none';
+  $('#liuyue-strip').style.display = 'none';
+  $('#liuyue-loading').style.display = '';
+}
+
+function renderLiuYueStrip(data) {
+  $('#liuyue-gate').style.display = 'none';
+  $('#liuyue-loading').style.display = 'none';
+  $('#liuyue-year-label').textContent = data.year + '年';
+  const strip = $('#liuyue-strip');
+  strip.style.display = '';
+  const pub = isReportPublished();
+  strip.innerHTML = data.months.map((m, i) => {
+    const xjEmoji = m.xi_ji === '喜' ? '👍' : m.xi_ji === '忌' ? '⚠️' : '';
+    return `<div class="dayun-card liuyue-card-item" onclick="onLiuYueClick(${i})" style="min-width:62px;padding:6px 5px;">
+      <div style="font-size:0.6rem;color:var(--faint);">${m.label.substring(0,2)}</div>
+      <div style="font-family:var(--font-ming);font-size:0.78rem;font-weight:800;">
+        <span style="color:${WX_COLOR[STEM_WX[m.stem]]||'var(--ink-2)'};">${escHtml(m.stem)}</span><span style="color:${WX_COLOR[BRANCH_WX[m.branch]]||'var(--ink-2)'};">${escHtml(m.branch)}</span>
+      </div>
+      ${pub ? `<div style="font-size:0.5rem;color:${xiJiColor(m.xi_ji)};font-weight:800;">${xjEmoji} ${m.xi_ji}</div>` : '<div style="font-size:0.5rem;color:var(--faint);">-</div>'}
+      <div style="font-size:0.52rem;color:var(--muted);margin-top:1px;">${escHtml(m.ten_god)}</div>
+    </div>`;
+  }).join('');
+}
+
+function onLiuYueClick(idx) {
+  const m = S_liuyueData?.months?.[idx];
+  if (!m) return;
+  S_activeAnalysis = 'liuyue';
+  document.querySelectorAll('.liuyue-card-item').forEach((el, i) => el.classList.toggle('current', i === idx));
+  // 祖先不清除，保持大运和流年的高亮
+  renderLiuYueDims(m);
+}
+
+function renderLiuYueDims(m) {
+  const label = m.label;
+  const interpretation = m.interpretation || '暂无详细分析';
+  const dims = [['career','事业'],['wealth','财富'],['marriage','婚姻'],['relationship','贵人'],['health','健康']];
+  const cards = dims.map(([k, dimLabel]) => {
+    return `<div class="dim-card" style="min-width:0;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
+        <span style="font-size:0.72rem;font-weight:800;color:var(--ink);">${escHtml(dimLabel)}</span>
+        <span style="font-size:0.6rem;color:var(--accent);">${escHtml(label)}</span>
+        <span style="font-size:0.6rem;color:${xiJiColor(m.xi_ji)};font-weight:700;">${m.xi_ji === '喜' ? '👍' : m.xi_ji === '忌' ? '⚠️' : ''}${m.xi_ji}</span>
+      </div>
+      <p style="font-size:0.7rem;color:var(--ink-2);line-height:1.5;">${escHtml(interpretation)}</p>
+    </div>`;
+  }).join('');
+  $('#dayun-dims').innerHTML = `<div class="dim-grid" style="grid-template-columns:repeat(5,1fr);">${cards}</div>`;
+}
+
+// ============================================================
+const SHENSHA_MEANING={
+  天乙贵人:'最强的贵人星，逢之有贵人相助，遇难呈祥',
+  太极贵人:'聪明好学，有特殊天赋，喜钻研玄学命理',
+  文昌贵人:'学业运强，文采出众',
+  学堂:'早年学习能力强',
+  将星:'有领导才能，组织能力强',
+  金舆:'有福气享受，生活品质高',
+  天喜:'喜事临门，姻缘美满',
+  红鸾:'桃花运好，异性缘佳',
+  福星贵人:'天生福气，衣食无忧',
+  天德贵人:'心地善良，有祖上庇佑',
+  月德贵人:'母亲缘好，女性贵人相助',
+  华盖:'性格清高孤傲，有艺术才华',
+  桃花:'异性缘好，有人缘魅力',
+  红艳:'感情丰富，易有情缘纠葛',
+  羊刃:'性格刚烈冲动，执行力强',
+  灾煞:'容易遇到突发意外',
+  劫煞:'容易破财被劫',
+  孤辰:'性格孤僻，晚婚',
+  寡宿:'感情路上较孤独',
+  亡神:'容易心神不宁',
+  驿马:'奔波劳碌，适合外出发展',
+  童子:'前世因果，性格单纯',
+  魁罡:'性格刚强果断，不喜受人管',
+  空亡:'运势有起伏，某些方面容易落空',
+};
+const AUSPICIOUS=new Set(['天乙贵人','太极贵人','文昌贵人','学堂','将星','金舆','天喜','福星贵人','天德贵人','天德','月德贵人','月德','华盖','国印贵人','天厨贵人','词馆','三台','八座','魁罡']);
+const OMINOUS=new Set(['羊刃','灾煞','劫煞','孤辰','寡宿','亡神','勾绞','元辰','血刃','飞刃','披麻','丧门','吊客','白虎','天罗','地网']);
+
+// ============================================================
+// SHENSHA LIFE MAP — 神煞人生图
+// ============================================================
+function renderShenshaLifeMap(data){
+  const ss=data.shensha||[];
+  const posOrder=['year','month','day','hour'];
+  const stages=[
+    {pos:'year',label:'童年',age:'1-15',icon:'🌱',desc:'根基初立'},
+    {pos:'month',label:'青年',age:'16-30',icon:'🌿',desc:'锋芒初显'},
+    {pos:'day',label:'中年',age:'31-45',icon:'🌳',desc:'人生主场'},
+    {pos:'hour',label:'晚年',age:'46+',icon:'🍂',desc:'厚积薄发'}
+  ];
+
+  // Group by pillar
+  const byPos={year:[],month:[],day:[],hour:[]};
+  ss.forEach(s=>{const p=s.position||'';if(byPos[p])byPos[p].push(s);else byPos.year.push(s);});
+
+  // Translate shensha to human-readable themes and insights
+  const THEME_MAP={
+    天乙贵人:{tags:['贵人运'],insight:'关键时刻总有贵人相助',tone:'pos'},
+    太极贵人:{tags:['悟性','玄学天赋'],insight:'悟性超群，学什么都快',tone:'pos'},
+    将星:{tags:['领导力','主见'],insight:'天生有主见，能带队',tone:'pos'},
+    金舆:{tags:['配偶助力','福气'],insight:'配偶给力，生活有品质',tone:'pos'},
+    天喜:{tags:['喜事','姻缘'],insight:'喜事临门，好事不断',tone:'pos'},
+    红鸾:{tags:['桃花','人缘'],insight:'异性缘佳，感情运旺',tone:'pos'},
+    福星贵人:{tags:['福气','衣食无忧'],insight:'天生有福，日子不苦',tone:'pos'},
+    天德:{tags:['善缘','祖上庇佑'],insight:'心地善良得庇佑',tone:'pos'},
+    月德:{tags:['母缘','女性贵人'],insight:'母亲或女性贵人有助力',tone:'pos'},
+    文昌贵人:{tags:['学业','文采'],insight:'读书考试运强',tone:'pos'},
+    学堂:{tags:['学习力'],insight:'早年学习能力强',tone:'pos'},
+    华盖:{tags:['艺术才华','清高'],insight:'有艺术天赋，性格清高',tone:'pos'},
+    魁罡:{tags:['刚强','决断力'],insight:'性格果决，不拖泥带水',tone:'pos'},
+    劫煞:{tags:['竞争','破财'],insight:'需防突发竞争和破财',tone:'neg'},
+    灾煞:{tags:['意外','波折'],insight:'容易遇到突发状况',tone:'neg'},
+    羊刃:{tags:['冲动','刚烈'],insight:'性格刚烈，容易冲动行事',tone:'neg'},
+    孤辰:{tags:['孤僻','晚婚'],insight:'性格偏孤僻，社交偏少',tone:'neg'},
+    寡宿:{tags:['感情孤独'],insight:'感情路上较孤独',tone:'neg'},
+    亡神:{tags:['心神不宁'],insight:'容易焦虑，精神压力大',tone:'neg'},
+    孤鸾:{tags:['感情孤克'],insight:'婚恋有孤克，需用心经营',tone:'neg'},
+    桃花:{tags:['人缘','魅力'],insight:'有人缘魅力，异性缘好',tone:'neut'},
+    红艳:{tags:['感情丰富'],insight:'感情世界丰富多彩',tone:'neut'},
+    驿马:{tags:['奔波','外出'],insight:'适合外出发展，奔波劳碌',tone:'neut'},
+    童子:{tags:['灵性','健康注意'],insight:'有灵气，需注意健康',tone:'neut'},
+    空亡:{tags:['运势起伏'],insight:'运势有起伏，不宜强求',tone:'neg'},
+  };
+
+  const cards=stages.map(st=>{
+    const items=byPos[st.pos]||[];
+    if(!items.length){
+      // Generate positively-framed fallback insight
+      const prev=stages.find(s=>s.pos===st.pos);
+      return`<div class="ss-card">
+        <div class="ss-card-icon">${st.icon}</div>
+        <div class="ss-card-stage">${st.label}<span style="font-size:0.65rem;color:var(--muted);margin-left:4px;">${st.age}</span></div>
+        <div class="ss-card-desc" style="color:var(--muted);">平稳度过</div>
+        <div class="ss-card-insight" style="color:var(--faint);">这一阶段波澜不惊，按部就班</div>
+      </div>`;
+    }
+
+    // === Category-based layout ===
+    const CATEGORIES=[
+      {key:'noble',label:'贵人',icon:'🤝',color:'#4ade80',bg:'rgba(74,222,128,0.08)'},
+      {key:'talent',label:'天赋',icon:'💡',color:'#38bdf8',bg:'rgba(56,189,248,0.08)'},
+      {key:'romance',label:'感情',icon:'💕',color:'#c084fc',bg:'rgba(192,132,252,0.08)'},
+      {key:'caution',label:'留意',icon:'⚡',color:'#f59e0b',bg:'rgba(245,158,11,0.08)'}
+    ];
+    // Map each shensha name to a category
+    const SS_CAT={
+      天乙贵人:'noble',天德:'noble',月德:'noble',福星贵人:'noble',国印贵人:'noble',
+      太极贵人:'talent',文昌贵人:'talent',学堂:'talent',将星:'talent',金舆:'talent',华盖:'talent',魁罡:'talent',
+      桃花:'romance',红鸾:'romance',红艳:'romance',天喜:'romance',孤鸾:'romance',寡宿:'romance',孤辰:'romance',
+      羊刃:'caution',灾煞:'caution',劫煞:'caution',亡神:'caution',空亡:'caution',童子:'caution',驿马:'caution',十恶大败:'caution'
+    };
+
+    // Build category rows
+    const catRows=CATEGORIES.map(cat=>{
+      const members=items.filter(s=>SS_CAT[s.name]===cat.key);
+      if(!members.length)return`<div class="ss-cat-row"><span class="ss-cat-lbl" style="color:var(--faint);">${cat.icon}</span><span style="color:var(--faint);font-size:0.6rem;">-</span></div>`;
+      const pills=members.map(s=>{
+        const tip=s.description||SHENSHA_MEANING[s.name]||s.name;
+        return`<span class="ss-name-pill" style="color:${cat.color};background:${cat.bg};" data-tip="${escAttr(s.name)}：${escAttr(tip)}">${escHtml(s.name)}</span>`;
+      }).join('');
+      return`<div class="ss-cat-row"><span class="ss-cat-lbl">${cat.icon}</span>${pills}</div>`;
+    }).join('');
+
+    // Count for accent color
+    const negCount=items.filter(s=>OMINOUS.has(s.name)).length;
+    const posCount=items.length-negCount;
+    const ratio=posCount/(items.length||1);
+    const accentColor=ratio>=0.8?'#4ade80':ratio>=0.4?'#fbbf24':'#f87171';
+
+    // Narrative (unchanged logic)
+    const posThemes=items.filter(s=>(THEME_MAP[s.name]||{}).tone==='pos').map(s=>THEME_MAP[s.name]?.insight).filter(Boolean);
+    const negThemes=items.filter(s=>(THEME_MAP[s.name]||{}).tone==='neg').map(s=>THEME_MAP[s.name]?.insight).filter(Boolean);
+    const frameWords={
+      year:{context:'为一生打下底色'},month:{context:'正是闯荡的时候'},
+      day:{context:'人生的主战场'},hour:{context:'厚积薄发的季节'}
+    };
+    const fw=frameWords[st.pos]||frameWords.day;
+    let narrative='';
+    const pc=posThemes.length,nc=negThemes.length;
+    if(pc>=2&&nc===0)narrative=posThemes.slice(0,2).join('，')+'，'+fw.context;
+    else if(pc>=1&&nc>=1)narrative=posThemes.slice(0,2).join('，')+'。'+negThemes.slice(0,1).join('')+'，需多加留意';
+    else if(pc===0&&nc>=1)narrative=negThemes.slice(0,2).join('，')+'。保持耐心，度过即转机';
+    else if(pc===1&&nc===0)narrative=posThemes[0]+'，'+fw.context;
+    else narrative='按部就班，平稳度过';
+
+    return`<div class="ss-card" style="border-color:${accentColor}33;">
+      <div class="ss-card-icon">${st.icon}</div>
+      <div class="ss-card-stage">${st.label}<span style="font-size:0.62rem;color:var(--muted);margin-left:4px;">${st.age}</span></div>
+      <div class="ss-card-desc">${st.desc}</div>
+      <div class="ss-card-cats">${catRows}</div>
+      <div class="ss-card-insight">${narrative}</div>
+    </div>`;
+  }).join('');
+
+  $('#shensha-life-map').innerHTML=`<div class="ss-cards">${cards}</div>`;
+  $('#shensha-narrative').innerHTML='';
+
+  // Bind tooltips for shensha details
+  setTimeout(()=>{
+    $$('#shensha-life-map [data-tip]').forEach(el=>{
+      el.addEventListener('mouseenter',e=>{
+        const tip=$('#tg-tooltip');
+        tip.textContent=el.dataset.tip||'';
+        tip.style.display='block';
+        tip.style.left=Math.min(e.clientX+14,window.innerWidth-270)+'px';
+        tip.style.top=e.clientY-10+'px';
+      });
+      el.addEventListener('mouseleave',()=>{$('#tg-tooltip').style.display='none'});
+    });
+  },80);
+}
+// ============================================================
+// ============================================================
+// CLASSICS (dead — merged into yongshen flow; kept as no-ops)
+// ============================================================
+async function loadClassics(payload){S.classicsReady=true;try{const data=await apiFetch('/api/classical-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});S.classicsDraft=data;if(S.chart){renderSummary(S.chart);updateCalGate()};maybeScheduleInvite()}catch(err){/* silent */}}
+function renderClassics(data){/* merged into yongshen flow */}
+function publishFormalReport(cd){S.reportPublished=true;if(S.chart)renderChart(S.chart);const data=cd||S.classicsDraft;if(data)renderClassics(data)}
+function renderFBBlock(){if(!S.calibrationResult)return'';const ev=buildFBE().slice(0,3);if(!ev.length)return'';return`<div style="padding:12px;border:1px solid var(--line);border-radius:6px;background:rgba(139,92,246,0.04);margin-bottom:12px;"><strong style="display:block;margin-bottom:4px;font-size:0.85rem;">本次校正使用的反馈</strong><p style="color:var(--ink-2);font-size:0.8rem;">${escHtml(ev.join('；'))}</p></div>`}
+function renderSources(sources){const rows=(sources||[]).slice(0,10);const primary=rows.slice(0,3),extra=rows.slice(3);return`<div class="source-block"><h4>检索到的原文依据</h4><p class="source-note">匹配度表示原文与当前命盘关键词的相关性，不是吉凶评分。</p><div>${primary.length?primary.map(r=>renderSourceRow(r)).join(''):'<div class="source-row"><div>暂无可展示出典</div><div></div></div>'}</div>${extra.length?`<details style="border-top:1px solid var(--line);"><summary style="cursor:pointer;padding:10px 16px;color:var(--ink-2);font-weight:700;font-size:0.82rem;">展开其余 ${extra.length} 条</summary><div>${extra.map(r=>renderSourceRow(r)).join('')}</div></details>`:''}</div>`}
+function renderSourceRow(r){const title=`${r.source||'典籍'} / ${r.chapter||'章节'}`;const ctx=joinParts([r.topic,r.context]);const ex=truncate(r.excerpt||r.text||'',160);return`<div class="source-row"><div><div class="source-title">${escHtml(title)}</div>${ctx?`<div class="source-context">${escHtml(ctx)}</div>`:''}${ex?`<div class="source-excerpt">${escHtml(ex)}</div>`:''}</div><div class="source-score">${r.score!==undefined?escHtml(String(r.score)):''}</div></div>`}
+function truncate(v,lim){const t=String(v||'').trim();return t.length<=lim?t:t.slice(0,lim)+'...'}
+
+// ============================================================
+// PREDICTIONS & CALIBRATION (same logic, adapted)
+// ============================================================
+async function loadPredictions(payload){try{const data=await apiFetch('/api/predictions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});S.sessionId=data.session_id||'';S.predictions=(data.predictions||[]).sort((a,b)=>{const cd=Number(Boolean(b.is_core))-Number(Boolean(a.is_core));if(cd)return cd;return Number(a.sequence||0)-Number(b.sequence||0)});S.feedbackDrafts=S.predictions.map(p=>({prediction_id:p.id,status:'',note:''}));S.currentPredictionIndex=0;S.predictionsReady=true;hidePredictionSkeleton();if(S.chart)updateCalGate();updateCalGate();maybeScheduleInvite()}catch(err){showToast(friendlyError(err,'断前事生成失败'))}}
+
+async function loadAIYongshen(payload){
+  if(!S.chart)return;
+  // Show skeleton in yongshen area
+  $('#yongshen-flow').innerHTML=`
+    <div style="text-align:center;padding:24px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.35);">
+      <div class="cal-pulse-ring"></div><div class="cal-pulse-ring cal-pulse-ring-2"></div><div class="cal-pulse-ring cal-pulse-ring-3"></div>
+      <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">✦</div>
+      <div class="cal-wait-text" style="color:var(--ink-2);font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 正在解读命盘<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
+      <div style="color:var(--muted);font-size:0.74rem;">结合《滴天髓》《穷通宝鉴》典籍推导用神与喜忌</div>
+      <div class="cal-shimmer"></div>
+    </div>`;
+  try{
+    const data=await apiFetch('/api/chart/analyze',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({chart:S.chart})});
+    if(data.method==='ai'&&data.yongshen){
+      S.chart.yongshen={...(S.chart.yongshen||{}),
+        primary:data.yongshen,secondary:data.secondary||'',ji_shen:data.ji_shen||'',
+        auxiliary:data.auxiliary||'',pattern:data.pattern||S.chart.yongshen?.pattern||'',
+        ri_zhu_strength:data.ri_zhu_strength||S.chart.yongshen?.ri_zhu_strength||''
+      };
+      S.aiYongshenLoaded=true;
+      if(S.chart)renderYongshen(S.chart.yongshen);
+      if(S.chart)updateCalGate();
+    }
+    // 纲要出完后才调题目生成
+    showPredictionSkeleton();
+    await loadPredictions(payload);
+  }catch(err){console.warn('AI yongshen load failed',err);showPredictionSkeleton();await loadPredictions(payload)}
+}
+function showPredictionSkeleton(){
+  const existing=$('#prediction-skeleton');
+  if(existing)return; // Already showing
+  const el=document.createElement('div');
+  el.id='prediction-skeleton';
+  el.style.cssText='margin-top:10px;border:1px solid var(--line);border-radius:var(--radius-sm);padding:12px 16px;background:rgba(20,14,35,0.25);text-align:center;';
+  el.innerHTML=`
+    <div class="skel-line" style="margin-bottom:6px;width:60%;"></div>
+    <div class="skel-line" style="margin-bottom:6px;width:80%;"></div>
+    <div class="skel-line" style="width:40%;margin-bottom:8px;"></div>
+    <div style="color:var(--muted);font-size:0.68rem;margin-top:4px;">AI 正在生成断前事题目<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>`;
+  const yf=document.getElementById('yongshen-flow');
+  if(yf)yf.insertAdjacentElement('afterend',el);
+}
+function hidePredictionSkeleton(){
+  const el=$('#prediction-skeleton');
+  if(el)el.remove();
+}
+function maybeScheduleInvite(){if(!S.classicsReady||!S.predictionsReady||S.inviteShown||S.inviteDismissed)return;S.inviteShown=true;if(S.inviteTimer)clearTimeout(S.inviteTimer);S.inviteTimer=setTimeout(()=>{$('#calibration-invite').hidden=false},4000)}
+function dismissCalibrationInvite(){S.inviteDismissed=true;$('#calibration-invite').hidden=true;$('#top-calibration-btn').hidden=false}
+function openCalibrationDock(){if(!S.predictionsReady||!S.predictions.length){showToast('断前事题目还在生成');return}if(S.inviteTimer)clearTimeout(S.inviteTimer);$('#calibration-invite').hidden=true;$('#calibration-dock').hidden=false;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=false;setStep('calibration');renderDock()}
+function renderDock(){const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;const cur=S.predictions[S.currentPredictionIndex];if(!total){$('#dock-body').innerHTML='<div class="empty-inline">暂无断前事题目。</div>';return}if(!cur){$('#dock-body').innerHTML=`<div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">反馈完成</span><h4>可以提交校正</h4><p style="margin-top:6px;">系统会结合你的反馈，判断是保持原时辰、换角度重析，还是在偏差过大时询问出生时间是否精准。</p></div>`}else{const draft=S.feedbackDrafts[S.currentPredictionIndex]||{};$('#dock-body').innerHTML=`<div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.76rem;margin-bottom:10px;"><span>第 ${S.currentPredictionIndex+1}/${total} 题</span><span>${escHtml(cur.category||'断前事')}${cur.is_core?' · 核心关':''}</span></div><div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">${escHtml(cur.category||'断前事')}</span><h4>${escHtml(cur.title||'请验证')}</h4><p style="margin-top:4px;">${escHtml(cur.content||'')}</p><div class="answer-opts">${STATUS_OPTS.map(([s,l])=>`<button class="answer-opt" data-status="${escAttr(s)}" aria-pressed="${String(draft.status===s)}">${escHtml(l)}</button>`).join('')}</div><textarea id="feedback-note" style="width:100%;min-height:60px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:rgba(14,9,28,0.4);color:var(--ink);padding:8px;font:inherit;resize:vertical;font-size:0.85rem;" placeholder="可选：补充你的具体情况">${escHtml(draft.note||'')}</textarea></div>`;setTimeout(()=>{$$('#dock-body [data-status]').forEach(b=>b.addEventListener('click',()=>setDraftStatus(b.dataset.status)));const fn=$('#feedback-note');if(fn)fn.addEventListener('input',e=>{ensureDraft(S.currentPredictionIndex).note=e.target.value.trim()})},0)}$('#prev-question-btn').disabled=S.currentPredictionIndex<=0||S.feedbacksSubmitted;$('#next-question-btn').disabled=S.currentPredictionIndex>=total-1||S.feedbacksSubmitted;$('#submit-calibration-btn').disabled=done<total||S.feedbacksSubmitted;$('#submit-calibration-btn').textContent=S.feedbacksSubmitted?'已提交':`提交校正（${done}/${total}）`;$('#dock-save-state').textContent=`${done}/${total} 已选择`}
+function ensureDraft(i){if(!S.feedbackDrafts[i]){const p=S.predictions[i]||{};S.feedbackDrafts[i]={prediction_id:p.id||'',status:'',note:''}}return S.feedbackDrafts[i]}
+function setDraftStatus(s){ensureDraft(S.currentPredictionIndex).status=s;renderDock()}
+function prevQ(){if(S.currentPredictionIndex>0){S.currentPredictionIndex--;renderDock()}}
+function nextQ(){const d=ensureDraft(S.currentPredictionIndex);if(!d.status){showToast('请先选择反馈');return}if(S.currentPredictionIndex<S.predictions.length-1){S.currentPredictionIndex++;renderDock()}}
+
+async function submitCalibration(){const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;if(done<total){showToast(`还有 ${total-done} 题未选择`);return}$('#submit-calibration-btn').disabled=true;$('#submit-calibration-btn').innerHTML='<span class="loader"></span> 正在提交';S.calibrating=true;renderYongshen(S.chart&&S.chart.yongshen?S.chart.yongshen:{});try{if(!S.feedbacksSubmitted){for(const fb of S.feedbackDrafts){await apiFetch('/api/predictions/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...fb,session_id:S.sessionId})})}S.feedbacksSubmitted=true}const cal=await apiFetch('/api/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId})});const v=getVerdictKey(cal);if(v==='hour_fix'){S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;$('#time-dialog').hidden=false;return}S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;await confirmBirthTime(true)}catch(err){S.calibrating=false;showToast(friendlyError(err,'校正提交失败'));S.feedbacksSubmitted=false;renderDock()}}
+
+async function confirmBirthTime(accurate){$('#time-dialog').hidden=true;$('#calibration-dock').hidden=true;try{const data=await apiFetch('/api/calibrate/confirm-time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,time_accurate:accurate})});if(!accurate&&data.correction_type==='hour_fix'&&data.recommended_hour!==undefined){S.matchedTime=data;$('#matched-time-copy').textContent=`已匹配出出生时段：${data.recommended_shichen||''}（${formatSRange(data.recommended_hour)}）。`;$('#matched-time-dialog').hidden=false;return}S.calibrationResult=data;if(data.updated_analysis){S.reportPublished=true;applyUA(data.updated_analysis,data);S.classicsDraft={classical_analysis:data.updated_analysis.classical_analysis,sources:data.updated_analysis.sources||[]};renderClassics(S.classicsDraft)}else{publishFormalReport()}renderCorrectionResult(data,{mode:accurate?'ai':'unchanged-hour'});await loadForecast(data)}catch(err){showToast(friendlyError(err,'校正失败'));$('#time-dialog').hidden=false}}
+
+async function applyMatchedTime(){if(!S.matchedTime)return;$('#matched-time-dialog').hidden=true;try{const data=await apiFetch('/api/calibrate/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,correction_type:'hour_fix',new_hour:S.matchedTime.recommended_hour,fix_stage:3,force_correction:true})});const applied=data.correction_result&&data.correction_result.applied_result;S.calibrationResult={...S.matchedTime,applied_result:applied,apply_result:data};S.reportPublished=true;if(applied&&applied.chart){S.chart=normalizeAC(applied.chart,applied.strength_detail);renderChart(S.chart)}renderCorrectionResult(S.calibrationResult,{mode:'hour',applied});await refreshClassics();await loadForecast(S.calibrationResult)}catch(err){showToast(friendlyError(err,'刷新失败'));$('#matched-time-dialog').hidden=false}}
+
+async function loadForecast(cr){
+  try{
+    const data=await apiFetch('/api/forecast',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId})});
+    S.forecast=data.forecast||{};
+    // 缓存初始大运预测
+    const cur = getCurrentDayun(S.chart?.dayun||[]);
+    if (cur) { S_dayunCache[cur.start_age] = data.forecast||{}; S_currentDayunAge = cur.start_age; }
+    renderDayun(S.chart.dayun||[]);
+  }catch(err){
+    console.warn('forecast load failed',err);
+    S.forecast={career:{},wealth:{},marriage:{},relationship:{},health:{}};
+    renderDayun(S.chart.dayun||[]);
+  }
+}
+
+function renderForecast(data){const fc=data.forecast||{};const cd=data.current_dayun||{};const structured=fc.yearly_forecast||[];const tl=[];if(fc.current_dayun_analysis||cd.stem){const da=fc.current_dayun_analysis||{};tl.push(renderTL({marker:'当前大运',sub:da.dayun_info?'':joinParts([cd.start_year,cd.end_year?`-${cd.end_year}`:'']),title:da.dayun_info||`${cd.stem||''}${cd.branch||''}运`,body:da.detailed_analysis||da.overall_theme||`${cd.ten_god||''}运`}))}structured.slice(0,5).forEach(s=>{tl.push(renderTL({marker:String(s.year||''),sub:s.ganzhi||'',title:joinParts([s.label||s.ten_god||'流年',s.ten_god?` / ${s.ten_god}`:'']),body:s.key_event||s.advice||'平稳发展'}))});(fc.dayun_timeline||[]).slice(0,2).forEach(d=>{tl.push(renderTL({marker:'后续大运',sub:d.key_window||'',title:d.dayun||d.theme||'后续阶段',body:d.theme?`阶段主题：${d.theme}`:'后续大运概览'}))});const dims=[['career','事业'],['wealth','财运'],['marriage','感情'],['relationship','关系'],['health','健康']];const used=new Set();const dmCards=[];dims.forEach(([k,l])=>{if(used.has(k))return;const it=fc[k];if(!it)return;used.add(k);dmCards.push({label:l,text:it.summary||it.advice||it.detailed_analysis||'暂无数据',years:Array.isArray(it.key_years)?it.key_years.join('、'):''})});const dmHtml=dmCards.map((d,i)=>{const w=dmCards.length%2===1&&i===dmCards.length-1?' wide':'';return`<div class="dim-card${w}"><h4>${escHtml(d.label)}</h4><p>${escHtml(d.text)}</p>${d.years?`<div style="color:var(--muted);font-size:0.76rem;margin-top:6px;">关键年份：${escHtml(d.years)}</div>`:''}</div>`}).join('');const actions=buildActions(fc.actionable_guide||{}).slice(0,6);$('#forecast-content').className='';$('#forecast-content').innerHTML=`<div class="timeline">${tl.join('')||'<div class="empty-inline">暂无数据</div>'}</div>${dmHtml?`<div class="dim-grid">${dmHtml}</div>`:''}${actions.length?`<div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;margin-top:12px;"><h4 style="padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(14,9,28,0.3);font-size:0.88rem;">行动清单</h4><div class="action-list" style="padding:10px;">${actions.map(a=>`<div class="action-item"><strong>${escHtml(a.title)}</strong><p>${escHtml(a.body)}</p>${a.reason?`<p style="color:var(--muted);font-size:0.76rem;margin-top:3px;">${escHtml(a.reason)}</p>`:''}</div>`).join('')}</div></div>`:''}<p style="color:var(--muted);font-size:0.76rem;margin-top:10px;">${escHtml(data.disclaimer||'命理预测仅供参考，人生掌握在自己手中。')}</p>`}
+function renderTL({marker,sub,title,body}){return`<div class="timeline-item"><div class="tl-marker"><strong>${escHtml(marker||'-')}</strong>${sub?`<span>${escHtml(sub)}</span>`:''}</div><div class="tl-content"><h4>${escHtml(title||'')}</h4><p>${escHtml(body||'')}</p></div></div>`}
+function buildActions(guide){const res=[];Object.entries(guide||{}).forEach(([k,v])=>{const entries=Array.isArray(v)?v:[v];entries.forEach(entry=>{if(!entry)return;if(typeof entry==='string'){res.push({title:guideLabel(k),body:entry,reason:''});return}if(typeof entry==='object'){const title=entry.timing?`${guideLabel(k)} / ${entry.timing}`:guideLabel(k);const body=entry.action||entry.advice||entry.summary||entry.text||'';const reason=entry.reason||'';if(body||reason)res.push({title,body:body||reason,reason:body?reason:''})}})});return res}
+function guideLabel(k){const labels={career:'事业',wealth:'财运',marriage:'感情',relationship:'关系',health:'健康',opportunity:'机会',risk:'风险',advice:'建议',do:'宜',avoid:'忌'};return labels[k]||k}
+
+function renderCorrectionResult(data,opts={}){/* merged into yongshen flow */}
+
+function buildCC(data,opts){const before=S.initialChart||S.chart||{};const after=S.chart||{};const changes=[];if(opts.mode==='hour'&&opts.applied&&opts.applied.chart){const bh=before.four_pillars&&before.four_pillars.hour,ah=after.four_pillars&&after.four_pillars.hour;if(bh&&ah){changes.push({label:'时柱',before:joinParts([bh.stem,bh.branch]),after:joinParts([ah.stem,ah.branch])})}}const by=before.yongshen||{},ay=after.yongshen||{};addChange(changes,'旺衰',by.ri_zhu_strength,ay.ri_zhu_strength);addChange(changes,'格局',by.pattern,ay.pattern);addChange(changes,'用神',by.primary,ay.primary);return changes}
+function addChange(cs,l,b,a){const x=String(b||'-'),y=String(a||'-');if(x!==y)cs.push({label:l,before:x,after:y})}
+function buildFBE(){const items=[];S.feedbackDrafts.forEach((fb,i)=>{if(!fb.status)return;const p=S.predictions[i]||{};const note=fb.note?`，并补充"${fb.note}"`:'';items.push(`你反馈「${p.category||'断前事'}」为"${FEEDBACK_LABELS[fb.status]||fb.status}"${note}`)});return items.slice(0,5)}
+function applyUA(ua,cr){if(!S.chart||!ua||!ua.strength_detail)return;const d=ua.strength_detail;const ys=d.yongshen||{};const corrected=cr.updated_chart&&cr.updated_chart.yongshen?cr.updated_chart.yongshen:{};S.chart.yongshen={...(S.chart.yongshen||{}),primary:corrected.primary||ys.primary||S.chart.yongshen?.primary||'',secondary:corrected.secondary||ys.secondary||S.chart.yongshen?.secondary||'',ji_shen:corrected.ji_shen||ys.ji_shen||S.chart.yongshen?.ji_shen||'',pattern:corrected.pattern||d.pattern||S.chart.yongshen?.pattern||'',ri_zhu_strength:corrected.ri_zhu_strength||d.ri_zhu_strength||S.chart.yongshen?.ri_zhu_strength||''};renderSummary(S.chart);updateCalGate();renderYongshen(S.chart.yongshen);$('#dayun-card').hidden=false;renderDayun(S.chart.dayun||[])}
+async function refreshClassics(){/* merged into yongshen flow */}
+function normalizeAC(chart,sd){const next=structuredCloneSafe(chart);if(sd){next.yongshen={...(next.yongshen||{}),...(sd.yongshen||{}),pattern:sd.pattern||next.yongshen?.pattern||'',ri_zhu_strength:sd.ri_zhu_strength||next.yongshen?.ri_zhu_strength||''}}return next}
+function formatSRange(h){const n=Number(h);if(Number.isNaN(n))return'';const s=n===23?23:n;const e=(s+2)%24;return`${pad2(s)}:00-${pad2(e)}:00`}
+function getVerdictKey(d){return d&&d.verdict&&d.verdict.verdict?d.verdict.verdict:''}
+function getVerdictSugg(d){return d&&d.verdict?d.verdict.suggestion||d.verdict.verdict_label||'':''}
+function cTitle(m){if(m==='passed')return'校验通过，原盘判断保持';if(m==='hour')return'已按匹配时段刷新报告';if(m==='unchanged-hour')return'未找到更优时段，保持原时辰';return'已根据断前事反馈修正判断'}
+
+async function copySummary(){const c=S.chart;if(!c)return;const ys=c.yongshen||{};const cd=getCurrentDayun(c.dayun||[]);const lines=isReportPublished()?['命盘正式摘要',`日主：${c.day_master||'-'}，强弱：${ys.ri_zhu_strength||'-'}`,`用神：${ys.primary||'-'}，喜神：${ys.secondary||'-'}，忌神：${ys.ji_shen||'-'}`,`格局：${ys.pattern||'-'}`,cd?`当前大运：${cd.stem}${cd.branch}（${cd.start_year}-${cd.end_year}）`:''].filter(Boolean).join('\n'):['固定基本盘摘要',`日主：${c.day_master||'-'}`,'旺衰、格局、用神：待断前事校正后公开',cd?`当前大运：${cd.stem}${cd.branch}（${cd.start_year}-${cd.end_year}）`:''].filter(Boolean).join('\n');try{await navigator.clipboard.writeText(lines);showToast('摘要已复制 ✦')}catch(e){showToast('复制失败')}}
+
+// ============ Auth ============
+let AUTH_TOKEN = sessionStorage.getItem('bazi_token') || '';
+let AUTH_USER = JSON.parse(sessionStorage.getItem('bazi_user') || 'null');
+
+function openAuthModal() {
+  document.getElementById('auth-modal').hidden = false;
+}
+
+function closeAuthModal() {
+  document.getElementById('auth-modal').hidden = true;
+}
+
+async function sendCode() {
+  const phone = document.getElementById('auth-phone').value.replace(/\s/g, '');
+  if (!/^1\d{10}$/.test(phone)) { alert('请输入正确的手机号'); return; }
+  const btn = document.getElementById('send-code-btn');
+  btn.disabled = true;
+  try {
+    await apiFetch('/api/auth/send-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone }),
+    });
+    // 倒计时
+    let sec = 59;
+    const tick = setInterval(() => {
+      btn.textContent = sec + 's';
+      if (--sec < 0) { clearInterval(tick); btn.textContent = '重新获取'; btn.disabled = false; }
+    }, 1000);
+  } catch (e) {
+    alert('发送失败，请稍后再试');
+    btn.disabled = false;
+  }
+}
+
+async function doLogin() {
+  const phone = document.getElementById('auth-phone').value.replace(/\s/g, '');
+  const code = document.getElementById('auth-code').value.trim();
+  if (!phone || !code) { alert('请输入手机号和验证码'); return; }
+  try {
+    const data = await apiFetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ phone, code }),
+    });
+    AUTH_TOKEN = data.token;
+    AUTH_USER = data.user;
+    sessionStorage.setItem('bazi_token', AUTH_TOKEN);
+    sessionStorage.setItem('bazi_user', JSON.stringify(AUTH_USER));
+    closeAuthModal();
+    updateAuthUI();
+  } catch (e) {
+    document.getElementById('auth-msg').textContent = '验证码错误或已过期';
+  }
+}
+
+function updateAuthUI() {
+  const btn = document.getElementById('auth-btn');
+  if (!btn) return;
+  if (AUTH_USER) {
+    btn.textContent = AUTH_USER.phone.slice(-4);
+    btn.onclick = showUserMenu;
+    // Show points badge and chat toggle when logged in
+    const pointsBadge = document.getElementById('points-badge');
+    if (pointsBadge) pointsBadge.hidden = false;
+    const chatToggle = document.getElementById('chat-toggle-btn');
+    if (chatToggle) chatToggle.hidden = false;
+    loadPoints();
+    updateChatStatus();
+    if (sessionStorage.getItem('bazi_just_paid') === '1') {
+      sessionStorage.removeItem('bazi_just_paid');
+      pollEntitlements();
+    }
+  } else {
+    btn.textContent = '登录';
+    btn.onclick = openAuthModal;
+    const pointsBadge = document.getElementById('points-badge');
+    if (pointsBadge) pointsBadge.hidden = true;
+    const chatToggle = document.getElementById('chat-toggle-btn');
+    if (chatToggle) chatToggle.hidden = true;
+  }
+}
+
+function showUserMenu() {
+  const popover = document.getElementById('points-popover');
+  if (popover) {
+    popover.hidden = !popover.hidden;
+  }
+}
+
+async function pollEntitlements() {
+  let tries = 0;
+  const check = async () => {
+    if (tries++ > 10) return;
+    try {
+      const cd = S.chart;
+      if (!cd || !cd.day_master) return;
+      const data = await authFetch('/api/liuyue', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ chart_data: cd, year: new Date().getFullYear() }),
+      });
+      S_liuyueData = data;
+      renderLiuYueStrip(data);
+      loadPoints();
+    } catch (e) {
+      if (e.message && e.message.includes('402')) {
+        setTimeout(check, 3000);
+      }
+    }
+  };
+  setTimeout(check, 2000);
+}
+
+// ============ Payment ============
+let selectedProduct = '';
+
+function openPayModal() {
+  if (!AUTH_TOKEN) { openAuthModal(); return; }
+  document.getElementById('pay-modal').hidden = false;
+  document.getElementById('pay-result').hidden = true;
+  document.getElementById('pay-confirm-btn').disabled = true;
+  document.getElementById('pay-msg').textContent = '';
+  selectedProduct = '';
+  // Deselect all products
+  document.querySelectorAll('#pay-modal .product-item').forEach(el => el.classList.remove('selected'));
+}
+
+function closePayModal() {
+  document.getElementById('pay-modal').hidden = true;
+}
+
+function selectProduct(product) {
+  selectedProduct = product;
+  document.querySelectorAll('#pay-modal .product-item').forEach(el => {
+    el.classList.toggle('selected', el.dataset.product === product);
+  });
+  document.getElementById('pay-confirm-btn').disabled = false;
+}
+
+async function doPay() {
+  if (!selectedProduct) { showToast('请选择产品'); return; }
+  const btn = document.getElementById('pay-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="loader"></span> 创建订单中...';
+  document.getElementById('pay-msg').textContent = '';
+  try {
+    const data = await authFetch('/api/payment/create-order', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ product: selectedProduct }),
+    });
+    if (data.pay_url) {
+      // Show QR/open link
+      document.getElementById('pay-result').hidden = false;
+      document.getElementById('pay-result').innerHTML = `
+        <div class="pay-icon">💰</div>
+        <p style="color:var(--ink-2);margin-bottom:10px;">订单已创建：${escHtml(data.order_id)}</p>
+        <a href="${escAttr(data.pay_url)}" target="_blank" class="btn btn-primary" style="display:inline-block;">📱 去支付</a>
+        <p style="color:var(--muted);font-size:0.72rem;margin-top:8px;">支付完成后刷新积分</p>`;
+      document.getElementById('pay-confirm-btn').hidden = true;
+      sessionStorage.setItem('bazi_just_paid', '1');
+    } else {
+      document.getElementById('pay-msg').textContent = '订单创建失败，请稍后再试';
+    }
+  } catch (e) {
+    document.getElementById('pay-msg').textContent = friendlyError(e, '支付请求失败');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '确认支付';
+  }
+}
+
+// ============ Points ============
+async function loadPoints() {
+  if (!AUTH_TOKEN) return;
+  try {
+    const data = await authFetch('/api/points/balance');
+    document.getElementById('points-balance-text').textContent = data.balance || 0;
+    document.getElementById('points-center-value').textContent = data.balance || 0;
+    document.getElementById('points-badge').hidden = false;
+  } catch (e) {
+    console.warn('Points load failed', e);
+  }
+}
+
+function togglePointsCenter() {
+  const popover = document.getElementById('points-popover');
+  if (popover.hidden) {
+    loadPoints();
+    popover.hidden = false;
+  } else {
+    popover.hidden = true;
+  }
+}
+
+function closePointsCenter() {
+  const popover = document.getElementById('points-popover');
+  if (popover) popover.hidden = true;
+}
+
+function showGiftForm() {
+  document.getElementById('gift-form').hidden = false;
+  document.getElementById('gift-msg').textContent = '';
+}
+
+async function doGift() {
+  const toUserId = document.getElementById('gift-user-id').value.trim();
+  const amount = parseInt(document.getElementById('gift-amount').value, 10);
+  if (!toUserId || !amount || amount < 1) {
+    document.getElementById('gift-msg').textContent = '请填写完整信息';
+    return;
+  }
+  try {
+    await authFetch('/api/points/gift', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ to_user_id: toUserId, amount }),
+    });
+    document.getElementById('gift-msg').textContent = '赠送成功！';
+    document.getElementById('gift-form').hidden = true;
+    loadPoints();
+  } catch (e) {
+    document.getElementById('gift-msg').textContent = friendlyError(e, '赠送失败');
+  }
+}
+
+// ============ AI Chat ============
+function toggleChat() {
+  const panel = document.getElementById('chat-panel');
+  const backdrop = document.getElementById('chat-panel-backdrop');
+  if (!panel || !backdrop) return;
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    closeChat();
+  } else {
+    if (!AUTH_TOKEN) { openAuthModal(); return; }
+    panel.classList.add('open');
+    backdrop.style.display = 'block';
+    updateChatStatus();
+  }
+}
+
+function closeChat() {
+  const panel = document.getElementById('chat-panel');
+  const backdrop = document.getElementById('chat-panel-backdrop');
+  if (panel) panel.classList.remove('open');
+  if (backdrop) backdrop.style.display = 'none';
+}
+
+function updateChatStatus() {
+  const statusEl = document.getElementById('chat-status');
+  if (!statusEl) return;
+  if (!AUTH_USER) {
+    statusEl.innerHTML = '🔒 <a href="#" onclick="openAuthModal();return false;" style="color:var(--accent);">登录</a>后可开始对话';
+    return;
+  }
+  const trial = AUTH_USER.trial_chats_remaining;
+  if (trial > 0) {
+    statusEl.innerHTML = `🆓 剩余 <b style="color:#4ade80;">${trial}</b> 次试用`;
+    return;
+  }
+  statusEl.innerHTML = '💎 积分：<span class="points-left">--</span>（每轮 5 积分）';
+  authFetch('/api/points/balance').then(data => {
+    if (data.balance >= 5) {
+      statusEl.innerHTML = `💎 积分：<b style="color:var(--accent);">${data.balance}</b>（每轮 5 积分）`;
+    } else {
+      statusEl.innerHTML = `⚠️ 积分不足，<a href="#" onclick="openPayModal('points_pack');return false;" style="color:var(--accent);">购买积分 ¥6.9</a>`;
+    }
+  }).catch(() => {
+    statusEl.innerHTML = '💎 积分：<span class="points-left">--</span>（每轮 5 积分）';
+  });
+}
+
+async function sendChatMsg() {
+  const input = document.getElementById('chat-input-main');
+  if (!input) return;
+  const msg = input.value.trim();
+  if (!msg) return;
+  if (!AUTH_TOKEN) { showToast('请先登录'); openAuthModal(); return; }
+
+  input.value = '';
+  const body = document.getElementById('chat-body');
+  const sendBtn = document.getElementById('chat-send-btn');
+
+  // Add user message
+  body.innerHTML += `<div class="chat-msg user">${escHtml(msg)}</div>`;
+  // Add loading indicator
+  const loadingId = 'loading-' + Date.now();
+  body.innerHTML += `<div class="chat-msg ai" id="${loadingId}" style="color:var(--muted);"><span class="loader"></span> AI思考中...</div>`;
+  body.scrollTop = body.scrollHeight;
+
+  if (sendBtn) sendBtn.disabled = true;
+
+  // Build context from current chart
+  let context = '';
+  if (S.chart) {
+    const dm = S.chart.day_master || '';
+    const ys = S.chart.yongshen || {};
+    const fp = formatFourPillars(S.chart.four_pillars || {});
+    context = `日主：${dm}；四柱：${fp}；旺衰：${ys.ri_zhu_strength || '未知'}；用神：${ys.primary || '未知'}；喜忌：${ys.secondary ? '喜' + ys.secondary : ''}${ys.ji_shen ? '忌' + ys.ji_shen : ''}`;
+  }
+
+  try {
+    const data = await authFetch('/api/chat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: msg, context }),
+    });
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) loadingEl.remove();
+
+    body.innerHTML += `<div class="chat-msg ai">${escHtml(data.reply || '抱歉，暂时无法回答。')}</div>`;
+    body.scrollTop = body.scrollHeight;
+
+    // Update status
+    const statusEl = document.getElementById('chat-status');
+    if (statusEl) {
+      if (data.trial_remaining !== undefined && data.trial_remaining !== null) {
+        statusEl.innerHTML = `免费试用剩余：<span class="trial">${data.trial_remaining}轮</span> &nbsp;|&nbsp; 5积分/轮`;
+      } else if (data.points_remaining !== undefined && data.points_remaining !== null) {
+        statusEl.innerHTML = `积分余额：<span class="points-left">${data.points_remaining}</span> &nbsp;|&nbsp; 5积分/轮`;
+      }
+    }
+    // Refresh points badge
+    loadPoints();
+  } catch (e) {
+    const loadingEl = document.getElementById(loadingId);
+    if (loadingEl) loadingEl.remove();
+    const errMsg = e.message && e.message.includes('402') ? '积分不足，请购买积分' : friendlyError(e, '请求失败');
+    body.innerHTML += `<div class="chat-msg ai" style="color:var(--wx-huo);">${escHtml(errMsg)}</div>`;
+    body.scrollTop = body.scrollHeight;
+  } finally {
+    if (sendBtn) sendBtn.disabled = false;
+    input.focus();
+  }
+}
+
+async function authFetch(url, opts = {}) {
+  opts.headers = opts.headers || {};
+  if (AUTH_TOKEN) opts.headers['Authorization'] = 'Bearer ' + AUTH_TOKEN;
+  return apiFetch(url, opts);
+}
+
+function logout() {
+  AUTH_TOKEN = '';
+  AUTH_USER = null;
+  sessionStorage.removeItem('bazi_token');
+  sessionStorage.removeItem('bazi_user');
+  updateAuthUI();
+}
+
+// 初始化
+document.addEventListener('DOMContentLoaded', updateAuthUI);
+</script>
+</body>
+</html>

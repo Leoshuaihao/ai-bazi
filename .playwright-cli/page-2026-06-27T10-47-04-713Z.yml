@@ -1,0 +1,57 @@
+- generic [ref=e2]:
+  - banner [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]: 命
+        - generic [ref=e7]:
+          - heading "命盘审盘台" [level=1] [ref=e8]
+          - paragraph [ref=e9]: 四柱排盘、典籍依据、断前事校准
+      - generic [ref=e10]:
+        - group "界面主题" [ref=e11]:
+          - button "青瓷主题" [pressed] [ref=e12] [cursor=pointer]:
+            - generic [ref=e14]: 青瓷
+          - button "朱砂主题" [ref=e15] [cursor=pointer]:
+            - generic [ref=e17]: 朱砂
+          - button "霜镜主题" [ref=e18] [cursor=pointer]:
+            - generic [ref=e20]: 霜镜
+          - button "夜航主题" [ref=e21] [cursor=pointer]:
+            - generic [ref=e23]: 夜航
+        - button "填入示例" [ref=e24] [cursor=pointer]
+        - button "清空" [ref=e25] [cursor=pointer]
+  - main [ref=e26]:
+    - region "出生信息录入" [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e30]:
+          - generic [ref=e31]: 先校验，再解读
+          - heading "让命盘先经过你的经历。" [level=2] [ref=e32]
+          - paragraph [ref=e33]: 先排固定盘，再用断前事校正旺衰、格局和用神，最后公开正式报告。
+        - generic [ref=e34]:
+          - group "历法" [ref=e35]:
+            - generic [ref=e36]: 历法
+            - group "历法" [ref=e37]:
+              - button "阳历" [pressed] [ref=e38] [cursor=pointer]
+              - button "农历" [ref=e39] [cursor=pointer]
+          - generic [ref=e40]:
+            - generic [ref=e41]: 出生日期
+            - button "出生日期" [ref=e42] [cursor=pointer]:
+              - generic [ref=e43]: 日
+              - generic [ref=e44]: 请选择出生日期和时间
+          - group "主角设定" [ref=e45]:
+            - generic [ref=e46]: 主角设定
+            - group "性别" [ref=e47]:
+              - button "女" [ref=e48] [cursor=pointer]
+              - button "男" [pressed] [ref=e49] [cursor=pointer]
+          - generic [ref=e50]:
+            - generic [ref=e51]: 降生之地
+            - textbox "降生之地" [ref=e52]:
+              - /placeholder: 请输入出生地，例如：广州 / 上海 / 纽约
+          - generic [ref=e53]:
+            - generic [ref=e54]: 主角名字
+            - textbox "主角名字" [ref=e55]:
+              - /placeholder: 请输入你的昵称
+          - generic [ref=e56]:
+            - generic [ref=e57]:
+              - checkbox "出生时间只是大概记忆" [ref=e58]
+              - generic [ref=e59]: 出生时间只是大概记忆
+            - generic [ref=e60]: 断前事阶段会重点校验时辰。
+          - button "新增命盘 →" [ref=e62] [cursor=pointer]

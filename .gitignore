@@ -1,0 +1,27 @@
+# 敏感配置
+.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+
+# 数据库
+data/*.db
+*.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# 系统
+.DS_Store
+Thumbs.db

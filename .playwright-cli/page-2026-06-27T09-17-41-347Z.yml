@@ -1,0 +1,1100 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "Navigate to home" [ref=e5] [cursor=pointer]:
+        - /url: /en
+        - img "OpenFate Logo" [ref=e6]
+      - generic [ref=e7]:
+        - button "Feedback Rewards" [ref=e8] [cursor=pointer]
+        - button "Select language" [ref=e10] [cursor=pointer]:
+          - img [ref=e11]
+        - button "Sign In" [ref=e15] [cursor=pointer]
+        - button "Open navigation menu" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+  - generic [ref=e19]:
+    - generic [ref=e22]:
+      - heading "Wealth Analysis | Manifestation Strategy" [level=1] [ref=e24]
+      - paragraph [ref=e26]: Go beyond vague money predictions. Use Bazi analysis to interpret Wealth Stars, Output, Authority structures, and Luck Pillars so you can understand monetization style, action timing, and grounded wealth strategy.
+      - generic "★ 4.8 Rating | 16,897+ detailed reports generated" [ref=e28]
+      - generic [ref=e29]:
+        - button "My Wealth" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e33]: My Wealth
+          - img [ref=e34]
+        - button "Astrology" [ref=e36] [cursor=pointer]:
+          - img [ref=e37]
+          - generic [ref=e38]: Astrology
+          - img [ref=e39]
+        - button "Ziwei Dou Shu" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e43]: Ziwei Dou Shu
+          - img [ref=e44]
+      - generic [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - button "Solar" [ref=e50] [cursor=pointer]:
+                - generic [ref=e51]: Solar
+              - generic [ref=e52]:
+                - generic: e.g. 02/29/2004 10:30 AM, New York, male
+                - textbox "e.g. 02/29/2004 10:30 AM, New York, male" [ref=e53]
+            - button "Start" [ref=e55] [cursor=pointer]
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - generic [ref=e60]: "Privacy protected: your input is carefully protected and mainly used for results and experience improvements."
+        - generic:
+          - generic: Analysis is running, please wait...
+    - region "OpenFate Bazi MCP Server" [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: Open Source · MCP · Agent Skill
+          - heading "OpenFate Bazi MCP Server" [level=2] [ref=e66]
+          - paragraph [ref=e67]: A production-grade Bazi calculation server for Claude, Cursor, Codex, Cline, and every MCP-compatible AI agent.
+          - generic [ref=e68]:
+            - generic [ref=e74]: $
+            - generic [ref=e75]: npx -y @openfate/bazi-mcp
+            - button "Copy" [ref=e76] [cursor=pointer]:
+              - generic [ref=e79]: Copy
+          - generic [ref=e80]:
+            - generic [ref=e81]: npm v0.2.0
+            - generic [ref=e83]: MCP Registry listed
+            - generic [ref=e85]: MIT License
+          - generic [ref=e87]:
+            - link "GitHub" [ref=e88] [cursor=pointer]:
+              - /url: https://github.com/openfate-ai/bazi-mcp
+              - img [ref=e89]
+              - text: GitHub
+            - link "npm" [ref=e91] [cursor=pointer]:
+              - /url: https://www.npmjs.com/package/@openfate/bazi-mcp
+            - link "MCP Registry" [ref=e92] [cursor=pointer]:
+              - /url: https://registry.modelcontextprotocol.io/v0/servers?search=io.github.openfate-ai/bazi-mcp&version=0.2.0
+            - link "Docs →" [ref=e93] [cursor=pointer]:
+              - /url: /en/developers/bazi-mcp
+        - button "Dismiss developer panel" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+    - list [ref=e97]:
+      - listitem [ref=e98]:
+        - blockquote [ref=e99]:
+          - paragraph [ref=e100]: Seems very informative ^^
+          - contentinfo [ref=e101]: er***@gmail.com
+      - listitem [ref=e102]:
+        - blockquote [ref=e103]:
+          - paragraph [ref=e104]: Useful in self discovery
+          - contentinfo [ref=e105]: ko***@gmail.com
+      - listitem [ref=e106]:
+        - blockquote [ref=e107]:
+          - paragraph [ref=e108]: It is very useful
+    - generic [ref=e110]:
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - heading "What Our Clients Are Saying" [level=2] [ref=e113]:
+            - text: What Our Clients Are Saying
+            - img [ref=e114]
+          - paragraph [ref=e115]: We take pride in delivering thoughtful reports that help people see their timing, patterns, and next steps more clearly.
+          - link "More reviews" [ref=e116] [cursor=pointer]:
+            - /url: https://www.threads.net/@openfate.ai/post/DYdJWA8kcNx
+            - img [ref=e117]
+            - text: More reviews
+            - img [ref=e119]
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - img [ref=e123]
+            - img [ref=e125]
+            - img [ref=e127]
+            - img [ref=e129]
+            - img [ref=e131]
+          - paragraph [ref=e133]: 4.8 average customer rating (500+ reviews)
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - img [ref=e137]
+          - generic [ref=e142]:
+            - generic [ref=e143]: 31,500+
+            - generic [ref=e144]: Active Users
+        - generic [ref=e145]:
+          - img [ref=e147]
+          - generic [ref=e150]:
+            - generic [ref=e151]: 15,500+
+            - generic [ref=e152]: Detailed Reports
+        - generic [ref=e153]:
+          - img [ref=e155]
+          - generic [ref=e157]:
+            - generic [ref=e158]: 52,000+
+            - generic [ref=e159]: AI Chat Sessions
+        - generic [ref=e160]:
+          - img [ref=e162]
+          - generic [ref=e164]:
+            - generic [ref=e165]: 2.0B+
+            - generic [ref=e166]: AI Tokens Generated
+      - generic [ref=e169]:
+        - article [ref=e170]:
+          - generic [ref=e171]:
+            - generic [ref=e172]: W
+            - generic [ref=e173]:
+              - generic [ref=e174]:
+                - strong [ref=e175]: wi***@gmail.com
+                - img [ref=e176]
+              - time [ref=e178]: 17 hours ago
+          - paragraph [ref=e179]: 原來點一下文字可以有更詳細的解說，不過點了進去後怕會被扣掉點數 ，但實際上沒有扣。
+        - article [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]: "1"
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - strong [ref=e185]: 11***@qq.com
+                - img [ref=e186]
+              - time [ref=e188]: 2 days ago
+          - paragraph [ref=e189]: 这个算法真的很准确！和我之前用的ai排的不太一样，很细致，希望越做越好
+        - article [ref=e190]:
+          - generic [ref=e191]:
+            - generic [ref=e192]: A
+            - generic [ref=e193]:
+              - strong [ref=e195]: Anonymous user
+              - time [ref=e196]: 3 days ago
+          - paragraph [ref=e197]: 用了无数个ai测出来的都不一样 最后用了一下这个感觉还是蛮准的
+        - article [ref=e198]:
+          - generic [ref=e199]:
+            - generic [ref=e200]: O
+            - generic [ref=e201]:
+              - generic [ref=e202]:
+                - strong [ref=e203]: op***@gmail.com
+                - img [ref=e204]
+              - time [ref=e206]: 2 days ago
+          - paragraph [ref=e207]: 我因為生日農曆國曆跨年份常常被算錯 但你這個網站是準的
+        - article [ref=e208]:
+          - generic [ref=e209]:
+            - generic [ref=e210]: A
+            - generic [ref=e211]:
+              - generic [ref=e212]:
+                - strong [ref=e213]: a4***@gmail.com
+                - img [ref=e214]
+              - time [ref=e216]: 3 days ago
+          - paragraph [ref=e217]: 超實用的網站！比起很多其他ai 亂排盤瞎扯，這裡超讚的！
+        - article [ref=e218]:
+          - generic [ref=e219]:
+            - generic [ref=e220]: J
+            - generic [ref=e221]:
+              - generic [ref=e222]:
+                - strong [ref=e223]: jo***@gmail.com
+                - img [ref=e224]
+              - time [ref=e226]: 3 days ago
+          - paragraph [ref=e227]: 因为我知道做这种网站一定一定非常不容易 这算你自己的产出 是孩子 很辛苦了伟大玄学mom哈哈哈哈
+        - article [ref=e228]:
+          - generic [ref=e229]:
+            - generic [ref=e230]: J
+            - generic [ref=e231]:
+              - generic [ref=e232]:
+                - strong [ref=e233]: jo***@gmail.com
+                - img [ref=e234]
+              - time [ref=e236]: 6 days ago
+          - paragraph [ref=e237]: 因為我本身是研究飛星的 偶然發現竟有人做出了欽天監派的ai 牛之 必用之
+        - article [ref=e238]:
+          - generic [ref=e239]:
+            - generic [ref=e240]: S
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - strong [ref=e243]: su***@gmail.com
+                - img [ref=e244]
+              - time [ref=e246]: 1 week ago
+          - paragraph [ref=e247]: 超級棒的網站，不𧫴做到學術的專業（指正了數百年的舊時代的命盤錯誤）而且又融入現代美學的設計排版。值得大家小額贊助
+        - article [ref=e248]:
+          - generic [ref=e249]:
+            - generic [ref=e250]: J
+            - generic [ref=e251]:
+              - generic [ref=e252]:
+                - strong [ref=e253]: jo***@gmail.com
+                - img [ref=e254]
+              - time [ref=e256]: 6 days ago
+          - paragraph [ref=e257]: 誇誇你 太辛勤了 我是在脆上偶然評論區看到你給別人的回復 要多打廣告嘿
+        - article [ref=e258]:
+          - generic [ref=e259]:
+            - generic [ref=e260]: A
+            - generic [ref=e261]:
+              - strong [ref=e263]: Anonymous user
+              - time [ref=e264]: 1 week ago
+          - paragraph [ref=e265]: 別的軟件算我的八字都說喜金土，不喜火。我體感我不喜土喜火，只有你們這個軟件排出來喜用是正確的，非常好的網站！祝越來越多人知道
+        - article [ref=e266]:
+          - generic [ref=e267]:
+            - generic [ref=e268]: S
+            - generic [ref=e269]:
+              - generic [ref=e270]:
+                - strong [ref=e271]: su***@gmail.com
+                - img [ref=e272]
+              - time [ref=e274]: 1 week ago
+          - paragraph [ref=e275]: 超級感謝您的即時回覆，為表感謝已經下單500點，希望給予優秀網站一點支持。結論您是對的，已經驗證gemini and claude, 您的觀點的確凌駕於數十數百年的命盤系統，我等下會在下面留言分別貼上Ai的回覆。另外，我特別喜歡網站的十神那些排版，跟別的古老命盤網站的排版不同，非常有設計感。希望早日上架 ios app
+        - article [ref=e276]:
+          - generic [ref=e277]:
+            - generic [ref=e278]: E
+            - generic [ref=e279]:
+              - generic [ref=e280]:
+                - strong [ref=e281]: ep***@gmail.com
+                - img [ref=e282]
+              - time [ref=e284]: 1 week ago
+          - paragraph [ref=e285]: 免費版的資訊訊息就很豐富，會讓人願意繼續深究，感謝站長提供可供迷途失所的用戶，解惑且可相信自己的力量😊
+        - article [ref=e286]:
+          - generic [ref=e287]:
+            - generic [ref=e288]: P
+            - generic [ref=e289]:
+              - generic [ref=e290]:
+                - strong [ref=e291]: pa***@gmail.com
+                - img [ref=e292]
+              - time [ref=e294]: 1 week ago
+          - paragraph [ref=e295]: 超級好用 而且身為晚子人真的很難搞清楚自己到底要看哪種盤 介面設計也很簡潔明瞭 超級喜歡
+        - article [ref=e296]:
+          - generic [ref=e297]:
+            - generic [ref=e298]: A
+            - generic [ref=e299]:
+              - strong [ref=e301]: Anonymous user
+              - time [ref=e302]: 1 week ago
+          - paragraph [ref=e303]: 用过了，真的非常准！做的好厉害 会分享给朋友的
+        - article [ref=e304]:
+          - generic [ref=e305]:
+            - generic [ref=e306]: T
+            - generic [ref=e307]:
+              - generic [ref=e308]:
+                - strong [ref=e309]: ta***@gmail.com
+                - img [ref=e310]
+              - time [ref=e312]: 1 week ago
+          - paragraph [ref=e313]: 版面清爽，用詞簡明，把個性或天賦的優缺點以不同顏色字體曲分開，一眼就能分辨。
+        - article [ref=e314]:
+          - generic [ref=e315]:
+            - generic [ref=e316]: J
+            - generic [ref=e317]:
+              - generic [ref=e318]:
+                - strong [ref=e319]: j7***@gmail.com
+                - img [ref=e320]
+              - time [ref=e322]: 2 weeks ago
+          - paragraph [ref=e323]: Ux做得不錯 分析的也跟網路上那種免費的比起來，正確率高很多
+        - article [ref=e324]:
+          - generic [ref=e325]:
+            - generic [ref=e326]: J
+            - generic [ref=e327]:
+              - generic [ref=e328]:
+                - strong [ref=e329]: jo***@gmail.com
+                - img [ref=e330]
+              - time [ref=e332]: 1 week ago
+          - paragraph [ref=e333]: 光是一開始的免費試算就贏過很多網站，也講得比其他地方仔細
+        - article [ref=e334]:
+          - generic [ref=e335]:
+            - generic [ref=e336]: A
+            - generic [ref=e337]:
+              - generic [ref=e338]:
+                - strong [ref=e339]: a2***@gmail.com
+                - img [ref=e340]
+              - time [ref=e342]: 1 week ago
+          - paragraph [ref=e343]: 每份報告都可以透過AI追問細節，非常貼心的設計，但也希望可以有一個地方可以重複閱讀之前的追問內容。
+        - article [ref=e344]:
+          - generic [ref=e345]:
+            - generic [ref=e346]: W
+            - generic [ref=e347]:
+              - generic [ref=e348]:
+                - strong [ref=e349]: wi***@gmail.com
+                - img [ref=e350]
+              - time [ref=e352]: 17 hours ago
+          - paragraph [ref=e353]: 原來點一下文字可以有更詳細的解說，不過點了進去後怕會被扣掉點數 ，但實際上沒有扣。
+        - article [ref=e354]:
+          - generic [ref=e355]:
+            - generic [ref=e356]: "1"
+            - generic [ref=e357]:
+              - generic [ref=e358]:
+                - strong [ref=e359]: 11***@qq.com
+                - img [ref=e360]
+              - time [ref=e362]: 2 days ago
+          - paragraph [ref=e363]: 这个算法真的很准确！和我之前用的ai排的不太一样，很细致，希望越做越好
+        - article [ref=e364]:
+          - generic [ref=e365]:
+            - generic [ref=e366]: A
+            - generic [ref=e367]:
+              - strong [ref=e369]: Anonymous user
+              - time [ref=e370]: 3 days ago
+          - paragraph [ref=e371]: 用了无数个ai测出来的都不一样 最后用了一下这个感觉还是蛮准的
+        - article [ref=e372]:
+          - generic [ref=e373]:
+            - generic [ref=e374]: O
+            - generic [ref=e375]:
+              - generic [ref=e376]:
+                - strong [ref=e377]: op***@gmail.com
+                - img [ref=e378]
+              - time [ref=e380]: 2 days ago
+          - paragraph [ref=e381]: 我因為生日農曆國曆跨年份常常被算錯 但你這個網站是準的
+        - article [ref=e382]:
+          - generic [ref=e383]:
+            - generic [ref=e384]: A
+            - generic [ref=e385]:
+              - generic [ref=e386]:
+                - strong [ref=e387]: a4***@gmail.com
+                - img [ref=e388]
+              - time [ref=e390]: 3 days ago
+          - paragraph [ref=e391]: 超實用的網站！比起很多其他ai 亂排盤瞎扯，這裡超讚的！
+        - article [ref=e392]:
+          - generic [ref=e393]:
+            - generic [ref=e394]: J
+            - generic [ref=e395]:
+              - generic [ref=e396]:
+                - strong [ref=e397]: jo***@gmail.com
+                - img [ref=e398]
+              - time [ref=e400]: 3 days ago
+          - paragraph [ref=e401]: 因为我知道做这种网站一定一定非常不容易 这算你自己的产出 是孩子 很辛苦了伟大玄学mom哈哈哈哈
+        - article [ref=e402]:
+          - generic [ref=e403]:
+            - generic [ref=e404]: J
+            - generic [ref=e405]:
+              - generic [ref=e406]:
+                - strong [ref=e407]: jo***@gmail.com
+                - img [ref=e408]
+              - time [ref=e410]: 6 days ago
+          - paragraph [ref=e411]: 因為我本身是研究飛星的 偶然發現竟有人做出了欽天監派的ai 牛之 必用之
+        - article [ref=e412]:
+          - generic [ref=e413]:
+            - generic [ref=e414]: S
+            - generic [ref=e415]:
+              - generic [ref=e416]:
+                - strong [ref=e417]: su***@gmail.com
+                - img [ref=e418]
+              - time [ref=e420]: 1 week ago
+          - paragraph [ref=e421]: 超級棒的網站，不𧫴做到學術的專業（指正了數百年的舊時代的命盤錯誤）而且又融入現代美學的設計排版。值得大家小額贊助
+        - article [ref=e422]:
+          - generic [ref=e423]:
+            - generic [ref=e424]: J
+            - generic [ref=e425]:
+              - generic [ref=e426]:
+                - strong [ref=e427]: jo***@gmail.com
+                - img [ref=e428]
+              - time [ref=e430]: 6 days ago
+          - paragraph [ref=e431]: 誇誇你 太辛勤了 我是在脆上偶然評論區看到你給別人的回復 要多打廣告嘿
+        - article [ref=e432]:
+          - generic [ref=e433]:
+            - generic [ref=e434]: A
+            - generic [ref=e435]:
+              - strong [ref=e437]: Anonymous user
+              - time [ref=e438]: 1 week ago
+          - paragraph [ref=e439]: 別的軟件算我的八字都說喜金土，不喜火。我體感我不喜土喜火，只有你們這個軟件排出來喜用是正確的，非常好的網站！祝越來越多人知道
+        - article [ref=e440]:
+          - generic [ref=e441]:
+            - generic [ref=e442]: S
+            - generic [ref=e443]:
+              - generic [ref=e444]:
+                - strong [ref=e445]: su***@gmail.com
+                - img [ref=e446]
+              - time [ref=e448]: 1 week ago
+          - paragraph [ref=e449]: 超級感謝您的即時回覆，為表感謝已經下單500點，希望給予優秀網站一點支持。結論您是對的，已經驗證gemini and claude, 您的觀點的確凌駕於數十數百年的命盤系統，我等下會在下面留言分別貼上Ai的回覆。另外，我特別喜歡網站的十神那些排版，跟別的古老命盤網站的排版不同，非常有設計感。希望早日上架 ios app
+        - article [ref=e450]:
+          - generic [ref=e451]:
+            - generic [ref=e452]: E
+            - generic [ref=e453]:
+              - generic [ref=e454]:
+                - strong [ref=e455]: ep***@gmail.com
+                - img [ref=e456]
+              - time [ref=e458]: 1 week ago
+          - paragraph [ref=e459]: 免費版的資訊訊息就很豐富，會讓人願意繼續深究，感謝站長提供可供迷途失所的用戶，解惑且可相信自己的力量😊
+        - article [ref=e460]:
+          - generic [ref=e461]:
+            - generic [ref=e462]: P
+            - generic [ref=e463]:
+              - generic [ref=e464]:
+                - strong [ref=e465]: pa***@gmail.com
+                - img [ref=e466]
+              - time [ref=e468]: 1 week ago
+          - paragraph [ref=e469]: 超級好用 而且身為晚子人真的很難搞清楚自己到底要看哪種盤 介面設計也很簡潔明瞭 超級喜歡
+        - article [ref=e470]:
+          - generic [ref=e471]:
+            - generic [ref=e472]: A
+            - generic [ref=e473]:
+              - strong [ref=e475]: Anonymous user
+              - time [ref=e476]: 1 week ago
+          - paragraph [ref=e477]: 用过了，真的非常准！做的好厉害 会分享给朋友的
+        - article [ref=e478]:
+          - generic [ref=e479]:
+            - generic [ref=e480]: T
+            - generic [ref=e481]:
+              - generic [ref=e482]:
+                - strong [ref=e483]: ta***@gmail.com
+                - img [ref=e484]
+              - time [ref=e486]: 1 week ago
+          - paragraph [ref=e487]: 版面清爽，用詞簡明，把個性或天賦的優缺點以不同顏色字體曲分開，一眼就能分辨。
+        - article [ref=e488]:
+          - generic [ref=e489]:
+            - generic [ref=e490]: J
+            - generic [ref=e491]:
+              - generic [ref=e492]:
+                - strong [ref=e493]: j7***@gmail.com
+                - img [ref=e494]
+              - time [ref=e496]: 2 weeks ago
+          - paragraph [ref=e497]: Ux做得不錯 分析的也跟網路上那種免費的比起來，正確率高很多
+        - article [ref=e498]:
+          - generic [ref=e499]:
+            - generic [ref=e500]: J
+            - generic [ref=e501]:
+              - generic [ref=e502]:
+                - strong [ref=e503]: jo***@gmail.com
+                - img [ref=e504]
+              - time [ref=e506]: 1 week ago
+          - paragraph [ref=e507]: 光是一開始的免費試算就贏過很多網站，也講得比其他地方仔細
+        - article [ref=e508]:
+          - generic [ref=e509]:
+            - generic [ref=e510]: A
+            - generic [ref=e511]:
+              - generic [ref=e512]:
+                - strong [ref=e513]: a2***@gmail.com
+                - img [ref=e514]
+              - time [ref=e516]: 1 week ago
+          - paragraph [ref=e517]: 每份報告都可以透過AI追問細節，非常貼心的設計，但也希望可以有一個地方可以重複閱讀之前的追問內容。
+      - generic [ref=e520]:
+        - article [ref=e521]:
+          - generic [ref=e522]:
+            - generic [ref=e523]: A
+            - generic [ref=e524]:
+              - strong [ref=e526]: Anonymous user
+              - time [ref=e527]: 3 days ago
+          - paragraph [ref=e528]: 好厲害…
+        - article [ref=e529]:
+          - generic [ref=e530]:
+            - generic [ref=e531]: A
+            - generic [ref=e532]:
+              - strong [ref=e534]: Anonymous user
+              - time [ref=e535]: 3 days ago
+          - paragraph [ref=e536]: 分析很准～
+        - article [ref=e537]:
+          - generic [ref=e538]:
+            - generic [ref=e539]: A
+            - generic [ref=e540]:
+              - strong [ref=e542]: Anonymous user
+              - time [ref=e543]: 3 days ago
+          - paragraph [ref=e544]: 很棒..
+        - article [ref=e545]:
+          - generic [ref=e546]:
+            - generic [ref=e547]: A
+            - generic [ref=e548]:
+              - generic [ref=e549]:
+                - strong [ref=e550]: ah***@gmail.com
+                - img [ref=e551]
+              - time [ref=e553]: 3 days ago
+          - paragraph [ref=e554]: 做得非常好
+        - article [ref=e555]:
+          - generic [ref=e556]:
+            - generic [ref=e557]: W
+            - generic [ref=e558]:
+              - generic [ref=e559]:
+                - strong [ref=e560]: wi***@gmail.com
+                - img [ref=e561]
+              - time [ref=e563]: 1 day ago
+          - paragraph [ref=e564]: 免費試用的解釋也很清楚
+        - article [ref=e565]:
+          - generic [ref=e566]:
+            - generic [ref=e567]: H
+            - generic [ref=e568]:
+              - generic [ref=e569]:
+                - strong [ref=e570]: ha***@gmail.com
+                - img [ref=e571]
+              - time [ref=e573]: 2 days ago
+          - paragraph [ref=e574]: great
+        - article [ref=e575]:
+          - generic [ref=e576]:
+            - generic [ref=e577]: "2"
+            - generic [ref=e578]:
+              - generic [ref=e579]:
+                - strong [ref=e580]: 23***@qq.com
+                - img [ref=e581]
+              - time [ref=e583]: 4 days ago
+          - paragraph [ref=e584]: 非常好！
+        - article [ref=e585]:
+          - generic [ref=e586]:
+            - generic [ref=e587]: A
+            - generic [ref=e588]:
+              - strong [ref=e590]: Anonymous user
+              - time [ref=e591]: 4 days ago
+          - paragraph [ref=e592]: 加油
+        - article [ref=e593]:
+          - generic [ref=e594]:
+            - generic [ref=e595]: A
+            - generic [ref=e596]:
+              - generic [ref=e597]:
+                - strong [ref=e598]: am***@gmail.com
+                - img [ref=e599]
+              - time [ref=e601]: 1 week ago
+          - paragraph [ref=e602]: 很詳細推薦
+        - article [ref=e603]:
+          - generic [ref=e604]:
+            - generic [ref=e605]: L
+            - generic [ref=e606]:
+              - generic [ref=e607]:
+                - strong [ref=e608]: le***@gmail.com
+                - img [ref=e609]
+              - time [ref=e611]: 1 week ago
+          - paragraph [ref=e612]: 準準的 和我在八字攤算得很像
+        - article [ref=e613]:
+          - generic [ref=e614]:
+            - generic [ref=e615]: H
+            - generic [ref=e616]:
+              - generic [ref=e617]:
+                - strong [ref=e618]: hh***@gmail.com
+                - img [ref=e619]
+              - time [ref=e621]: 1 week ago
+          - paragraph [ref=e622]: 挺准的，推荐
+        - article [ref=e623]:
+          - generic [ref=e624]:
+            - generic [ref=e625]: J
+            - generic [ref=e626]:
+              - generic [ref=e627]:
+                - strong [ref=e628]: jo***@gmail.com
+                - img [ref=e629]
+              - time [ref=e631]: 6 days ago
+          - paragraph [ref=e632]: 好的 謝謝你這麼晚還在回復 辛苦了捏
+        - article [ref=e633]:
+          - generic [ref=e634]:
+            - generic [ref=e635]: Q
+            - generic [ref=e636]:
+              - generic [ref=e637]:
+                - strong [ref=e638]: qq***@gmail.com
+                - img [ref=e639]
+              - time [ref=e641]: 1 week ago
+          - paragraph [ref=e642]: 分析很詳盡～
+        - article [ref=e643]:
+          - generic [ref=e644]:
+            - generic [ref=e645]: R
+            - generic [ref=e646]:
+              - generic [ref=e647]:
+                - strong [ref=e648]: ru***@gmail.com
+                - img [ref=e649]
+              - time [ref=e651]: 1 week ago
+          - paragraph [ref=e652]: 十分好用
+        - article [ref=e653]:
+          - generic [ref=e654]:
+            - generic [ref=e655]: D
+            - generic [ref=e656]:
+              - generic [ref=e657]:
+                - strong [ref=e658]: do***@gmail.com
+                - img [ref=e659]
+              - time [ref=e661]: 1 week ago
+          - paragraph [ref=e662]: 很準很準
+        - article [ref=e663]:
+          - generic [ref=e664]:
+            - generic [ref=e665]: A
+            - generic [ref=e666]:
+              - strong [ref=e668]: Anonymous user
+              - time [ref=e669]: 4 days ago
+          - paragraph [ref=e670]: 加油
+        - article [ref=e671]:
+          - generic [ref=e672]:
+            - generic [ref=e673]: A
+            - generic [ref=e674]:
+              - generic [ref=e675]:
+                - strong [ref=e676]: al***@gmail.com
+                - img [ref=e677]
+              - time [ref=e679]: 1 week ago
+          - paragraph [ref=e680]: 很完整的分析，版面清楚漂亮
+        - article [ref=e681]:
+          - generic [ref=e682]:
+            - generic [ref=e683]: S
+            - generic [ref=e684]:
+              - generic [ref=e685]:
+                - strong [ref=e686]: sa***@gmail.com
+                - img [ref=e687]
+              - time [ref=e689]: 1 week ago
+          - paragraph [ref=e690]: 分析結果蠻準的
+        - article [ref=e691]:
+          - generic [ref=e692]:
+            - generic [ref=e693]: A
+            - generic [ref=e694]:
+              - strong [ref=e696]: Anonymous user
+              - time [ref=e697]: 3 days ago
+          - paragraph [ref=e698]: 好厲害…
+        - article [ref=e699]:
+          - generic [ref=e700]:
+            - generic [ref=e701]: A
+            - generic [ref=e702]:
+              - strong [ref=e704]: Anonymous user
+              - time [ref=e705]: 3 days ago
+          - paragraph [ref=e706]: 分析很准～
+        - article [ref=e707]:
+          - generic [ref=e708]:
+            - generic [ref=e709]: A
+            - generic [ref=e710]:
+              - strong [ref=e712]: Anonymous user
+              - time [ref=e713]: 3 days ago
+          - paragraph [ref=e714]: 很棒..
+        - article [ref=e715]:
+          - generic [ref=e716]:
+            - generic [ref=e717]: A
+            - generic [ref=e718]:
+              - generic [ref=e719]:
+                - strong [ref=e720]: ah***@gmail.com
+                - img [ref=e721]
+              - time [ref=e723]: 3 days ago
+          - paragraph [ref=e724]: 做得非常好
+        - article [ref=e725]:
+          - generic [ref=e726]:
+            - generic [ref=e727]: W
+            - generic [ref=e728]:
+              - generic [ref=e729]:
+                - strong [ref=e730]: wi***@gmail.com
+                - img [ref=e731]
+              - time [ref=e733]: 1 day ago
+          - paragraph [ref=e734]: 免費試用的解釋也很清楚
+        - article [ref=e735]:
+          - generic [ref=e736]:
+            - generic [ref=e737]: H
+            - generic [ref=e738]:
+              - generic [ref=e739]:
+                - strong [ref=e740]: ha***@gmail.com
+                - img [ref=e741]
+              - time [ref=e743]: 2 days ago
+          - paragraph [ref=e744]: great
+        - article [ref=e745]:
+          - generic [ref=e746]:
+            - generic [ref=e747]: "2"
+            - generic [ref=e748]:
+              - generic [ref=e749]:
+                - strong [ref=e750]: 23***@qq.com
+                - img [ref=e751]
+              - time [ref=e753]: 4 days ago
+          - paragraph [ref=e754]: 非常好！
+        - article [ref=e755]:
+          - generic [ref=e756]:
+            - generic [ref=e757]: A
+            - generic [ref=e758]:
+              - strong [ref=e760]: Anonymous user
+              - time [ref=e761]: 4 days ago
+          - paragraph [ref=e762]: 加油
+        - article [ref=e763]:
+          - generic [ref=e764]:
+            - generic [ref=e765]: A
+            - generic [ref=e766]:
+              - generic [ref=e767]:
+                - strong [ref=e768]: am***@gmail.com
+                - img [ref=e769]
+              - time [ref=e771]: 1 week ago
+          - paragraph [ref=e772]: 很詳細推薦
+        - article [ref=e773]:
+          - generic [ref=e774]:
+            - generic [ref=e775]: L
+            - generic [ref=e776]:
+              - generic [ref=e777]:
+                - strong [ref=e778]: le***@gmail.com
+                - img [ref=e779]
+              - time [ref=e781]: 1 week ago
+          - paragraph [ref=e782]: 準準的 和我在八字攤算得很像
+        - article [ref=e783]:
+          - generic [ref=e784]:
+            - generic [ref=e785]: H
+            - generic [ref=e786]:
+              - generic [ref=e787]:
+                - strong [ref=e788]: hh***@gmail.com
+                - img [ref=e789]
+              - time [ref=e791]: 1 week ago
+          - paragraph [ref=e792]: 挺准的，推荐
+        - article [ref=e793]:
+          - generic [ref=e794]:
+            - generic [ref=e795]: J
+            - generic [ref=e796]:
+              - generic [ref=e797]:
+                - strong [ref=e798]: jo***@gmail.com
+                - img [ref=e799]
+              - time [ref=e801]: 6 days ago
+          - paragraph [ref=e802]: 好的 謝謝你這麼晚還在回復 辛苦了捏
+        - article [ref=e803]:
+          - generic [ref=e804]:
+            - generic [ref=e805]: Q
+            - generic [ref=e806]:
+              - generic [ref=e807]:
+                - strong [ref=e808]: qq***@gmail.com
+                - img [ref=e809]
+              - time [ref=e811]: 1 week ago
+          - paragraph [ref=e812]: 分析很詳盡～
+        - article [ref=e813]:
+          - generic [ref=e814]:
+            - generic [ref=e815]: R
+            - generic [ref=e816]:
+              - generic [ref=e817]:
+                - strong [ref=e818]: ru***@gmail.com
+                - img [ref=e819]
+              - time [ref=e821]: 1 week ago
+          - paragraph [ref=e822]: 十分好用
+        - article [ref=e823]:
+          - generic [ref=e824]:
+            - generic [ref=e825]: D
+            - generic [ref=e826]:
+              - generic [ref=e827]:
+                - strong [ref=e828]: do***@gmail.com
+                - img [ref=e829]
+              - time [ref=e831]: 1 week ago
+          - paragraph [ref=e832]: 很準很準
+        - article [ref=e833]:
+          - generic [ref=e834]:
+            - generic [ref=e835]: A
+            - generic [ref=e836]:
+              - strong [ref=e838]: Anonymous user
+              - time [ref=e839]: 4 days ago
+          - paragraph [ref=e840]: 加油
+        - article [ref=e841]:
+          - generic [ref=e842]:
+            - generic [ref=e843]: A
+            - generic [ref=e844]:
+              - generic [ref=e845]:
+                - strong [ref=e846]: al***@gmail.com
+                - img [ref=e847]
+              - time [ref=e849]: 1 week ago
+          - paragraph [ref=e850]: 很完整的分析，版面清楚漂亮
+        - article [ref=e851]:
+          - generic [ref=e852]:
+            - generic [ref=e853]: S
+            - generic [ref=e854]:
+              - generic [ref=e855]:
+                - strong [ref=e856]: sa***@gmail.com
+                - img [ref=e857]
+              - time [ref=e859]: 1 week ago
+          - paragraph [ref=e860]: 分析結果蠻準的
+      - button "View all reviews" [ref=e862] [cursor=pointer]: View all reviews
+    - main [ref=e864]:
+      - generic [ref=e866]:
+        - complementary [ref=e867]:
+          - generic [ref=e868]:
+            - heading "User Guide." [level=2] [ref=e869]
+            - paragraph [ref=e870]: Our system uses high-precision algorithms for your baseline. You can try out different analysis data models seamlessly.
+            - generic [ref=e873]:
+              - generic [ref=e874]:
+                - generic [ref=e876]: "1"
+                - generic [ref=e877]:
+                  - heading "Select Analysis Engine" [level=3] [ref=e878]
+                  - paragraph [ref=e879]: "Choose the data model that fits your needs: Bazi, Ziwei, or Astrology."
+              - generic [ref=e880]:
+                - generic [ref=e882]: "2"
+                - generic [ref=e883]:
+                  - heading "Input Coordinates" [level=3] [ref=e884]
+                  - paragraph [ref=e885]: Provide your birth info. Our system establishes an accurate foundation for the reading.
+              - generic [ref=e886]:
+                - generic [ref=e888]: "3"
+                - generic [ref=e889]:
+                  - heading "Output Life Strategy" [level=3] [ref=e890]
+                  - paragraph [ref=e891]: Receive a clear, actionable personality manual and life roadmap.
+        - generic [ref=e894]:
+          - generic [ref=e899]: openfate.ai
+          - img "How it works demo" [ref=e901]
+      - generic [ref=e903]:
+        - complementary [ref=e904]:
+          - generic [ref=e905]:
+            - heading "Explore Our Capabilities" [level=2] [ref=e906]
+            - paragraph [ref=e907]: Unlock deep insights into your destiny with our comprehensive suite of cross-cultural analysis tools.
+        - generic [ref=e909]:
+          - link "Bazi Analysis Decode your Bazi chart structure through Day Master strength, Ten Gods, favorable elements, and Luck Pillars for clearer career, wealth, relationship, and timing insight. Start" [ref=e910] [cursor=pointer]:
+            - /url: /en/bazi
+            - generic [ref=e911]:
+              - heading "Bazi Analysis" [level=3] [ref=e912]
+              - paragraph [ref=e913]: Decode your Bazi chart structure through Day Master strength, Ten Gods, favorable elements, and Luck Pillars for clearer career, wealth, relationship, and timing insight.
+            - generic [ref=e915]: Start
+          - link "Ziwei Dou Shu Decode your Ziwei chart through the 12 palaces, major stars, and transformations for clearer life phase, career, wealth, relationship, and timing insight. Start" [ref=e916] [cursor=pointer]:
+            - /url: /en/ziwei
+            - generic [ref=e917]:
+              - heading "Ziwei Dou Shu" [level=3] [ref=e918]
+              - paragraph [ref=e919]: Decode your Ziwei chart through the 12 palaces, major stars, and transformations for clearer life phase, career, wealth, relationship, and timing insight.
+            - generic [ref=e921]: Start
+          - link "Astrology Interpret your birth chart through Sun, Moon, Rising sign, houses, and major aspects for clearer personality, relationship, career, and alignment insight. Start" [ref=e922] [cursor=pointer]:
+            - /url: /en/astro
+            - generic [ref=e923]:
+              - heading "Astrology" [level=3] [ref=e924]
+              - paragraph [ref=e925]: Interpret your birth chart through Sun, Moon, Rising sign, houses, and major aspects for clearer personality, relationship, career, and alignment insight.
+            - generic [ref=e927]: Start
+          - link "Compatibility Run romance, business, family, friendship, and workplace dynamics through one Bazi compatibility analysis engine to clarify leverage, friction, and timing. Start" [ref=e928] [cursor=pointer]:
+            - /url: /en/compatibility/bazi/marriage
+            - generic [ref=e929]:
+              - heading "Compatibility" [level=3] [ref=e930]
+              - paragraph [ref=e931]: Run romance, business, family, friendship, and workplace dynamics through one Bazi compatibility analysis engine to clarify leverage, friction, and timing.
+            - generic [ref=e933]: Start
+          - link "BZTI Test Enter your birth date, time, city, and gender to generate a BZTI result and shareable status card from your birth chart. Start" [ref=e934] [cursor=pointer]:
+            - /url: /en/bzti
+            - generic [ref=e935]:
+              - heading "BZTI Test" [level=3] [ref=e936]
+              - paragraph [ref=e937]: Enter your birth date, time, city, and gender to generate a BZTI result and shareable status card from your birth chart.
+            - generic [ref=e939]: Start
+          - link "My Wealth Analyze Wealth Stars, Day Master strength, monetization patterns, and Luck Pillars for clearer income strategy, career fit, wealth timing, and grounded wealth alignment. Start" [ref=e940] [cursor=pointer]:
+            - /url: /en/wealth
+            - generic [ref=e941]:
+              - heading "My Wealth" [level=3] [ref=e942]
+              - paragraph [ref=e943]: Analyze Wealth Stars, Day Master strength, monetization patterns, and Luck Pillars for clearer income strategy, career fit, wealth timing, and grounded wealth alignment.
+            - generic [ref=e945]: Start
+          - link "Love & Relationship Reading Decode relationship patterns through Spouse Palace, Spouse Stars, Peach Blossom indicators, and Luck Pillars for clearer love dynamics, timing windows, and partner-fit insight. Start" [ref=e946] [cursor=pointer]:
+            - /url: /en/love-bazi
+            - generic [ref=e947]:
+              - heading "Love & Relationship Reading" [level=3] [ref=e948]
+              - paragraph [ref=e949]: Decode relationship patterns through Spouse Palace, Spouse Stars, Peach Blossom indicators, and Luck Pillars for clearer love dynamics, timing windows, and partner-fit insight.
+            - generic [ref=e951]: Start
+          - link "Bazi Chart Generate an accurate Four Pillars chart with True Solar Time correction. View Heavenly Stems, Earthly Branches, Ten Gods, Hidden Stems, and Luck Pillars instantly. Start" [ref=e952] [cursor=pointer]:
+            - /url: /en/bazi-chart
+            - generic [ref=e953]:
+              - heading "Bazi Chart" [level=3] [ref=e954]
+              - paragraph [ref=e955]: Generate an accurate Four Pillars chart with True Solar Time correction. View Heavenly Stems, Earthly Branches, Ten Gods, Hidden Stems, and Luck Pillars instantly.
+            - generic [ref=e957]: Start
+          - link "Astro Chart Generate your natal chart instantly. View Sun, Moon, Rising, planetary positions, houses, and major aspects in a clear birth chart wheel. Start" [ref=e958] [cursor=pointer]:
+            - /url: /en/astro-chart
+            - generic [ref=e959]:
+              - heading "Astro Chart" [level=3] [ref=e960]
+              - paragraph [ref=e961]: Generate your natal chart instantly. View Sun, Moon, Rising, planetary positions, houses, and major aspects in a clear birth chart wheel.
+            - generic [ref=e963]: Start
+          - link "Ziwei Chart Generate your Ziwei Doushu chart instantly. View the 12 palaces, major stars, Body Palace, transformations, and decade cycles in one clear chart. Start" [ref=e964] [cursor=pointer]:
+            - /url: /en/ziwei-chart
+            - generic [ref=e965]:
+              - heading "Ziwei Chart" [level=3] [ref=e966]
+              - paragraph [ref=e967]: Generate your Ziwei Doushu chart instantly. View the 12 palaces, major stars, Body Palace, transformations, and decade cycles in one clear chart.
+            - generic [ref=e969]: Start
+      - generic [ref=e971]:
+        - complementary [ref=e972]:
+          - generic [ref=e973]:
+            - heading "Trending Insights" [level=2] [ref=e974]
+            - paragraph [ref=e975]: Deep analysis of the 2026 Fire Horse Year. Stay ahead of the curve.
+        - generic [ref=e977]:
+          - generic [ref=e978]:
+            - 'link "Read more about Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [ref=e979] [cursor=pointer]':
+              - /url: /en/insights/best-modern-bazi-ai-tool-openfate
+              - 'img "Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [ref=e981]'
+              - generic [ref=e982]:
+                - generic [ref=e983]: 2026/06/19
+                - 'heading "Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [level=3] [ref=e984]'
+                - paragraph [ref=e985]: OpenFate.ai combines True Solar Time, AI follow-up, open-source Bazi MCP infrastructure, and 166K-view Taiwan Threads feedback.
+                - generic [ref=e986]: AI Bazi
+            - 'link "Read more about In-Depth Guide: What is Astrology & Manifestation?" [ref=e987] [cursor=pointer]':
+              - /url: /en/insights/astro-manifestation
+              - 'img "In-Depth Guide: What is Astrology & Manifestation?" [ref=e989]'
+              - generic [ref=e990]:
+                - generic [ref=e991]: 2026/05/11
+                - 'heading "In-Depth Guide: What is Astrology & Manifestation?" [level=3] [ref=e992]'
+                - paragraph [ref=e993]: A practice combining personal goals with cosmic rhythms. Sync with lunar cycles and decode your natal chart to take action when energy is strongest.
+                - generic [ref=e994]: Manifestation
+            - link "Read more about In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [ref=e995] [cursor=pointer]:
+              - /url: /en/insights/ziwei-manifestation
+              - img "In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [ref=e997]
+              - generic [ref=e998]:
+                - generic [ref=e999]: 2026/05/11
+                - heading "In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [level=3] [ref=e1000]
+                - paragraph [ref=e1001]: Discover the perfect combination of Zi Wei Dou Shu and the Law of Attraction, providing a precise "Life Navigation System" to accelerate wealth and career manifestation.
+                - generic [ref=e1002]: Manifestation
+            - 'link "Read more about Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [ref=e1003] [cursor=pointer]':
+              - /url: /en/insights/bazi-manifestation-2026
+              - 'img "Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [ref=e1005]'
+              - generic [ref=e1006]:
+                - generic [ref=e1007]: 2026/05/11
+                - 'heading "Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [level=3] [ref=e1008]'
+                - paragraph [ref=e1009]: Integrate classical Chinese metaphysics with the Law of Attraction. Analyze your Five Elements blueprint to exponentially increase reality creation success.
+                - generic [ref=e1010]: Manifestation
+            - link "Read more about AI Advanced Relationship Synastry Strategy Manual" [ref=e1011] [cursor=pointer]:
+              - /url: /en/insights/ai-driven-advanced-relationship-synastry-manual
+              - img "AI Advanced Relationship Synastry Strategy Manual" [ref=e1013]
+              - generic [ref=e1014]:
+                - generic [ref=e1015]: 2026/04/09
+                - heading "AI Advanced Relationship Synastry Strategy Manual" [level=3] [ref=e1016]
+                - paragraph [ref=e1017]: The ultimate guide to using Five Elements and Ten Gods algorithms to quantify alignment and friction in any relationship.
+                - generic [ref=e1018]: Bazi Academy
+            - 'link "Read more about Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [ref=e1019] [cursor=pointer]':
+              - /url: /en/insights/parent-child-bazi-compatibility
+              - 'img "Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [ref=e1021]'
+              - generic [ref=e1022]:
+                - generic [ref=e1023]: 2026/04/09
+                - 'heading "Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [level=3] [ref=e1024]'
+                - paragraph [ref=e1025]: Use Bazi algorithms to quantify your child's innate Ten Gods talents and build a custom education roadmap.
+                - generic [ref=e1026]: Bazi Academy
+          - link "View All Insights" [ref=e1028] [cursor=pointer]:
+            - /url: /en/insights
+      - generic [ref=e1029]:
+        - generic [ref=e1030]:
+          - heading "Frequently Asked Questions" [level=2] [ref=e1031]
+          - paragraph [ref=e1032]: Everything you need to know about reports, credits, and how it works.
+        - generic [ref=e1033]:
+          - generic [ref=e1034]:
+            - paragraph [ref=e1035]: Credits & Account
+            - generic [ref=e1036]:
+              - button "How do new users get a free full report?" [ref=e1038] [cursor=pointer]:
+                - generic [ref=e1039]: How do new users get a free full report?
+                - img [ref=e1040]
+              - button "How do I redeem a gift code or points?" [ref=e1043] [cursor=pointer]:
+                - generic [ref=e1044]: How do I redeem a gift code or points?
+                - img [ref=e1045]
+              - button "I was charged twice due to an error. How can I get my points back?" [ref=e1048] [cursor=pointer]:
+                - generic [ref=e1049]: I was charged twice due to an error. How can I get my points back?
+                - img [ref=e1050]
+          - generic [ref=e1052]:
+            - paragraph [ref=e1053]: Usage & Features
+            - generic [ref=e1054]:
+              - button "How do I download my report as a PDF?" [ref=e1056] [cursor=pointer]:
+                - generic [ref=e1057]: How do I download my report as a PDF?
+                - img [ref=e1058]
+              - button "Do I need to pay or log in to calculate my birth chart?" [ref=e1061] [cursor=pointer]:
+                - generic [ref=e1062]: Do I need to pay or log in to calculate my birth chart?
+                - img [ref=e1063]
+              - button "Can I check relationship compatibility with someone else?" [ref=e1066] [cursor=pointer]:
+                - generic [ref=e1067]: Can I check relationship compatibility with someone else?
+                - img [ref=e1068]
+          - generic [ref=e1070]:
+            - paragraph [ref=e1071]: Astrology Logic
+            - generic [ref=e1072]:
+              - button "What astrological schools or lineages do your algorithms use?" [ref=e1074] [cursor=pointer]:
+                - generic [ref=e1075]: What astrological schools or lineages do your algorithms use?
+                - img [ref=e1076]
+              - button "Why is my rising sign or chart different from other apps?" [ref=e1079] [cursor=pointer]:
+                - generic [ref=e1080]: Why is my rising sign or chart different from other apps?
+                - img [ref=e1081]
+              - button "What if my Bazi chart, favorable elements, ten gods, or symbolic stars differ from other software?" [ref=e1084] [cursor=pointer]:
+                - generic [ref=e1085]: What if my Bazi chart, favorable elements, ten gods, or symbolic stars differ from other software?
+                - img [ref=e1086]
+              - button "Why is the Ziwei Doushu chart here different from apps like Wenmo Tianji? Does it affect the results?" [ref=e1089] [cursor=pointer]:
+                - generic [ref=e1090]: Why is the Ziwei Doushu chart here different from apps like Wenmo Tianji? Does it affect the results?
+                - img [ref=e1091]
+          - generic [ref=e1093]:
+            - paragraph [ref=e1094]: Technical & Developers
+            - button "Are there any open source projects or AI agent skills for developers?" [ref=e1097] [cursor=pointer]:
+              - generic [ref=e1098]: Are there any open source projects or AI agent skills for developers?
+              - img [ref=e1099]
+          - generic [ref=e1101]:
+            - paragraph [ref=e1102]: Troubleshooting
+            - generic [ref=e1103]:
+              - button "What should I do if I see the \"Alien error\" or analysis fails?" [ref=e1105] [cursor=pointer]:
+                - generic [ref=e1106]: What should I do if I see the "Alien error" or analysis fails?
+                - img [ref=e1107]
+              - button "Why did I get a placeholder or empty text in my Q&A reply?" [ref=e1110] [cursor=pointer]:
+                - generic [ref=e1111]: Why did I get a placeholder or empty text in my Q&A reply?
+                - img [ref=e1112]
+          - generic [ref=e1114]:
+            - paragraph [ref=e1115]: Privacy & Legal
+            - generic [ref=e1116]:
+              - button "Does OpenFate collect and store my birth chart data?" [ref=e1118] [cursor=pointer]:
+                - generic [ref=e1119]: Does OpenFate collect and store my birth chart data?
+                - img [ref=e1120]
+              - button "Will OpenFate ever sell my personal information?" [ref=e1123] [cursor=pointer]:
+                - generic [ref=e1124]: Will OpenFate ever sell my personal information?
+                - img [ref=e1125]
+          - generic [ref=e1127]:
+            - paragraph [ref=e1128]: About Me
+            - generic [ref=e1129]:
+              - button "Who are you and why did you build OpenFate?" [ref=e1131] [cursor=pointer]:
+                - generic [ref=e1132]: Who are you and why did you build OpenFate?
+                - img [ref=e1133]
+              - button "Want to tell me something?" [ref=e1136] [cursor=pointer]:
+                - generic [ref=e1137]: Want to tell me something?
+                - img [ref=e1138]
+      - generic [ref=e1140]:
+        - generic [ref=e1141]:
+          - heading "Quick Answer" [level=2] [ref=e1142]
+          - paragraph [ref=e1143]: OpenFate's wealth analysis reads your Bazi chart for monetization patterns, Wealth Stars, Day Master carrying capacity, and the timing windows that shape how you approach income and growth.
+          - heading "What You Get" [level=3] [ref=e1144]
+          - list [ref=e1145]:
+            - listitem [ref=e1146]: Understand exactly what wealth analysis means inside the Bazi framework — it's about earning style, capacity, and timing, not just outcome.
+            - listitem [ref=e1147]: See how wealth-oriented interpretation differs from a general chart reading.
+            - listitem [ref=e1148]: Navigate to the chart tool, core Bazi reading, and educational pages on wealth structure.
+          - heading "Best For" [level=3] [ref=e1149]
+          - list [ref=e1150]:
+            - listitem [ref=e1151]: Users asking how Bazi relates to earning style, growth, and risk tolerance.
+            - listitem [ref=e1152]: Readers who want a more practical money-oriented entry point than a general chart page.
+            - listitem [ref=e1153]: People moving from chart generation into specific life-theme interpretation.
+          - navigation "Related Pages" [ref=e1154]:
+            - paragraph [ref=e1155]: Related Pages
+            - generic [ref=e1156]:
+              - link "Bazi Reading" [ref=e1157] [cursor=pointer]:
+                - /url: /en/bazi
+              - link "Free Bazi Chart" [ref=e1158] [cursor=pointer]:
+                - /url: /en/bazi-chart
+              - link "How to Read Wealth in Bazi" [ref=e1159] [cursor=pointer]:
+                - /url: /en/insights/how-to-read-wealth-in-bazi
+              - link "Pricing" [ref=e1160] [cursor=pointer]:
+                - /url: /en/pricing
+        - generic [ref=e1161]:
+          - heading "Wealth Analysis FAQ" [level=2] [ref=e1162]
+          - paragraph [ref=e1163]: Common questions about what Bazi wealth analysis covers and how it differs from a general reading.
+          - generic [ref=e1164]:
+            - generic [ref=e1165]:
+              - heading "Is this page only about being rich or poor?" [level=3] [ref=e1166]
+              - paragraph [ref=e1167]: "No. The public page is about how wealth themes are framed: earning style, carrying capacity, monetization patterns, timing, and pressure management inside the chart."
+            - generic [ref=e1168]:
+              - heading "How does this differ from the main Bazi reading page?" [level=3] [ref=e1169]
+              - paragraph [ref=e1170]: The main Bazi page is broader. This page narrows the lens to wealth structure, income behavior, and timing-oriented financial interpretation.
+            - generic [ref=e1171]:
+              - heading "How does this guide support my wealth analysis?" [level=3] [ref=e1172]
+              - paragraph [ref=e1173]: The free Bazi chart page is the strongest companion because it exposes the chart data that wealth interpretation depends on.
+    - contentinfo [ref=e1174]:
+      - generic [ref=e1176]:
+        - complementary [ref=e1177]:
+          - generic [ref=e1178]:
+            - heading "OpenFate" [level=2] [ref=e1179]
+            - paragraph [ref=e1180]: We connect ancient wisdom with modern intelligence. We provide clear, data-driven destiny analysis to help you navigate life's journey with confidence and clarity.
+            - generic [ref=e1182]:
+              - generic [ref=e1183]:
+                - generic [ref=e1184]: Support Email
+                - link "hi@openfate.ai" [ref=e1185] [cursor=pointer]:
+                  - /url: mailto:hi@openfate.ai
+              - generic [ref=e1189]: All systems operational
+        - generic [ref=e1191]:
+          - generic [ref=e1193]:
+            - heading "Features" [level=3] [ref=e1194]
+            - generic [ref=e1195]:
+              - link "Free Bazi Chart" [ref=e1196] [cursor=pointer]:
+                - /url: /en/bazi-chart
+              - link "Career Bazi Analysis" [ref=e1197] [cursor=pointer]:
+                - /url: /en/bazi
+              - link "Wealth Code Analysis" [ref=e1198] [cursor=pointer]:
+                - /url: /en/wealth
+              - link "Daily Huangli" [ref=e1199] [cursor=pointer]:
+                - /url: /en/huangli
+              - link "Ziwei Dou Shu" [ref=e1200] [cursor=pointer]:
+                - /url: /en/ziwei
+              - link "Free Ziwei Chart" [ref=e1201] [cursor=pointer]:
+                - /url: /en/ziwei-chart
+              - link "Astro Analysis" [ref=e1202] [cursor=pointer]:
+                - /url: /en/astro
+              - link "Free Astro Chart" [ref=e1203] [cursor=pointer]:
+                - /url: /en/astro-chart
+          - generic [ref=e1204]:
+            - generic [ref=e1205]:
+              - heading "Theory & Knowledge" [level=3] [ref=e1206]
+              - generic [ref=e1207]:
+                - link "Five Elements Theory" [ref=e1208] [cursor=pointer]:
+                  - /url: /en/insights/what-are-the-five-elements-in-bazi
+                - link "10 Heavenly Stems" [ref=e1209] [cursor=pointer]:
+                  - /url: /en/insights/ten-heavenly-stems-explained
+                - link "12 Earthly Branches" [ref=e1210] [cursor=pointer]:
+                  - /url: /en/insights/twelve-earthly-branches-explained
+                - link "10 Gods Meaning" [ref=e1211] [cursor=pointer]:
+                  - /url: /en/insights/ten-gods-explained
+            - generic [ref=e1212]:
+              - heading "Company" [level=3] [ref=e1213]
+              - generic [ref=e1214]:
+                - link "Insights" [ref=e1215] [cursor=pointer]:
+                  - /url: /en/insights
+                - link "About OpenFate" [ref=e1216] [cursor=pointer]:
+                  - /url: /en/about
+                - link "Editorial Methodology" [ref=e1217] [cursor=pointer]:
+                  - /url: /en/editorial-methodology
+                - link "Pricing" [ref=e1218] [cursor=pointer]:
+                  - /url: /en/pricing
+                - link "Dashboard" [ref=e1219] [cursor=pointer]:
+                  - /url: /en/dashboard
+                - link "Privacy Policy" [ref=e1220] [cursor=pointer]:
+                  - /url: /en/privacy
+                - link "Terms of Service" [ref=e1221] [cursor=pointer]:
+                  - /url: /en/terms
+                - link "Sitemap.xml" [ref=e1222] [cursor=pointer]:
+                  - /url: /sitemap.xml
+                - link "LLMs.txt" [ref=e1223] [cursor=pointer]:
+                  - /url: /llms.txt
+                - link "Twitter" [ref=e1224] [cursor=pointer]:
+                  - /url: https://twitter.com/openfate_ai
+                - link "Immersive Experience" [ref=e1225] [cursor=pointer]:
+                  - /url: https://m.openfate.ai
+            - generic [ref=e1226]:
+              - heading "Open Source & MCP" [level=3] [ref=e1227]
+              - generic [ref=e1228]:
+                - link "OpenFate MCP" [ref=e1229] [cursor=pointer]:
+                  - /url: /en/developers/bazi-mcp
+                - link "GitHub" [ref=e1230] [cursor=pointer]:
+                  - /url: https://github.com/openfate-ai/bazi-mcp
+                - link "npm" [ref=e1231] [cursor=pointer]:
+                  - /url: https://www.npmjs.com/package/@openfate/bazi-mcp
+                - link "MCP Registry" [ref=e1232] [cursor=pointer]:
+                  - /url: https://registry.modelcontextprotocol.io/v0/servers/io.github.openfate-ai%2Fbazi-mcp/versions/0.2.3
+                - link "Glama" [ref=e1233] [cursor=pointer]:
+                  - /url: https://glama.ai/mcp/servers/openfate-ai/bazi-mcp
+                - link "Smithery" [ref=e1234] [cursor=pointer]:
+                  - /url: https://smithery.ai/servers/openfate-ai/bazi-mcp
+                - link "LobeHub" [ref=e1235] [cursor=pointer]:
+                  - /url: https://lobehub.com/mcp/openfate-ai-bazi-mcp
+                - link "MCP.so" [ref=e1236] [cursor=pointer]:
+                  - /url: https://mcp.so/server/openfate-bazi-mcp/openfate-ai
+                - link "ClawHub" [ref=e1237] [cursor=pointer]:
+                  - /url: https://clawhub.ai/openfate-ai/openfate-bazi
+      - generic [ref=e1239]: © 2026 openfate.ai. All rights reserved.
+  - alert [ref=e1240]

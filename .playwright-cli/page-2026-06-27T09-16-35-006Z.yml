@@ -1,0 +1,15 @@
+- generic [active]:
+  - navigation [ref=e1]:
+    - generic [ref=e2]:
+      - link "Navigate to home" [ref=e4] [cursor=pointer]:
+        - /url: /en
+        - img "OpenFate Logo" [ref=e5]
+      - generic [ref=e6]:
+        - button "Feedback Rewards" [ref=e7] [cursor=pointer]
+        - button "Select language" [ref=e9] [cursor=pointer]:
+          - img [ref=e10]
+        - button "Sign In" [ref=e14] [cursor=pointer]
+        - button "Open navigation menu" [ref=e16] [cursor=pointer]:
+          - img [ref=e17]
+  - paragraph [ref=e20]: Loading...
+  - alert [ref=e21]

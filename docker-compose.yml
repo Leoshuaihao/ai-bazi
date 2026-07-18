@@ -1,0 +1,14 @@
+version: '3.8'
+services:
+  app:
+    build: .
+    ports:
+      - "8022:8022"
+    environment:
+      - DEEPSEEK_API_KEY=${DEEPSEEK_API_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - XORPAY_APP_ID=${XORPAY_APP_ID}
+      - XORPAY_API_SECRET=${XORPAY_API_SECRET}
+    volumes:
+      - ./data:/app/data
+    restart: unless-stopped

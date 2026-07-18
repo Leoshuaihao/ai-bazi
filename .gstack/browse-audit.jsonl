@@ -1,0 +1,59 @@
+{"ts":"2026-06-25T18:07:33.642Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":20,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:07:34.579Z","cmd":"snapshot","args":"-i -a -o .gstack/qa-reports/screenshots/initial.png","origin":"http://localhost:8000/","durationMs":895,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:07:34.627Z","cmd":"links","args":"","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:07:34.668Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:12:09.985Z","cmd":"click","args":"@e1","origin":"http://localhost:8000/","durationMs":68,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:12:19.199Z","cmd":"snapshot","args":"-i -a -o .gstack/qa-reports/screenshots/after-click-picker.png","origin":"http://localhost:8000/","durationMs":231,"status":"error","hasCookies":false,"mode":"launched","error":"box: Error: strict mode violation: getByRole('option', { name: '1月' }) resolved to 2 elements:\n    1) <option value=\"1\">1月</option> aka locator('#picker-month')\n    2) <option value=\"11\">11月</option> aka locator('#picker-month')\n\nCall log:\n\u001b[2m  - waiting for getByRole('option', { name: '1月' })\u001b[22m…"}
+{"ts":"2026-06-25T18:12:29.304Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:12:47.550Z","cmd":"select","args":"@e2 @e40","origin":"http://localhost:8000/","durationMs":5003,"status":"error","hasCookies":false,"mode":"launched","error":"option: Timeout 5000ms exceeded.\nCall log:\n\u001b[2m  - waiting for getByRole('combobox').first()\u001b[22m\n\u001b[2m    - locator resolved to <select id=\"picker-year\" class=\"picker-select\">…</select>\u001b[22m\n\u001b[2m  - attempting select option action\u001b[22m\n\u001b[2m    2 × waiting for element to be visible and enabled\u001b[22m\n\u001b…"}
+{"ts":"2026-06-25T18:12:59.870Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:14.060Z","cmd":"js","args":"document.querySelectorAll('select')[0].value = '1990'; document.querySelectorAll('select')[0].dispatchEvent(new Event('change')); document.querySelectorAll('select')[1].value = '3'; document.querySele…","origin":"http://localhost:8000/","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:29.894Z","cmd":"click","args":"@e153","origin":"http://localhost:8000/","durationMs":16,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:30.984Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:40.882Z","cmd":"click","args":"@c1","origin":"http://localhost:8000/","durationMs":11,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:41.976Z","cmd":"click","args":"@c3","origin":"http://localhost:8000/","durationMs":24,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:13:45.342Z","cmd":"snapshot","args":"-i -a -o .gstack/qa-reports/screenshots/after-chart.png","origin":"http://localhost:8000/","durationMs":270,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:14:14.030Z","cmd":"js","args":"window.scrollTo(0, document.body.scrollHeight)","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:14:15.351Z","cmd":"snapshot","args":"-i -a -o .gstack/qa-reports/screenshots/after-chart-bottom.png","origin":"http://localhost:8000/","durationMs":230,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-25T18:14:15.393Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T09:03:29.459Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":72,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T09:03:31.560Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":29,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T09:03:31.611Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:21.748Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":92,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:22.854Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":32,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:22.897Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:31.239Z","cmd":"click","args":"@c3","origin":"http://localhost:8000/","durationMs":32,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:31.891Z","cmd":"click","args":"@e1","origin":"http://localhost:8000/","durationMs":72,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:32.466Z","cmd":"js","args":"\nvar s=document.querySelectorAll('select');\nif(s.length>=5){\n  s[0].value='1999';s[0].dispatchEvent(new Event('change'));\n  s[1].value='2';s[1].dispatchEvent(new Event('change'));\n  s[2].value='4';s[2…","origin":"http://localhost:8000/","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:33.566Z","cmd":"click","args":"@e3","origin":"http://localhost:8000/","durationMs":23,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:37.666Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:37.719Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:07:54.953Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:09:45.902Z","cmd":"js","args":"fetch('/api/chart', {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({year:1999,month:2,day:4,hour:14,minute:0,gender:'male'})}).then(r=>r.json()).then(d=>'OK:'+d.four_pi…","origin":"http://localhost:8000/","durationMs":8,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:09:48.978Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:53:39.269Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":87,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:53:41.357Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":2,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:53:51.027Z","cmd":"click","args":"@c3","origin":"http://localhost:8000/","durationMs":1,"status":"error","hasCookies":false,"mode":"launched","error":"Ref @c3 not found. Run 'snapshot' to get fresh refs."}
+{"ts":"2026-06-26T16:53:58.685Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":18,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:00.816Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":45,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:10.128Z","cmd":"click","args":"@c3","origin":"http://localhost:8000/","durationMs":31,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:10.788Z","cmd":"click","args":"@e1","origin":"http://localhost:8000/","durationMs":77,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:11.374Z","cmd":"js","args":"\nvar s=document.querySelectorAll('select');\nif(s.length>=4){\n  s[0].value='1999'; s[0].dispatchEvent(new Event('change'));\n  s[1].value='2'; s[1].dispatchEvent(new Event('change'));\n  s[2].value='4'; …","origin":"http://localhost:8000/","durationMs":4,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:12.478Z","cmd":"click","args":"@e3","origin":"http://localhost:8000/","durationMs":32,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:18.566Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:18.619Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:30.797Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":5,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:54:41.465Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:55:02.345Z","cmd":"js","args":"console.log(document.getElementById('classical-error')?.innerHTML || 'no classical-error div'); console.log(document.getElementById('chart-status')?.innerHTML || 'no chart-status div'); console.log(do…","origin":"http://localhost:8000/","durationMs":3,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T16:55:09.823Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":6,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:04:45.429Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":26,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:04:47.522Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:14:22.888Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":20,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:14:24.965Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":1,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:14:25.037Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":27,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:32:34.477Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":29,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:32:36.569Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:32:36.635Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":13,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:35:57.885Z","cmd":"goto","args":"http://localhost:8000","origin":"http://localhost:8000/","durationMs":28,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:35:59.967Z","cmd":"console","args":"--errors","origin":"http://localhost:8000/","durationMs":0,"status":"ok","hasCookies":false,"mode":"launched"}
+{"ts":"2026-06-26T17:36:00.047Z","cmd":"snapshot","args":"-i","origin":"http://localhost:8000/","durationMs":27,"status":"ok","hasCookies":false,"mode":"launched"}

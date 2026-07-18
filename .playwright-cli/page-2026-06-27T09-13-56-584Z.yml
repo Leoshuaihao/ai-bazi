@@ -1,0 +1,560 @@
+- generic [active] [ref=e1]:
+  - navigation [ref=e2]:
+    - generic [ref=e3]:
+      - link "Navigate to home" [ref=e5] [cursor=pointer]:
+        - /url: /en
+        - img "OpenFate Logo" [ref=e6]
+      - generic [ref=e7]:
+        - button "Feedback Rewards" [ref=e8] [cursor=pointer]
+        - button "Select language" [ref=e10] [cursor=pointer]:
+          - img [ref=e11]
+        - button "Sign In" [ref=e15] [cursor=pointer]
+        - button "Open navigation menu" [ref=e17] [cursor=pointer]:
+          - img [ref=e18]
+  - generic [ref=e19]:
+    - generic [ref=e22]:
+      - heading "Free Bazi chart Calculator | Four Pillars & Day Master Reading" [level=1] [ref=e24]
+      - paragraph [ref=e26]: Generate your Bazi chart online with True Solar Time correction. Get a clear Four Pillars reading with Day Master strength, Ten Gods, Five Elements, Luck Pillars, and timing insights for career, wealth, relationships, and life direction.
+      - generic "★ 4.8 Rating" [ref=e28]
+      - generic [ref=e29]:
+        - button "Bazi Chart" [ref=e31] [cursor=pointer]:
+          - img [ref=e32]
+          - generic [ref=e33]: Bazi Chart
+          - img [ref=e34]
+        - button "Astrology" [ref=e36] [cursor=pointer]:
+          - img [ref=e37]
+          - generic [ref=e38]: Astrology
+          - img [ref=e39]
+        - button "Ziwei Dou Shu" [ref=e41] [cursor=pointer]:
+          - img [ref=e42]
+          - generic [ref=e43]: Ziwei Dou Shu
+          - img [ref=e44]
+      - generic [ref=e45]:
+        - generic [ref=e47]:
+          - generic [ref=e48]:
+            - generic [ref=e49]:
+              - button "Solar" [ref=e50] [cursor=pointer]:
+                - generic [ref=e51]: Solar
+              - generic [ref=e52]:
+                - generic: e.g. 02/29/2004 10:30 AM, New York, male
+                - textbox "e.g. 02/29/2004 10:30 AM, New York, male" [ref=e53]
+            - button "Start" [ref=e55] [cursor=pointer]
+          - generic [ref=e57]:
+            - img [ref=e58]
+            - generic [ref=e60]: "Privacy protected: your input is carefully protected and mainly used for results and experience improvements."
+        - generic:
+          - generic: Analysis is running, please wait...
+    - region "OpenFate Bazi MCP Server" [ref=e61]:
+      - generic [ref=e62]:
+        - generic [ref=e63]:
+          - generic [ref=e64]: Open Source · MCP · Agent Skill
+          - heading "OpenFate Bazi MCP Server" [level=2] [ref=e66]
+          - paragraph [ref=e67]: A production-grade Bazi calculation server for Claude, Cursor, Codex, Cline, and every MCP-compatible AI agent.
+          - generic [ref=e68]:
+            - generic [ref=e74]: $
+            - generic [ref=e75]: npx -y @openfate/bazi-mcp
+            - button "Copy" [ref=e76] [cursor=pointer]:
+              - generic [ref=e79]: Copy
+          - generic [ref=e80]:
+            - generic [ref=e81]: npm v0.2.0
+            - generic [ref=e83]: MCP Registry listed
+            - generic [ref=e85]: MIT License
+          - generic [ref=e87]:
+            - link "GitHub" [ref=e88] [cursor=pointer]:
+              - /url: https://github.com/openfate-ai/bazi-mcp
+              - img [ref=e89]
+              - text: GitHub
+            - link "npm" [ref=e91] [cursor=pointer]:
+              - /url: https://www.npmjs.com/package/@openfate/bazi-mcp
+            - link "MCP Registry" [ref=e92] [cursor=pointer]:
+              - /url: https://registry.modelcontextprotocol.io/v0/servers?search=io.github.openfate-ai/bazi-mcp&version=0.2.0
+            - link "Docs →" [ref=e93] [cursor=pointer]:
+              - /url: /en/developers/bazi-mcp
+        - button "Dismiss developer panel" [ref=e94] [cursor=pointer]:
+          - img [ref=e95]
+    - list [ref=e97]:
+      - listitem [ref=e98]:
+        - blockquote [ref=e99]:
+          - paragraph [ref=e100]: Seems very informative ^^
+          - contentinfo [ref=e101]: er***@gmail.com
+      - listitem [ref=e102]:
+        - blockquote [ref=e103]:
+          - paragraph [ref=e104]: Useful in self discovery
+          - contentinfo [ref=e105]: ko***@gmail.com
+      - listitem [ref=e106]:
+        - blockquote [ref=e107]:
+          - paragraph [ref=e108]: It is very useful
+    - generic [ref=e110]:
+      - generic [ref=e111]:
+        - generic [ref=e112]:
+          - heading "What Our Clients Are Saying" [level=2] [ref=e113]:
+            - text: What Our Clients Are Saying
+            - img [ref=e114]
+          - paragraph [ref=e115]: We take pride in delivering thoughtful reports that help people see their timing, patterns, and next steps more clearly.
+          - link "More reviews" [ref=e116] [cursor=pointer]:
+            - /url: https://www.threads.net/@openfate.ai/post/DYdJWA8kcNx
+            - img [ref=e117]
+            - text: More reviews
+            - img [ref=e119]
+        - generic [ref=e121]:
+          - generic [ref=e122]:
+            - img [ref=e123]
+            - img [ref=e125]
+            - img [ref=e127]
+            - img [ref=e129]
+            - img [ref=e131]
+          - paragraph [ref=e133]: 4.8 average customer rating (500+ reviews)
+      - generic [ref=e134]:
+        - generic [ref=e135]:
+          - img [ref=e137]
+          - generic [ref=e142]:
+            - generic [ref=e143]: 31,500+
+            - generic [ref=e144]: Active Users
+        - generic [ref=e145]:
+          - img [ref=e147]
+          - generic [ref=e150]:
+            - generic [ref=e151]: 15,500+
+            - generic [ref=e152]: Detailed Reports
+        - generic [ref=e153]:
+          - img [ref=e155]
+          - generic [ref=e157]:
+            - generic [ref=e158]: 52,000+
+            - generic [ref=e159]: AI Chat Sessions
+        - generic [ref=e160]:
+          - img [ref=e162]
+          - generic [ref=e164]:
+            - generic [ref=e165]: 2.0B+
+            - generic [ref=e166]: AI Tokens Generated
+      - generic [ref=e169]:
+        - article [ref=e170]:
+          - generic [ref=e171]:
+            - generic [ref=e172]: E
+            - generic [ref=e173]:
+              - generic [ref=e174]:
+                - strong [ref=e175]: er***@gmail.com
+                - img [ref=e176]
+              - time [ref=e178]: 5 days ago
+          - paragraph [ref=e179]: Seems very informative ^^
+        - article [ref=e180]:
+          - generic [ref=e181]:
+            - generic [ref=e182]: K
+            - generic [ref=e183]:
+              - generic [ref=e184]:
+                - strong [ref=e185]: ko***@gmail.com
+                - img [ref=e186]
+              - time [ref=e188]: 6 days ago
+          - paragraph [ref=e189]: Useful in self discovery
+        - article [ref=e190]:
+          - generic [ref=e191]:
+            - generic [ref=e192]: E
+            - generic [ref=e193]:
+              - generic [ref=e194]:
+                - strong [ref=e195]: er***@gmail.com
+                - img [ref=e196]
+              - time [ref=e198]: 5 days ago
+          - paragraph [ref=e199]: Seems very informative ^^
+        - article [ref=e200]:
+          - generic [ref=e201]:
+            - generic [ref=e202]: K
+            - generic [ref=e203]:
+              - generic [ref=e204]:
+                - strong [ref=e205]: ko***@gmail.com
+                - img [ref=e206]
+              - time [ref=e208]: 6 days ago
+          - paragraph [ref=e209]: Useful in self discovery
+      - generic [ref=e212]:
+        - article [ref=e213]:
+          - generic [ref=e214]:
+            - generic [ref=e215]: A
+            - generic [ref=e216]:
+              - strong [ref=e218]: Anonymous user
+              - time [ref=e219]: 1 week ago
+          - paragraph [ref=e220]: It is very useful
+        - article [ref=e221]:
+          - generic [ref=e222]:
+            - generic [ref=e223]: A
+            - generic [ref=e224]:
+              - strong [ref=e226]: Anonymous user
+              - time [ref=e227]: 1 week ago
+          - paragraph [ref=e228]: It is very useful
+      - button "View all reviews" [ref=e230] [cursor=pointer]: View all reviews
+    - main [ref=e232]:
+      - generic [ref=e234]:
+        - complementary [ref=e235]:
+          - generic [ref=e236]:
+            - heading "User Guide." [level=2] [ref=e237]
+            - paragraph [ref=e238]: Our system uses high-precision algorithms for your baseline. You can try out different analysis data models seamlessly.
+            - generic [ref=e241]:
+              - generic [ref=e242]:
+                - generic [ref=e244]: "1"
+                - generic [ref=e245]:
+                  - heading "Select Analysis Engine" [level=3] [ref=e246]
+                  - paragraph [ref=e247]: "Choose the data model that fits your needs: Bazi, Ziwei, or Astrology."
+              - generic [ref=e248]:
+                - generic [ref=e250]: "2"
+                - generic [ref=e251]:
+                  - heading "Input Coordinates" [level=3] [ref=e252]
+                  - paragraph [ref=e253]: Provide your birth info. Our system establishes an accurate foundation for the reading.
+              - generic [ref=e254]:
+                - generic [ref=e256]: "3"
+                - generic [ref=e257]:
+                  - heading "Output Life Strategy" [level=3] [ref=e258]
+                  - paragraph [ref=e259]: Receive a clear, actionable personality manual and life roadmap.
+        - generic [ref=e262]:
+          - generic [ref=e267]: openfate.ai
+          - img "How it works demo" [ref=e269]
+      - generic [ref=e271]:
+        - complementary [ref=e272]:
+          - generic [ref=e273]:
+            - heading "Explore Our Capabilities" [level=2] [ref=e274]
+            - paragraph [ref=e275]: Unlock deep insights into your destiny with our comprehensive suite of cross-cultural analysis tools.
+        - generic [ref=e277]:
+          - link "Bazi Analysis Decode your Bazi chart structure through Day Master strength, Ten Gods, favorable elements, and Luck Pillars for clearer career, wealth, relationship, and timing insight. Start" [ref=e278] [cursor=pointer]:
+            - /url: /en/bazi
+            - generic [ref=e279]:
+              - heading "Bazi Analysis" [level=3] [ref=e280]
+              - paragraph [ref=e281]: Decode your Bazi chart structure through Day Master strength, Ten Gods, favorable elements, and Luck Pillars for clearer career, wealth, relationship, and timing insight.
+            - generic [ref=e283]: Start
+          - link "Ziwei Dou Shu Decode your Ziwei chart through the 12 palaces, major stars, and transformations for clearer life phase, career, wealth, relationship, and timing insight. Start" [ref=e284] [cursor=pointer]:
+            - /url: /en/ziwei
+            - generic [ref=e285]:
+              - heading "Ziwei Dou Shu" [level=3] [ref=e286]
+              - paragraph [ref=e287]: Decode your Ziwei chart through the 12 palaces, major stars, and transformations for clearer life phase, career, wealth, relationship, and timing insight.
+            - generic [ref=e289]: Start
+          - link "Astrology Interpret your birth chart through Sun, Moon, Rising sign, houses, and major aspects for clearer personality, relationship, career, and alignment insight. Start" [ref=e290] [cursor=pointer]:
+            - /url: /en/astro
+            - generic [ref=e291]:
+              - heading "Astrology" [level=3] [ref=e292]
+              - paragraph [ref=e293]: Interpret your birth chart through Sun, Moon, Rising sign, houses, and major aspects for clearer personality, relationship, career, and alignment insight.
+            - generic [ref=e295]: Start
+          - link "Compatibility Run romance, business, family, friendship, and workplace dynamics through one Bazi compatibility analysis engine to clarify leverage, friction, and timing. Start" [ref=e296] [cursor=pointer]:
+            - /url: /en/compatibility/bazi/marriage
+            - generic [ref=e297]:
+              - heading "Compatibility" [level=3] [ref=e298]
+              - paragraph [ref=e299]: Run romance, business, family, friendship, and workplace dynamics through one Bazi compatibility analysis engine to clarify leverage, friction, and timing.
+            - generic [ref=e301]: Start
+          - link "BZTI Test Enter your birth date, time, city, and gender to generate a BZTI result and shareable status card from your birth chart. Start" [ref=e302] [cursor=pointer]:
+            - /url: /en/bzti
+            - generic [ref=e303]:
+              - heading "BZTI Test" [level=3] [ref=e304]
+              - paragraph [ref=e305]: Enter your birth date, time, city, and gender to generate a BZTI result and shareable status card from your birth chart.
+            - generic [ref=e307]: Start
+          - link "My Wealth Analyze Wealth Stars, Day Master strength, monetization patterns, and Luck Pillars for clearer income strategy, career fit, wealth timing, and grounded wealth alignment. Start" [ref=e308] [cursor=pointer]:
+            - /url: /en/wealth
+            - generic [ref=e309]:
+              - heading "My Wealth" [level=3] [ref=e310]
+              - paragraph [ref=e311]: Analyze Wealth Stars, Day Master strength, monetization patterns, and Luck Pillars for clearer income strategy, career fit, wealth timing, and grounded wealth alignment.
+            - generic [ref=e313]: Start
+          - link "Love & Relationship Reading Decode relationship patterns through Spouse Palace, Spouse Stars, Peach Blossom indicators, and Luck Pillars for clearer love dynamics, timing windows, and partner-fit insight. Start" [ref=e314] [cursor=pointer]:
+            - /url: /en/love-bazi
+            - generic [ref=e315]:
+              - heading "Love & Relationship Reading" [level=3] [ref=e316]
+              - paragraph [ref=e317]: Decode relationship patterns through Spouse Palace, Spouse Stars, Peach Blossom indicators, and Luck Pillars for clearer love dynamics, timing windows, and partner-fit insight.
+            - generic [ref=e319]: Start
+          - link "Bazi Chart Generate an accurate Four Pillars chart with True Solar Time correction. View Heavenly Stems, Earthly Branches, Ten Gods, Hidden Stems, and Luck Pillars instantly. Start" [ref=e320] [cursor=pointer]:
+            - /url: /en/bazi-chart
+            - generic [ref=e321]:
+              - heading "Bazi Chart" [level=3] [ref=e322]
+              - paragraph [ref=e323]: Generate an accurate Four Pillars chart with True Solar Time correction. View Heavenly Stems, Earthly Branches, Ten Gods, Hidden Stems, and Luck Pillars instantly.
+            - generic [ref=e325]: Start
+          - link "Astro Chart Generate your natal chart instantly. View Sun, Moon, Rising, planetary positions, houses, and major aspects in a clear birth chart wheel. Start" [ref=e326] [cursor=pointer]:
+            - /url: /en/astro-chart
+            - generic [ref=e327]:
+              - heading "Astro Chart" [level=3] [ref=e328]
+              - paragraph [ref=e329]: Generate your natal chart instantly. View Sun, Moon, Rising, planetary positions, houses, and major aspects in a clear birth chart wheel.
+            - generic [ref=e331]: Start
+          - link "Ziwei Chart Generate your Ziwei Doushu chart instantly. View the 12 palaces, major stars, Body Palace, transformations, and decade cycles in one clear chart. Start" [ref=e332] [cursor=pointer]:
+            - /url: /en/ziwei-chart
+            - generic [ref=e333]:
+              - heading "Ziwei Chart" [level=3] [ref=e334]
+              - paragraph [ref=e335]: Generate your Ziwei Doushu chart instantly. View the 12 palaces, major stars, Body Palace, transformations, and decade cycles in one clear chart.
+            - generic [ref=e337]: Start
+      - generic [ref=e339]:
+        - complementary [ref=e340]:
+          - generic [ref=e341]:
+            - heading "Trending Insights" [level=2] [ref=e342]
+            - paragraph [ref=e343]: Deep analysis of the 2026 Fire Horse Year. Stay ahead of the curve.
+        - generic [ref=e345]:
+          - generic [ref=e346]:
+            - 'link "Read more about Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [ref=e347] [cursor=pointer]':
+              - /url: /en/insights/best-modern-bazi-ai-tool-openfate
+              - 'img "Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [ref=e349]'
+              - generic [ref=e350]:
+                - generic [ref=e351]: 2026/06/19
+                - 'heading "Best Modern Bazi AI Tool: Why OpenFate.ai Ranks #1" [level=3] [ref=e352]'
+                - paragraph [ref=e353]: OpenFate.ai combines True Solar Time, AI follow-up, open-source Bazi MCP infrastructure, and 166K-view Taiwan Threads feedback.
+                - generic [ref=e354]: AI Bazi
+            - 'link "Read more about In-Depth Guide: What is Astrology & Manifestation?" [ref=e355] [cursor=pointer]':
+              - /url: /en/insights/astro-manifestation
+              - 'img "In-Depth Guide: What is Astrology & Manifestation?" [ref=e357]'
+              - generic [ref=e358]:
+                - generic [ref=e359]: 2026/05/11
+                - 'heading "In-Depth Guide: What is Astrology & Manifestation?" [level=3] [ref=e360]'
+                - paragraph [ref=e361]: A practice combining personal goals with cosmic rhythms. Sync with lunar cycles and decode your natal chart to take action when energy is strongest.
+                - generic [ref=e362]: Manifestation
+            - link "Read more about In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [ref=e363] [cursor=pointer]:
+              - /url: /en/insights/ziwei-manifestation
+              - img "In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [ref=e365]
+              - generic [ref=e366]:
+                - generic [ref=e367]: 2026/05/11
+                - heading "In-Depth Analysis of the \"Zi Wei Dou Shu + Manifestation\" Strategy" [level=3] [ref=e368]
+                - paragraph [ref=e369]: Discover the perfect combination of Zi Wei Dou Shu and the Law of Attraction, providing a precise "Life Navigation System" to accelerate wealth and career manifestation.
+                - generic [ref=e370]: Manifestation
+            - 'link "Read more about Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [ref=e371] [cursor=pointer]':
+              - /url: /en/insights/bazi-manifestation-2026
+              - 'img "Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [ref=e373]'
+              - generic [ref=e374]:
+                - generic [ref=e375]: 2026/05/11
+                - 'heading "Eastern Numerology & Law of Attraction: 2026 Bazi Manifestation Guide" [level=3] [ref=e376]'
+                - paragraph [ref=e377]: Integrate classical Chinese metaphysics with the Law of Attraction. Analyze your Five Elements blueprint to exponentially increase reality creation success.
+                - generic [ref=e378]: Manifestation
+            - link "Read more about AI Advanced Relationship Synastry Strategy Manual" [ref=e379] [cursor=pointer]:
+              - /url: /en/insights/ai-driven-advanced-relationship-synastry-manual
+              - img "AI Advanced Relationship Synastry Strategy Manual" [ref=e381]
+              - generic [ref=e382]:
+                - generic [ref=e383]: 2026/04/09
+                - heading "AI Advanced Relationship Synastry Strategy Manual" [level=3] [ref=e384]
+                - paragraph [ref=e385]: The ultimate guide to using Five Elements and Ten Gods algorithms to quantify alignment and friction in any relationship.
+                - generic [ref=e386]: Bazi Academy
+            - 'link "Read more about Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [ref=e387] [cursor=pointer]':
+              - /url: /en/insights/parent-child-bazi-compatibility
+              - 'img "Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [ref=e389]'
+              - generic [ref=e390]:
+                - generic [ref=e391]: 2026/04/09
+                - 'heading "Parent-Child Bazi Synastry: Talent Analytics & Education Strategy" [level=3] [ref=e392]'
+                - paragraph [ref=e393]: Use Bazi algorithms to quantify your child's innate Ten Gods talents and build a custom education roadmap.
+                - generic [ref=e394]: Bazi Academy
+          - link "View All Insights" [ref=e396] [cursor=pointer]:
+            - /url: /en/insights
+      - generic [ref=e397]:
+        - generic [ref=e398]:
+          - heading "Frequently Asked Questions" [level=2] [ref=e399]
+          - paragraph [ref=e400]: Everything you need to know about reports, credits, and how it works.
+        - generic [ref=e401]:
+          - generic [ref=e402]:
+            - paragraph [ref=e403]: Credits & Account
+            - generic [ref=e404]:
+              - button "How do new users get a free full report?" [ref=e406] [cursor=pointer]:
+                - generic [ref=e407]: How do new users get a free full report?
+                - img [ref=e408]
+              - button "How do I redeem a gift code or points?" [ref=e411] [cursor=pointer]:
+                - generic [ref=e412]: How do I redeem a gift code or points?
+                - img [ref=e413]
+              - button "I was charged twice due to an error. How can I get my points back?" [ref=e416] [cursor=pointer]:
+                - generic [ref=e417]: I was charged twice due to an error. How can I get my points back?
+                - img [ref=e418]
+          - generic [ref=e420]:
+            - paragraph [ref=e421]: Usage & Features
+            - generic [ref=e422]:
+              - button "How do I download my report as a PDF?" [ref=e424] [cursor=pointer]:
+                - generic [ref=e425]: How do I download my report as a PDF?
+                - img [ref=e426]
+              - button "Do I need to pay or log in to calculate my birth chart?" [ref=e429] [cursor=pointer]:
+                - generic [ref=e430]: Do I need to pay or log in to calculate my birth chart?
+                - img [ref=e431]
+              - button "Can I check relationship compatibility with someone else?" [ref=e434] [cursor=pointer]:
+                - generic [ref=e435]: Can I check relationship compatibility with someone else?
+                - img [ref=e436]
+          - generic [ref=e438]:
+            - paragraph [ref=e439]: Astrology Logic
+            - generic [ref=e440]:
+              - button "What astrological schools or lineages do your algorithms use?" [ref=e442] [cursor=pointer]:
+                - generic [ref=e443]: What astrological schools or lineages do your algorithms use?
+                - img [ref=e444]
+              - button "Why is my rising sign or chart different from other apps?" [ref=e447] [cursor=pointer]:
+                - generic [ref=e448]: Why is my rising sign or chart different from other apps?
+                - img [ref=e449]
+              - button "What if my Bazi chart, favorable elements, ten gods, or symbolic stars differ from other software?" [ref=e452] [cursor=pointer]:
+                - generic [ref=e453]: What if my Bazi chart, favorable elements, ten gods, or symbolic stars differ from other software?
+                - img [ref=e454]
+              - button "Why is the Ziwei Doushu chart here different from apps like Wenmo Tianji? Does it affect the results?" [ref=e457] [cursor=pointer]:
+                - generic [ref=e458]: Why is the Ziwei Doushu chart here different from apps like Wenmo Tianji? Does it affect the results?
+                - img [ref=e459]
+          - generic [ref=e461]:
+            - paragraph [ref=e462]: Technical & Developers
+            - button "Are there any open source projects or AI agent skills for developers?" [ref=e465] [cursor=pointer]:
+              - generic [ref=e466]: Are there any open source projects or AI agent skills for developers?
+              - img [ref=e467]
+          - generic [ref=e469]:
+            - paragraph [ref=e470]: Troubleshooting
+            - generic [ref=e471]:
+              - button "What should I do if I see the \"Alien error\" or analysis fails?" [ref=e473] [cursor=pointer]:
+                - generic [ref=e474]: What should I do if I see the "Alien error" or analysis fails?
+                - img [ref=e475]
+              - button "Why did I get a placeholder or empty text in my Q&A reply?" [ref=e478] [cursor=pointer]:
+                - generic [ref=e479]: Why did I get a placeholder or empty text in my Q&A reply?
+                - img [ref=e480]
+          - generic [ref=e482]:
+            - paragraph [ref=e483]: Privacy & Legal
+            - generic [ref=e484]:
+              - button "Does OpenFate collect and store my birth chart data?" [ref=e486] [cursor=pointer]:
+                - generic [ref=e487]: Does OpenFate collect and store my birth chart data?
+                - img [ref=e488]
+              - button "Will OpenFate ever sell my personal information?" [ref=e491] [cursor=pointer]:
+                - generic [ref=e492]: Will OpenFate ever sell my personal information?
+                - img [ref=e493]
+          - generic [ref=e495]:
+            - paragraph [ref=e496]: About Me
+            - generic [ref=e497]:
+              - button "Who are you and why did you build OpenFate?" [ref=e499] [cursor=pointer]:
+                - generic [ref=e500]: Who are you and why did you build OpenFate?
+                - img [ref=e501]
+              - button "Want to tell me something?" [ref=e504] [cursor=pointer]:
+                - generic [ref=e505]: Want to tell me something?
+                - img [ref=e506]
+      - generic [ref=e508]:
+        - generic [ref=e509]:
+          - heading "Quick Answer" [level=2] [ref=e510]
+          - paragraph [ref=e511]: Generate your complete Four Pillars structure with precision — Heavenly Stems, Earthly Branches, Ten Gods, Hidden Stems, and Luck Pillars — projected into a single, clear interface.
+          - heading "What You Get" [level=3] [ref=e512]
+          - list [ref=e513]:
+            - listitem [ref=e514]: Generate a high-fidelity Bazi chart for free with all pillars, hidden stems, and decade cycles.
+            - listitem [ref=e515]: Know exactly which chart elements you will see — including stems, branches, hidden stems, and luck pillars.
+            - listitem [ref=e516]: Follow a natural path from chart to interpretation, with links to educational pages on every chart element.
+          - heading "Best For" [level=3] [ref=e517]
+          - list [ref=e518]:
+            - listitem [ref=e519]: Users focused on viewing their raw Four Pillars structure and hidden stems.
+            - listitem [ref=e520]: People checking Four Pillars details like stems, branches, and hidden stems.
+            - listitem [ref=e521]: Readers who need chart output to compare with another tool or article.
+          - navigation "Related Pages" [ref=e522]:
+            - paragraph [ref=e523]: Related Pages
+            - generic [ref=e524]:
+              - link "Bazi Reading" [ref=e525] [cursor=pointer]:
+                - /url: /en/bazi
+              - link "True Solar Time Guide" [ref=e526] [cursor=pointer]:
+                - /url: /en/insights/true-solar-time
+              - link "What Are the Four Pillars?" [ref=e527] [cursor=pointer]:
+                - /url: /en/insights/what-are-the-four-pillars-in-bazi
+              - link "About OpenFate" [ref=e528] [cursor=pointer]:
+                - /url: /en/about
+        - generic [ref=e529]:
+          - 'heading "Free Bazi Calculator: Generate & Interpret Your Bazi Chart Online" [level=2] [ref=e530]'
+          - paragraph [ref=e531]: Have you ever wondered what your exact birth date reveals about your destiny? Welcome to the fascinating world of bazi, an ancient metaphysical art. Whether you are seeking a simple bazi reading or looking for a comprehensive bazi calculator and analysis, understanding your cosmic blueprint has never been easier. Unlike standard horoscopes—a key difference when comparing chinese astrology vs western zodiac—chinese bazi astrology offers a profoundly detailed roadmap of your life's potential.
+          - paragraph [ref=e532]: Often referred to as ba zi (or traditionally, bai zi), this system translates to the Eight Characters mapping your birth year, month, day, and hour. A proper Four Pillars of Destiny chart interpretation reveals the profound heavenly stems and earthly branches meaning unique to your life. By exploring the yin and yang balance in birth charts, you can discover your innate strengths and weaknesses. Today, uncovering your chinese astrology bazi is simpler than ever.
+          - paragraph [ref=e533]: You no longer need to visit a traditional bazi fortune teller or consult an expensive bazi master to get started. By using a bazi chart generator, you can instantly map out your elements. The digital age makes ba zi calculation incredibly accessible.
+          - generic [ref=e534]:
+            - 'heading "Generating Your Chart: Top Tools and Calculators" [level=3] [ref=e535]'
+            - paragraph [ref=e536]: When searching online, you might type "calculator bazi" or even misspell it as "bazi calulator"—but don't worry, search engines will easily point you to a reliable bazi-calculator. Whether you need a detailed bazi chart calculator online or a simple chinese bazi calculator, there are countless options.
+            - paragraph [ref=e537]: You can easily calculate bazi free using an online ba zi calculator. By utilizing a bazi calculator online free or a specialized day master calculator, you can quickly access a free bazi chart to begin your journey.
+          - generic [ref=e538]:
+            - 'heading "Decoding Your Destiny: Bazi Chart Interpretation" [level=3] [ref=e539]'
+            - paragraph [ref=e540]: "Once you have generated your chart using a free ba zi calculator, the next step is bazi chart reading. A thorough bazi analysis breaks down your unique elemental makeup. Here is what a detailed bazi calculator and interpretation will help you achieve:"
+            - list [ref=e541]:
+              - listitem [ref=e542]: "Understanding the five elements theory: Learn how Wood, Fire, Earth, Metal, and Water shape your world."
+              - listitem [ref=e543]: "How to find your day master: Discover the core reference point of your identity."
+              - listitem [ref=e544]: "Calculating ten gods in destiny analysis: Uncover hidden talents and relationship dynamics."
+              - listitem [ref=e545]: "Identifying favorable and unfavorable elements: Learn what environments bring you success or stress."
+              - listitem [ref=e546]: "Role of hidden stems in personality traits: Discover your subconscious drives."
+              - listitem [ref=e547]: "Predicting life cycles with elemental transformations: Anticipate major life shifts."
+              - listitem [ref=e548]: "Interpreting luck pillars for future planning: Map out your upcoming 10-year phases."
+              - listitem [ref=e549]: "Impact of clashes and combinations on wealth luck: See exactly how elemental interactions affect your financial growth."
+          - generic [ref=e550]:
+            - heading "Practical Applications for Everyday Life" [level=3] [ref=e551]
+            - paragraph [ref=e552]: The wisdom of chinese bazi is highly practical. Many people use a bazi compatibility calculator for relationship compatibility using elemental analysis, ensuring harmony with partners. Others focus on using chinese metaphysics for career guidance to find their ideal professional path.
+            - paragraph [ref=e553]: If you have specific bazi questions, engaging in ba zi reading can help clear up common misconceptions about destiny profiling. Modern technology, including AI innovations like deepseek bazi, is even enhancing how we perform bazi calculator analysis.
+            - paragraph [ref=e554]: Whether you try a free bazi calculator, explore an online bazi calculator, or dive deep into bazi fortune telling, the insights are life-changing. Empower your future today—find a ba zi calculator online, use a trusted bazi calculator free, and explore your bazi chart calculator results to take full control of your destiny!
+        - generic [ref=e555]:
+          - heading "Bazi Chart FAQ" [level=2] [ref=e556]
+          - paragraph [ref=e557]: Common questions about the Bazi chart tool and how to use it well.
+          - generic [ref=e558]:
+            - generic [ref=e559]:
+              - heading "What does the Bazi chart page actually show me?" [level=3] [ref=e560]
+              - paragraph [ref=e561]: It shows your complete Four Pillars structure — each pillar's Heavenly Stem and Earthly Branch, Ten Gods, Hidden Stems, and your Luck Pillar timeline.
+            - generic [ref=e562]:
+              - heading "Why does true solar time matter on this page?" [level=3] [ref=e563]
+              - paragraph [ref=e564]: Because Bazi chart generation depends on precise birth timing. The supporting true-solar-time guide explains why clock time and astronomical time may differ.
+            - generic [ref=e565]:
+              - heading "What is the best next step after generating my chart?" [level=3] [ref=e566]
+              - paragraph [ref=e567]: The main Bazi reading page is the best next step, followed by explanatory pages on Four Pillars, Five Elements, and Ten Gods.
+    - contentinfo [ref=e568]:
+      - generic [ref=e570]:
+        - complementary [ref=e571]:
+          - generic [ref=e572]:
+            - heading "OpenFate" [level=2] [ref=e573]
+            - paragraph [ref=e574]: We connect ancient wisdom with modern intelligence. We provide clear, data-driven destiny analysis to help you navigate life's journey with confidence and clarity.
+            - generic [ref=e576]:
+              - generic [ref=e577]:
+                - generic [ref=e578]: Support Email
+                - link "hi@openfate.ai" [ref=e579] [cursor=pointer]:
+                  - /url: mailto:hi@openfate.ai
+              - generic [ref=e583]: All systems operational
+        - generic [ref=e585]:
+          - generic [ref=e587]:
+            - heading "Features" [level=3] [ref=e588]
+            - generic [ref=e589]:
+              - link "Free Bazi Chart" [ref=e590] [cursor=pointer]:
+                - /url: /en/bazi-chart
+              - link "Career Bazi Analysis" [ref=e591] [cursor=pointer]:
+                - /url: /en/bazi
+              - link "Wealth Code Analysis" [ref=e592] [cursor=pointer]:
+                - /url: /en/wealth
+              - link "Daily Huangli" [ref=e593] [cursor=pointer]:
+                - /url: /en/huangli
+              - link "Ziwei Dou Shu" [ref=e594] [cursor=pointer]:
+                - /url: /en/ziwei
+              - link "Free Ziwei Chart" [ref=e595] [cursor=pointer]:
+                - /url: /en/ziwei-chart
+              - link "Astro Analysis" [ref=e596] [cursor=pointer]:
+                - /url: /en/astro
+              - link "Free Astro Chart" [ref=e597] [cursor=pointer]:
+                - /url: /en/astro-chart
+          - generic [ref=e598]:
+            - generic [ref=e599]:
+              - heading "Theory & Knowledge" [level=3] [ref=e600]
+              - generic [ref=e601]:
+                - link "Five Elements Theory" [ref=e602] [cursor=pointer]:
+                  - /url: /en/insights/what-are-the-five-elements-in-bazi
+                - link "10 Heavenly Stems" [ref=e603] [cursor=pointer]:
+                  - /url: /en/insights/ten-heavenly-stems-explained
+                - link "12 Earthly Branches" [ref=e604] [cursor=pointer]:
+                  - /url: /en/insights/twelve-earthly-branches-explained
+                - link "10 Gods Meaning" [ref=e605] [cursor=pointer]:
+                  - /url: /en/insights/ten-gods-explained
+            - generic [ref=e606]:
+              - heading "Company" [level=3] [ref=e607]
+              - generic [ref=e608]:
+                - link "Insights" [ref=e609] [cursor=pointer]:
+                  - /url: /en/insights
+                - link "About OpenFate" [ref=e610] [cursor=pointer]:
+                  - /url: /en/about
+                - link "Editorial Methodology" [ref=e611] [cursor=pointer]:
+                  - /url: /en/editorial-methodology
+                - link "Pricing" [ref=e612] [cursor=pointer]:
+                  - /url: /en/pricing
+                - link "Dashboard" [ref=e613] [cursor=pointer]:
+                  - /url: /en/dashboard
+                - link "Privacy Policy" [ref=e614] [cursor=pointer]:
+                  - /url: /en/privacy
+                - link "Terms of Service" [ref=e615] [cursor=pointer]:
+                  - /url: /en/terms
+                - link "Sitemap.xml" [ref=e616] [cursor=pointer]:
+                  - /url: /sitemap.xml
+                - link "LLMs.txt" [ref=e617] [cursor=pointer]:
+                  - /url: /llms.txt
+                - link "Twitter" [ref=e618] [cursor=pointer]:
+                  - /url: https://twitter.com/openfate_ai
+                - link "Immersive Experience" [ref=e619] [cursor=pointer]:
+                  - /url: https://m.openfate.ai
+            - generic [ref=e620]:
+              - heading "Open Source & MCP" [level=3] [ref=e621]
+              - generic [ref=e622]:
+                - link "OpenFate MCP" [ref=e623] [cursor=pointer]:
+                  - /url: /en/developers/bazi-mcp
+                - link "GitHub" [ref=e624] [cursor=pointer]:
+                  - /url: https://github.com/openfate-ai/bazi-mcp
+                - link "npm" [ref=e625] [cursor=pointer]:
+                  - /url: https://www.npmjs.com/package/@openfate/bazi-mcp
+                - link "MCP Registry" [ref=e626] [cursor=pointer]:
+                  - /url: https://registry.modelcontextprotocol.io/v0/servers/io.github.openfate-ai%2Fbazi-mcp/versions/0.2.3
+                - link "Glama" [ref=e627] [cursor=pointer]:
+                  - /url: https://glama.ai/mcp/servers/openfate-ai/bazi-mcp
+                - link "Smithery" [ref=e628] [cursor=pointer]:
+                  - /url: https://smithery.ai/servers/openfate-ai/bazi-mcp
+                - link "LobeHub" [ref=e629] [cursor=pointer]:
+                  - /url: https://lobehub.com/mcp/openfate-ai-bazi-mcp
+                - link "MCP.so" [ref=e630] [cursor=pointer]:
+                  - /url: https://mcp.so/server/openfate-bazi-mcp/openfate-ai
+                - link "ClawHub" [ref=e631] [cursor=pointer]:
+                  - /url: https://clawhub.ai/openfate-ai/openfate-bazi
+      - generic [ref=e633]: © 2026 openfate.ai. All rights reserved.
+  - alert [ref=e634]

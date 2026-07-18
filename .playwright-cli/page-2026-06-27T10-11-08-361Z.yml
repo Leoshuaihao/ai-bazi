@@ -1,0 +1,484 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: 命
+          - generic [ref=e7]:
+            - heading "命盘审盘台" [level=1] [ref=e8]
+            - paragraph [ref=e9]: 四柱排盘、典籍依据、断前事校准
+        - generic [ref=e10]:
+          - button "填入示例" [ref=e11] [cursor=pointer]
+          - button "清空" [ref=e12] [cursor=pointer]
+    - main [ref=e13]:
+      - region "出生信息录入" [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17]:
+              - generic [ref=e18]: 先校验，再解读
+              - heading "让命盘先经过你的经历。" [level=2] [ref=e19]
+              - paragraph [ref=e20]: 先排固定盘，再用断前事校正旺衰、格局和用神，最后公开正式报告。
+            - generic [ref=e21]:
+              - generic "当前流程" [ref=e22]:
+                - generic [ref=e25]: 录入
+                - generic [ref=e28]: 命盘
+                - generic [ref=e31]: 审盘
+                - generic [ref=e34]: 校正
+                - generic [ref=e37]: 未来
+              - generic [ref=e38]: 结果用于参考和自我观察，不替代医疗、法律、投资等现实决策。
+          - generic [ref=e39]:
+            - group "历法" [ref=e40]:
+              - generic [ref=e41]: 历法
+              - group "历法" [ref=e42]:
+                - button "阳历" [pressed] [ref=e43] [cursor=pointer]
+                - button "农历" [ref=e44] [cursor=pointer]
+            - generic [ref=e45]:
+              - generic [ref=e46]: 出生日期
+              - button "出生日期" [expanded] [active] [ref=e47] [cursor=pointer]:
+                - generic [ref=e48]: 日
+                - generic [ref=e49]: 请选择出生日期和时间
+            - group "主角设定" [ref=e50]:
+              - generic [ref=e51]: 主角设定
+              - group "性别" [ref=e52]:
+                - button "女" [ref=e53] [cursor=pointer]
+                - button "男" [pressed] [ref=e54] [cursor=pointer]
+            - generic [ref=e55]:
+              - generic [ref=e56]: 降生之地
+              - combobox "降生之地" [ref=e57]:
+                - option "选择出生地" [selected]
+                - option "上海 / 上海"
+                - option "云南 / 昆明"
+                - option "内蒙古 / 呼和浩特"
+                - option "北京 / 北京"
+                - option "台湾 / 台北"
+                - option "吉林 / 长春"
+                - option "四川 / 成都"
+                - option "天津 / 天津"
+                - option "宁夏 / 银川"
+                - option "安徽 / 合肥"
+                - option "山东 / 济南"
+                - option "山西 / 太原"
+                - option "广东 / 广州"
+                - option "广西 / 南宁"
+                - option "新疆 / 乌鲁木齐"
+                - option "江苏 / 南京"
+                - option "江西 / 南昌"
+                - option "河北 / 石家庄"
+                - option "河南 / 郑州"
+                - option "浙江 / 杭州"
+                - option "海南 / 海口"
+                - option "湖北 / 武汉"
+                - option "湖南 / 长沙"
+                - option "澳门 / 澳门"
+                - option "甘肃 / 兰州"
+                - option "福建 / 福州"
+                - option "西藏 / 拉萨"
+                - option "贵州 / 贵阳"
+                - option "辽宁 / 沈阳"
+                - option "重庆 / 重庆"
+                - option "陕西 / 西安"
+                - option "青海 / 西宁"
+                - option "香港 / 香港"
+                - option "黑龙江 / 哈尔滨"
+            - generic [ref=e58]:
+              - generic [ref=e59]: 主角名字
+              - textbox "主角名字" [ref=e60]:
+                - /placeholder: 请输入你的昵称
+            - generic [ref=e61]:
+              - generic [ref=e62]:
+                - checkbox "启用真太阳时（推荐）" [checked] [ref=e63]
+                - generic [ref=e64]: 启用真太阳时（推荐）
+              - generic [ref=e65]: 按出生地经度校正，不启用则按北京时间。
+            - generic [ref=e66]:
+              - generic [ref=e67]:
+                - checkbox "出生时间只是大概记忆" [ref=e68]
+                - generic [ref=e69]: 出生时间只是大概记忆
+              - generic [ref=e70]: 断前事阶段会重点校验时辰。
+            - button "新增命盘 →" [ref=e72] [cursor=pointer]
+  - dialog "出生日期" [ref=e74]:
+    - generic [ref=e75]:
+      - heading "出生日期" [level=3] [ref=e76]
+      - button "关闭出生日期选择" [ref=e77] [cursor=pointer]: ×
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - textbox "输入出生年月日时分" [ref=e80]:
+          - /placeholder: 输入出生年月日时分（格式199903241435）
+        - button "确认" [ref=e81] [cursor=pointer]
+      - paragraph [ref=e82]: 可输入 12 位数字快速定位，也可以在下方滚动选择。
+    - generic "选择出生日期和时间" [ref=e84]:
+      - generic [ref=e85]:
+        - generic [ref=e86]: 年
+        - listbox "出生年份" [ref=e87]:
+          - option [disabled] [ref=e88]
+          - option [disabled] [ref=e89]
+          - option [disabled] [ref=e90]
+          - option "1900" [ref=e91]
+          - option "1901" [ref=e92]
+          - option "1902" [ref=e93]
+          - option "1903" [ref=e94]
+          - option "1904" [ref=e95]
+          - option "1905" [ref=e96]
+          - option "1906" [ref=e97]
+          - option "1907" [ref=e98]
+          - option "1908" [ref=e99]
+          - option "1909" [ref=e100]
+          - option "1910" [ref=e101]
+          - option "1911" [ref=e102]
+          - option "1912" [ref=e103]
+          - option "1913" [ref=e104]
+          - option "1914" [ref=e105]
+          - option "1915" [ref=e106]
+          - option "1916" [ref=e107]
+          - option "1917" [ref=e108]
+          - option "1918" [ref=e109]
+          - option "1919" [ref=e110]
+          - option "1920" [ref=e111]
+          - option "1921" [ref=e112]
+          - option "1922" [ref=e113]
+          - option "1923" [ref=e114]
+          - option "1924" [ref=e115]
+          - option "1925" [ref=e116]
+          - option "1926" [ref=e117]
+          - option "1927" [ref=e118]
+          - option "1928" [ref=e119]
+          - option "1929" [ref=e120]
+          - option "1930" [ref=e121]
+          - option "1931" [ref=e122]
+          - option "1932" [ref=e123]
+          - option "1933" [ref=e124]
+          - option "1934" [ref=e125]
+          - option "1935" [ref=e126]
+          - option "1936" [ref=e127]
+          - option "1937" [ref=e128]
+          - option "1938" [ref=e129]
+          - option "1939" [ref=e130]
+          - option "1940" [ref=e131]
+          - option "1941" [ref=e132]
+          - option "1942" [ref=e133]
+          - option "1943" [ref=e134]
+          - option "1944" [ref=e135]
+          - option "1945" [ref=e136]
+          - option "1946" [ref=e137]
+          - option "1947" [ref=e138]
+          - option "1948" [ref=e139]
+          - option "1949" [ref=e140]
+          - option "1950" [ref=e141]
+          - option "1951" [ref=e142]
+          - option "1952" [ref=e143]
+          - option "1953" [ref=e144]
+          - option "1954" [ref=e145]
+          - option "1955" [ref=e146]
+          - option "1956" [ref=e147]
+          - option "1957" [ref=e148]
+          - option "1958" [ref=e149]
+          - option "1959" [ref=e150]
+          - option "1960" [ref=e151]
+          - option "1961" [ref=e152]
+          - option "1962" [ref=e153]
+          - option "1963" [ref=e154]
+          - option "1964" [ref=e155]
+          - option "1965" [ref=e156]
+          - option "1966" [ref=e157]
+          - option "1967" [ref=e158]
+          - option "1968" [ref=e159]
+          - option "1969" [ref=e160]
+          - option "1970" [ref=e161]
+          - option "1971" [ref=e162]
+          - option "1972" [ref=e163]
+          - option "1973" [ref=e164]
+          - option "1974" [ref=e165]
+          - option "1975" [ref=e166]
+          - option "1976" [ref=e167]
+          - option "1977" [ref=e168]
+          - option "1978" [ref=e169]
+          - option "1979" [ref=e170]
+          - option "1980" [ref=e171]
+          - option "1981" [ref=e172]
+          - option "1982" [ref=e173]
+          - option "1983" [ref=e174]
+          - option "1984" [ref=e175]
+          - option "1985" [ref=e176]
+          - option "1986" [ref=e177]
+          - option "1987" [ref=e178]
+          - option "1988" [ref=e179]
+          - option "1989" [ref=e180]
+          - option "1990" [ref=e181]
+          - option "1991" [ref=e182]
+          - option "1992" [ref=e183]
+          - option "1993" [ref=e184]
+          - option "1994" [ref=e185]
+          - option "1995" [ref=e186]
+          - option "1996" [ref=e187]
+          - option "1997" [ref=e188]
+          - option "1998" [ref=e189]
+          - option "1999" [ref=e190]
+          - option "2000" [selected] [ref=e191]
+          - option "2001" [ref=e192]
+          - option "2002" [ref=e193]
+          - option "2003" [ref=e194]
+          - option "2004" [ref=e195]
+          - option "2005" [ref=e196]
+          - option "2006" [ref=e197]
+          - option "2007" [ref=e198]
+          - option "2008" [ref=e199]
+          - option "2009" [ref=e200]
+          - option "2010" [ref=e201]
+          - option "2011" [ref=e202]
+          - option "2012" [ref=e203]
+          - option "2013" [ref=e204]
+          - option "2014" [ref=e205]
+          - option "2015" [ref=e206]
+          - option "2016" [ref=e207]
+          - option "2017" [ref=e208]
+          - option "2018" [ref=e209]
+          - option "2019" [ref=e210]
+          - option "2020" [ref=e211]
+          - option "2021" [ref=e212]
+          - option "2022" [ref=e213]
+          - option "2023" [ref=e214]
+          - option "2024" [ref=e215]
+          - option "2025" [ref=e216]
+          - option "2026" [ref=e217]
+          - option "2027" [ref=e218]
+          - option "2028" [ref=e219]
+          - option "2029" [ref=e220]
+          - option "2030" [ref=e221]
+          - option "2031" [ref=e222]
+          - option "2032" [ref=e223]
+          - option "2033" [ref=e224]
+          - option "2034" [ref=e225]
+          - option "2035" [ref=e226]
+          - option "2036" [ref=e227]
+          - option "2037" [ref=e228]
+          - option "2038" [ref=e229]
+          - option "2039" [ref=e230]
+          - option "2040" [ref=e231]
+          - option "2041" [ref=e232]
+          - option "2042" [ref=e233]
+          - option "2043" [ref=e234]
+          - option "2044" [ref=e235]
+          - option "2045" [ref=e236]
+          - option "2046" [ref=e237]
+          - option "2047" [ref=e238]
+          - option "2048" [ref=e239]
+          - option "2049" [ref=e240]
+          - option "2050" [ref=e241]
+          - option "2051" [ref=e242]
+          - option "2052" [ref=e243]
+          - option "2053" [ref=e244]
+          - option "2054" [ref=e245]
+          - option "2055" [ref=e246]
+          - option "2056" [ref=e247]
+          - option "2057" [ref=e248]
+          - option "2058" [ref=e249]
+          - option "2059" [ref=e250]
+          - option "2060" [ref=e251]
+          - option "2061" [ref=e252]
+          - option "2062" [ref=e253]
+          - option "2063" [ref=e254]
+          - option "2064" [ref=e255]
+          - option "2065" [ref=e256]
+          - option "2066" [ref=e257]
+          - option "2067" [ref=e258]
+          - option "2068" [ref=e259]
+          - option "2069" [ref=e260]
+          - option "2070" [ref=e261]
+          - option "2071" [ref=e262]
+          - option "2072" [ref=e263]
+          - option "2073" [ref=e264]
+          - option "2074" [ref=e265]
+          - option "2075" [ref=e266]
+          - option "2076" [ref=e267]
+          - option "2077" [ref=e268]
+          - option "2078" [ref=e269]
+          - option "2079" [ref=e270]
+          - option "2080" [ref=e271]
+          - option "2081" [ref=e272]
+          - option "2082" [ref=e273]
+          - option "2083" [ref=e274]
+          - option "2084" [ref=e275]
+          - option "2085" [ref=e276]
+          - option "2086" [ref=e277]
+          - option "2087" [ref=e278]
+          - option "2088" [ref=e279]
+          - option "2089" [ref=e280]
+          - option "2090" [ref=e281]
+          - option "2091" [ref=e282]
+          - option "2092" [ref=e283]
+          - option "2093" [ref=e284]
+          - option "2094" [ref=e285]
+          - option "2095" [ref=e286]
+          - option "2096" [ref=e287]
+          - option "2097" [ref=e288]
+          - option "2098" [ref=e289]
+          - option "2099" [ref=e290]
+          - option "2100" [ref=e291]
+          - option [disabled] [ref=e292]
+          - option [disabled] [ref=e293]
+          - option [disabled] [ref=e294]
+      - generic [ref=e295]:
+        - generic [ref=e296]: 月
+        - listbox "出生月份" [ref=e297]:
+          - option [disabled] [ref=e298]
+          - option [disabled] [ref=e299]
+          - option [disabled] [ref=e300]
+          - option "01" [selected] [ref=e301]
+          - option "02" [ref=e302]
+          - option "03" [ref=e303]
+          - option "04" [ref=e304]
+          - option "05" [ref=e305]
+          - option "06" [ref=e306]
+          - option "07" [ref=e307]
+          - option "08" [ref=e308]
+          - option "09" [ref=e309]
+          - option "10" [ref=e310]
+          - option "11" [ref=e311]
+          - option "12" [ref=e312]
+          - option [disabled] [ref=e313]
+          - option [disabled] [ref=e314]
+          - option [disabled] [ref=e315]
+      - generic [ref=e316]:
+        - generic [ref=e317]: 日
+        - listbox "出生日期" [ref=e318]:
+          - option [disabled] [ref=e319]
+          - option [disabled] [ref=e320]
+          - option [disabled] [ref=e321]
+          - option "01" [selected] [ref=e322]
+          - option "02" [ref=e323]
+          - option "03" [ref=e324]
+          - option "04" [ref=e325]
+          - option "05" [ref=e326]
+          - option "06" [ref=e327]
+          - option "07" [ref=e328]
+          - option "08" [ref=e329]
+          - option "09" [ref=e330]
+          - option "10" [ref=e331]
+          - option "11" [ref=e332]
+          - option "12" [ref=e333]
+          - option "13" [ref=e334]
+          - option "14" [ref=e335]
+          - option "15" [ref=e336]
+          - option "16" [ref=e337]
+          - option "17" [ref=e338]
+          - option "18" [ref=e339]
+          - option "19" [ref=e340]
+          - option "20" [ref=e341]
+          - option "21" [ref=e342]
+          - option "22" [ref=e343]
+          - option "23" [ref=e344]
+          - option "24" [ref=e345]
+          - option "25" [ref=e346]
+          - option "26" [ref=e347]
+          - option "27" [ref=e348]
+          - option "28" [ref=e349]
+          - option "29" [ref=e350]
+          - option "30" [ref=e351]
+          - option "31" [ref=e352]
+          - option [disabled] [ref=e353]
+          - option [disabled] [ref=e354]
+          - option [disabled] [ref=e355]
+      - generic [ref=e356]:
+        - generic [ref=e357]: 时
+        - listbox "出生小时" [ref=e358]:
+          - option [disabled] [ref=e359]
+          - option [disabled] [ref=e360]
+          - option [disabled] [ref=e361]
+          - option "00" [ref=e362]
+          - option "01" [ref=e363]
+          - option "02" [ref=e364]
+          - option "03" [ref=e365]
+          - option "04" [ref=e366]
+          - option "05" [ref=e367]
+          - option "06" [ref=e368]
+          - option "07" [ref=e369]
+          - option "08" [selected] [ref=e370]
+          - option "09" [ref=e371]
+          - option "10" [ref=e372]
+          - option "11" [ref=e373]
+          - option "12" [ref=e374]
+          - option "13" [ref=e375]
+          - option "14" [ref=e376]
+          - option "15" [ref=e377]
+          - option "16" [ref=e378]
+          - option "17" [ref=e379]
+          - option "18" [ref=e380]
+          - option "19" [ref=e381]
+          - option "20" [ref=e382]
+          - option "21" [ref=e383]
+          - option "22" [ref=e384]
+          - option "23" [ref=e385]
+          - option [disabled] [ref=e386]
+          - option [disabled] [ref=e387]
+          - option [disabled] [ref=e388]
+      - generic [ref=e389]:
+        - generic [ref=e390]: 分
+        - listbox "出生分钟" [ref=e391]:
+          - option [disabled] [ref=e392]
+          - option [disabled] [ref=e393]
+          - option [disabled] [ref=e394]
+          - option "00" [selected] [ref=e395]
+          - option "01" [ref=e396]
+          - option "02" [ref=e397]
+          - option "03" [ref=e398]
+          - option "04" [ref=e399]
+          - option "05" [ref=e400]
+          - option "06" [ref=e401]
+          - option "07" [ref=e402]
+          - option "08" [ref=e403]
+          - option "09" [ref=e404]
+          - option "10" [ref=e405]
+          - option "11" [ref=e406]
+          - option "12" [ref=e407]
+          - option "13" [ref=e408]
+          - option "14" [ref=e409]
+          - option "15" [ref=e410]
+          - option "16" [ref=e411]
+          - option "17" [ref=e412]
+          - option "18" [ref=e413]
+          - option "19" [ref=e414]
+          - option "20" [ref=e415]
+          - option "21" [ref=e416]
+          - option "22" [ref=e417]
+          - option "23" [ref=e418]
+          - option "24" [ref=e419]
+          - option "25" [ref=e420]
+          - option "26" [ref=e421]
+          - option "27" [ref=e422]
+          - option "28" [ref=e423]
+          - option "29" [ref=e424]
+          - option "30" [ref=e425]
+          - option "31" [ref=e426]
+          - option "32" [ref=e427]
+          - option "33" [ref=e428]
+          - option "34" [ref=e429]
+          - option "35" [ref=e430]
+          - option "36" [ref=e431]
+          - option "37" [ref=e432]
+          - option "38" [ref=e433]
+          - option "39" [ref=e434]
+          - option "40" [ref=e435]
+          - option "41" [ref=e436]
+          - option "42" [ref=e437]
+          - option "43" [ref=e438]
+          - option "44" [ref=e439]
+          - option "45" [ref=e440]
+          - option "46" [ref=e441]
+          - option "47" [ref=e442]
+          - option "48" [ref=e443]
+          - option "49" [ref=e444]
+          - option "50" [ref=e445]
+          - option "51" [ref=e446]
+          - option "52" [ref=e447]
+          - option "53" [ref=e448]
+          - option "54" [ref=e449]
+          - option "55" [ref=e450]
+          - option "56" [ref=e451]
+          - option "57" [ref=e452]
+          - option "58" [ref=e453]
+          - option "59" [ref=e454]
+          - option [disabled] [ref=e455]
+          - option [disabled] [ref=e456]
+          - option [disabled] [ref=e457]
+    - generic [ref=e458]:
+      - button "取消" [ref=e459] [cursor=pointer]
+      - button "确认" [ref=e460] [cursor=pointer]

@@ -1,0 +1,2437 @@
+{
+  "source": "穷通宝鉴",
+  "alternate_name": "栏江网",
+  "author": "余春台",
+  "dynasty": "清",
+  "school": "子平派",
+  "version": "通行本",
+  "description": "以调候为纲，按十天干分十二月逐一论述用神取法，是调候用神的权威经典。全书揭示各日主在不同月令下的调候需求，为子平八字取用神之圭臬。",
+  "total_chapters": 120,
+  "organization": "10天干 × 12个月 = 120章",
+  "priority_distribution": {
+    "core": {
+      "stems": [
+        "甲",
+        "丙",
+        "庚",
+        "壬"
+      ],
+      "count": 48,
+      "description": "阳干调候，变格较多，用法最精"
+    },
+    "important": {
+      "stems": [
+        "乙",
+        "丁",
+        "戊",
+        "己",
+        "辛",
+        "癸"
+      ],
+      "count": 72,
+      "description": "阴干及土行调候"
+    }
+  },
+  "chapters": [
+    {
+      "id": "qiongtong_001",
+      "file": "001_甲木正月.txt",
+      "title": "正月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "正月甲木，初春犹有余寒，得丙癸透，富贵双全。"
+    },
+    {
+      "id": "qiongtong_002",
+      "file": "002_甲木二月.txt",
+      "title": "二月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "二月甲木，木旺宜庚金修剪，丙火泄秀，戊土培根。"
+    },
+    {
+      "id": "qiongtong_003",
+      "file": "003_甲木三月.txt",
+      "title": "三月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "三月甲木，土旺木折，庚丁并用，制土泄秀。"
+    },
+    {
+      "id": "qiongtong_004",
+      "file": "004_甲木四月.txt",
+      "title": "四月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "四月甲木，火旺木焚，专用癸水润木为急。"
+    },
+    {
+      "id": "qiongtong_005",
+      "file": "005_甲木五月.txt",
+      "title": "五月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "五月甲木，火炎木焚，癸水为急，庚金为辅。"
+    },
+    {
+      "id": "qiongtong_006",
+      "file": "006_甲木六月.txt",
+      "title": "六月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "六月甲木，火炎土燥，癸水润土滋木为先。"
+    },
+    {
+      "id": "qiongtong_007",
+      "file": "007_甲木七月.txt",
+      "title": "七月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "七月甲木，申宫庚金得禄，丁火制金护木。"
+    },
+    {
+      "id": "qiongtong_008",
+      "file": "008_甲木八月.txt",
+      "title": "八月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "八月甲木，秋金锐利，丁火制金，丙火为辅。"
+    },
+    {
+      "id": "qiongtong_009",
+      "file": "009_甲木九月.txt",
+      "title": "九月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "九月甲木，土燥木枯，甲木疏土，癸水润木。"
+    },
+    {
+      "id": "qiongtong_010",
+      "file": "010_甲木十月.txt",
+      "title": "十月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十月甲木，亥中甲木长生，庚劈甲引丁。"
+    },
+    {
+      "id": "qiongtong_011",
+      "file": "011_甲木十一月.txt",
+      "title": "十一月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十一月甲木，仲冬水旺木浮，丁火调候暖局。"
+    },
+    {
+      "id": "qiongtong_012",
+      "file": "012_甲木十二月.txt",
+      "title": "十二月甲木",
+      "stem": "甲",
+      "element": "木",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "甲木",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十二月甲木，季冬寒凝，丙火解冻为先。"
+    },
+    {
+      "id": "qiongtong_013",
+      "file": "013_乙木正月.txt",
+      "title": "正月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月乙木，乙木柔弱，丙火暖局，癸水滋养。"
+    },
+    {
+      "id": "qiongtong_014",
+      "file": "014_乙木二月.txt",
+      "title": "二月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月乙木，卯月得禄，丙癸并用，水火既济。"
+    },
+    {
+      "id": "qiongtong_015",
+      "file": "015_乙木三月.txt",
+      "title": "三月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月乙木，辰月土旺木折，癸水为先。"
+    },
+    {
+      "id": "qiongtong_016",
+      "file": "016_乙木四月.txt",
+      "title": "四月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月乙木，巳月火炎，癸水调候润木为急。"
+    },
+    {
+      "id": "qiongtong_017",
+      "file": "017_乙木五月.txt",
+      "title": "五月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月乙木，午月火炎，癸水调候为先。"
+    },
+    {
+      "id": "qiongtong_018",
+      "file": "018_乙木六月.txt",
+      "title": "六月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月乙木，未月火土燥烈，癸水润土为先。"
+    },
+    {
+      "id": "qiongtong_019",
+      "file": "019_乙木七月.txt",
+      "title": "七月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月乙木，申宫金旺克木，丙火制金护木。"
+    },
+    {
+      "id": "qiongtong_020",
+      "file": "020_乙木八月.txt",
+      "title": "八月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月乙木，酉月金锐克木，癸水泄金润木。"
+    },
+    {
+      "id": "qiongtong_021",
+      "file": "021_乙木九月.txt",
+      "title": "九月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月乙木，戌月土燥木枯，癸水为先。"
+    },
+    {
+      "id": "qiongtong_022",
+      "file": "022_乙木十月.txt",
+      "title": "十月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月乙木，亥月水旺木浮，丙火暖局为先。"
+    },
+    {
+      "id": "qiongtong_023",
+      "file": "023_乙木十一月.txt",
+      "title": "十一月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月乙木，子月寒水，丙火调候为急。"
+    },
+    {
+      "id": "qiongtong_024",
+      "file": "024_乙木十二月.txt",
+      "title": "十二月乙木",
+      "stem": "乙",
+      "element": "木",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "乙木",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月乙木，丑月寒凝，丙火解冻为先。"
+    },
+    {
+      "id": "qiongtong_025",
+      "file": "025_丙火正月.txt",
+      "title": "正月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "正月丙火，寅月丙火长生，壬水映辉为用。"
+    },
+    {
+      "id": "qiongtong_026",
+      "file": "026_丙火二月.txt",
+      "title": "二月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "二月丙火，卯月木旺火相，壬水调候为先。"
+    },
+    {
+      "id": "qiongtong_027",
+      "file": "027_丙火三月.txt",
+      "title": "三月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "三月丙火，辰月土重，甲木疏土，壬水映辉。"
+    },
+    {
+      "id": "qiongtong_028",
+      "file": "028_丙火四月.txt",
+      "title": "四月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "四月丙火，巳月建禄，壬水调候，庚金发源。"
+    },
+    {
+      "id": "qiongtong_029",
+      "file": "029_丙火五月.txt",
+      "title": "五月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "五月丙火，午月火炎，壬水为急，庚金为辅。"
+    },
+    {
+      "id": "qiongtong_030",
+      "file": "030_丙火六月.txt",
+      "title": "六月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "六月丙火，未月火土炎燥，壬水为先，庚金为佐。"
+    },
+    {
+      "id": "qiongtong_031",
+      "file": "031_丙火七月.txt",
+      "title": "七月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "七月丙火，申月壬水得地，专用壬水。"
+    },
+    {
+      "id": "qiongtong_032",
+      "file": "032_丙火八月.txt",
+      "title": "八月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "八月丙火，酉月火退金进气，壬水调候。"
+    },
+    {
+      "id": "qiongtong_033",
+      "file": "033_丙火九月.txt",
+      "title": "九月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "九月丙火，戊土当权，甲木疏土，壬水为辅。"
+    },
+    {
+      "id": "qiongtong_034",
+      "file": "034_丙火十月.txt",
+      "title": "十月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十月丙火，亥月壬水当权，甲木化水，戊土制水。"
+    },
+    {
+      "id": "qiongtong_035",
+      "file": "035_丙火十一月.txt",
+      "title": "十一月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十一月丙火，子月水旺火衰，戊土制水，壬水为辅。"
+    },
+    {
+      "id": "qiongtong_036",
+      "file": "036_丙火十二月.txt",
+      "title": "十二月丙火",
+      "stem": "丙",
+      "element": "火",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丙火",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十二月丙火，丑月寒土，甲木疏土，壬水为辅。"
+    },
+    {
+      "id": "qiongtong_037",
+      "file": "037_丁火正月.txt",
+      "title": "正月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月丁火，寅月丁火得生，甲木生火，庚金劈甲。"
+    },
+    {
+      "id": "qiongtong_038",
+      "file": "038_丁火二月.txt",
+      "title": "二月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月丁火，卯月木旺火相，甲木生火，庚金为佐。"
+    },
+    {
+      "id": "qiongtong_039",
+      "file": "039_丁火三月.txt",
+      "title": "三月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月丁火，辰月土重晦火，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_040",
+      "file": "040_丁火四月.txt",
+      "title": "四月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月丁火，巳月建禄火炎，甲木引丁，庚金劈甲。"
+    },
+    {
+      "id": "qiongtong_041",
+      "file": "041_丁火五月.txt",
+      "title": "五月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月丁火，午月建禄火炎，壬水调候为急。"
+    },
+    {
+      "id": "qiongtong_042",
+      "file": "042_丁火六月.txt",
+      "title": "六月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月丁火，未月火土燥烈，甲木疏土，壬水润局。"
+    },
+    {
+      "id": "qiongtong_043",
+      "file": "043_丁火七月.txt",
+      "title": "七月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月丁火，申月金旺，甲木引丁，庚金劈甲。"
+    },
+    {
+      "id": "qiongtong_044",
+      "file": "044_丁火八月.txt",
+      "title": "八月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月丁火，酉月金锐，甲木生火，庚金为佐。"
+    },
+    {
+      "id": "qiongtong_045",
+      "file": "045_丁火九月.txt",
+      "title": "九月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月丁火，戌月土重晦火，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_046",
+      "file": "046_丁火十月.txt",
+      "title": "十月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月丁火，亥月水旺火衰，甲木生火为急。"
+    },
+    {
+      "id": "qiongtong_047",
+      "file": "047_丁火十一月.txt",
+      "title": "十一月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月丁火，子月水寒火绝，甲木生火为先。"
+    },
+    {
+      "id": "qiongtong_048",
+      "file": "048_丁火十二月.txt",
+      "title": "十二月丁火",
+      "stem": "丁",
+      "element": "火",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "丁火",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月丁火，丑月寒土晦火，甲木疏土生火。"
+    },
+    {
+      "id": "qiongtong_049",
+      "file": "049_戊土正月.txt",
+      "title": "正月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月戊土，寅月木旺克土，丙火化木生土。"
+    },
+    {
+      "id": "qiongtong_050",
+      "file": "050_戊土二月.txt",
+      "title": "二月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月戊土，卯月木旺土死，丙火化木生土为先。"
+    },
+    {
+      "id": "qiongtong_051",
+      "file": "051_戊土三月.txt",
+      "title": "三月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月戊土，辰月当权，甲木疏土，癸水润土。"
+    },
+    {
+      "id": "qiongtong_052",
+      "file": "052_戊土四月.txt",
+      "title": "四月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月戊土，巳月火炎土燥，癸水润土为先。"
+    },
+    {
+      "id": "qiongtong_053",
+      "file": "053_戊土五月.txt",
+      "title": "五月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月戊土，午月火炎土燥，壬水调候为急。"
+    },
+    {
+      "id": "qiongtong_054",
+      "file": "054_戊土六月.txt",
+      "title": "六月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月戊土，未月火土炎燥，癸水为先。"
+    },
+    {
+      "id": "qiongtong_055",
+      "file": "055_戊土七月.txt",
+      "title": "七月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月戊土，申月金泄土气，丙火补土，癸水为辅。"
+    },
+    {
+      "id": "qiongtong_056",
+      "file": "056_戊土八月.txt",
+      "title": "八月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月戊土，酉月金旺泄土，丙火生土，癸水为辅。"
+    },
+    {
+      "id": "qiongtong_057",
+      "file": "057_戊土九月.txt",
+      "title": "九月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月戊土，戌月当权土厚，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_058",
+      "file": "058_戊土十月.txt",
+      "title": "十月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月戊土，亥月水旺土寒，丙火暖土为急。"
+    },
+    {
+      "id": "qiongtong_059",
+      "file": "059_戊土十一月.txt",
+      "title": "十一月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月戊土，子月水旺土冻，丙火暖局为先。"
+    },
+    {
+      "id": "qiongtong_060",
+      "file": "060_戊土十二月.txt",
+      "title": "十二月戊土",
+      "stem": "戊",
+      "element": "土",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "戊土",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月戊土，丑月土寒凝冻，丙火解冻为先。"
+    },
+    {
+      "id": "qiongtong_061",
+      "file": "061_己土正月.txt",
+      "title": "正月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月己土，寅月木旺克土，丙火化木生土。"
+    },
+    {
+      "id": "qiongtong_062",
+      "file": "062_己土二月.txt",
+      "title": "二月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月己土，卯月木旺土虚，甲木疏土，癸水润土。"
+    },
+    {
+      "id": "qiongtong_063",
+      "file": "063_己土三月.txt",
+      "title": "三月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月己土，辰月土旺，丙火暖土为先。"
+    },
+    {
+      "id": "qiongtong_064",
+      "file": "064_己土四月.txt",
+      "title": "四月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月己土，巳月火炎土燥，癸水润土为先。"
+    },
+    {
+      "id": "qiongtong_065",
+      "file": "065_己土五月.txt",
+      "title": "五月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月己土，午月火炎土燥，癸水调候为急。"
+    },
+    {
+      "id": "qiongtong_066",
+      "file": "066_己土六月.txt",
+      "title": "六月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月己土，未月火土炎燥，癸水润土为先。"
+    },
+    {
+      "id": "qiongtong_067",
+      "file": "067_己土七月.txt",
+      "title": "七月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月己土，申月金泄土气，丙火生土为先。"
+    },
+    {
+      "id": "qiongtong_068",
+      "file": "068_己土八月.txt",
+      "title": "八月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月己土，酉月金旺泄土，丙火补土为先。"
+    },
+    {
+      "id": "qiongtong_069",
+      "file": "069_己土九月.txt",
+      "title": "九月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月己土，戌月土燥，甲木疏土，癸水润土。"
+    },
+    {
+      "id": "qiongtong_070",
+      "file": "070_己土十月.txt",
+      "title": "十月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月己土，亥月水旺土湿，丙火暖土为先。"
+    },
+    {
+      "id": "qiongtong_071",
+      "file": "071_己土十一月.txt",
+      "title": "十一月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月己土，子月水旺土寒，丙火暖土，戊土制水。"
+    },
+    {
+      "id": "qiongtong_072",
+      "file": "072_己土十二月.txt",
+      "title": "十二月己土",
+      "stem": "己",
+      "element": "土",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "己土",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月己土，丑月寒土，丙火暖局为先。"
+    },
+    {
+      "id": "qiongtong_073",
+      "file": "073_庚金正月.txt",
+      "title": "正月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "正月庚金，寅月木旺金囚，丁火炼金，甲木引丁。"
+    },
+    {
+      "id": "qiongtong_074",
+      "file": "074_庚金二月.txt",
+      "title": "二月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "二月庚金，卯月木旺金囚，丁火炼金，甲木为佐。"
+    },
+    {
+      "id": "qiongtong_075",
+      "file": "075_庚金三月.txt",
+      "title": "三月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "三月庚金，辰月土旺埋金，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_076",
+      "file": "076_庚金四月.txt",
+      "title": "四月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "四月庚金，巳月火旺克金，壬水制火护金。"
+    },
+    {
+      "id": "qiongtong_077",
+      "file": "077_庚金五月.txt",
+      "title": "五月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "五月庚金，午月火炎克金，壬水为急，癸水为辅。"
+    },
+    {
+      "id": "qiongtong_078",
+      "file": "078_庚金六月.txt",
+      "title": "六月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "六月庚金，未月火土燥金，丁火炼金为先。"
+    },
+    {
+      "id": "qiongtong_079",
+      "file": "079_庚金七月.txt",
+      "title": "七月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "七月庚金，申月建禄，丁火炼金，甲木引丁。"
+    },
+    {
+      "id": "qiongtong_080",
+      "file": "080_庚金八月.txt",
+      "title": "八月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "八月庚金，酉月帝旺，丁火炼金，丙火为辅。"
+    },
+    {
+      "id": "qiongtong_081",
+      "file": "081_庚金九月.txt",
+      "title": "九月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "九月庚金，戌月土重埋金，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_082",
+      "file": "082_庚金十月.txt",
+      "title": "十月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十月庚金，亥月水寒金冷，丁火暖局炼金。"
+    },
+    {
+      "id": "qiongtong_083",
+      "file": "083_庚金十一月.txt",
+      "title": "十一月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十一月庚金，子月水旺金沉，丁火调候为先。"
+    },
+    {
+      "id": "qiongtong_084",
+      "file": "084_庚金十二月.txt",
+      "title": "十二月庚金",
+      "stem": "庚",
+      "element": "金",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "庚金",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十二月庚金，丑月寒土埋金，丙火解冻，丁火炼金。"
+    },
+    {
+      "id": "qiongtong_085",
+      "file": "085_辛金正月.txt",
+      "title": "正月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月辛金，寅月木旺土虚，己土生金为先。"
+    },
+    {
+      "id": "qiongtong_086",
+      "file": "086_辛金二月.txt",
+      "title": "二月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月辛金，卯月木旺，壬水淘洗，甲木为辅。"
+    },
+    {
+      "id": "qiongtong_087",
+      "file": "087_辛金三月.txt",
+      "title": "三月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月辛金，辰月土旺，壬水淘洗为先。"
+    },
+    {
+      "id": "qiongtong_088",
+      "file": "088_辛金四月.txt",
+      "title": "四月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月辛金，巳月火旺克金，壬水制火护金。"
+    },
+    {
+      "id": "qiongtong_089",
+      "file": "089_辛金五月.txt",
+      "title": "五月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月辛金，午月火旺克金，壬水为急，己土为辅。"
+    },
+    {
+      "id": "qiongtong_090",
+      "file": "090_辛金六月.txt",
+      "title": "六月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月辛金，未月火土燥金，壬水淘洗为先。"
+    },
+    {
+      "id": "qiongtong_091",
+      "file": "091_辛金七月.txt",
+      "title": "七月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月辛金，申月得禄，壬水淘洗为用。"
+    },
+    {
+      "id": "qiongtong_092",
+      "file": "092_辛金八月.txt",
+      "title": "八月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月辛金，酉月建禄，壬水淘洗为用。"
+    },
+    {
+      "id": "qiongtong_093",
+      "file": "093_辛金九月.txt",
+      "title": "九月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月辛金，戌月土重，壬水淘洗，甲木疏土。"
+    },
+    {
+      "id": "qiongtong_094",
+      "file": "094_辛金十月.txt",
+      "title": "十月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月辛金，亥月水旺金沉，丙火暖局为先。"
+    },
+    {
+      "id": "qiongtong_095",
+      "file": "095_辛金十一月.txt",
+      "title": "十一月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月辛金，子月水寒金冷，丙火暖局，戊土制水。"
+    },
+    {
+      "id": "qiongtong_096",
+      "file": "096_辛金十二月.txt",
+      "title": "十二月辛金",
+      "stem": "辛",
+      "element": "金",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "辛金",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月辛金，丑月寒土，丙火解冻，戊土制水。"
+    },
+    {
+      "id": "qiongtong_097",
+      "file": "097_壬水正月.txt",
+      "title": "正月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "正月壬水，寅月木旺泄水，庚金发源，戊土制水。"
+    },
+    {
+      "id": "qiongtong_098",
+      "file": "098_壬水二月.txt",
+      "title": "二月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "二月壬水，卯月木旺泄水，戊土制水为先。"
+    },
+    {
+      "id": "qiongtong_099",
+      "file": "099_壬水三月.txt",
+      "title": "三月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "三月壬水，辰月土旺，甲木疏土，庚金发源。"
+    },
+    {
+      "id": "qiongtong_100",
+      "file": "100_壬水四月.txt",
+      "title": "四月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "四月壬水，巳月火旺水涸，壬水比助，庚金发源。"
+    },
+    {
+      "id": "qiongtong_101",
+      "file": "101_壬水五月.txt",
+      "title": "五月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "五月壬水，午月火旺水涸，庚金发源为急。"
+    },
+    {
+      "id": "qiongtong_102",
+      "file": "102_壬水六月.txt",
+      "title": "六月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "六月壬水，未月火土燥水，庚金发源为先。"
+    },
+    {
+      "id": "qiongtong_103",
+      "file": "103_壬水七月.txt",
+      "title": "七月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "七月壬水，申月得地，戊土制水，丁火合壬。"
+    },
+    {
+      "id": "qiongtong_104",
+      "file": "104_壬水八月.txt",
+      "title": "八月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "八月壬水，酉月金生水，甲木泄水为秀。"
+    },
+    {
+      "id": "qiongtong_105",
+      "file": "105_壬水九月.txt",
+      "title": "九月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "九月壬水，戌月土旺，甲木疏土为先。"
+    },
+    {
+      "id": "qiongtong_106",
+      "file": "106_壬水十月.txt",
+      "title": "十月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十月壬水，亥月得禄水旺，戊土堤防为先。"
+    },
+    {
+      "id": "qiongtong_107",
+      "file": "107_壬水十一月.txt",
+      "title": "十一月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十一月壬水，子月水旺，戊土制水为先。"
+    },
+    {
+      "id": "qiongtong_108",
+      "file": "108_壬水十二月.txt",
+      "title": "十二月壬水",
+      "stem": "壬",
+      "element": "水",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "壬水",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "core",
+      "summary": "十二月壬水，丑月寒土，丙火解冻为先。"
+    },
+    {
+      "id": "qiongtong_109",
+      "file": "109_癸水正月.txt",
+      "title": "正月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 1,
+      "month_name": "正月",
+      "branch": "寅",
+      "season": "初春",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "正月",
+        "寅月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "正月癸水，寅月木旺泄水，庚辛金发源为先。"
+    },
+    {
+      "id": "qiongtong_110",
+      "file": "110_癸水二月.txt",
+      "title": "二月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 2,
+      "month_name": "二月",
+      "branch": "卯",
+      "season": "仲春",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "二月",
+        "卯月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "二月癸水，卯月木旺泄水，庚金发源，辛金为辅。"
+    },
+    {
+      "id": "qiongtong_111",
+      "file": "111_癸水三月.txt",
+      "title": "三月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 3,
+      "month_name": "三月",
+      "branch": "辰",
+      "season": "季春",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "三月",
+        "辰月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "三月癸水，辰月土旺，辛金发源，甲木疏土。"
+    },
+    {
+      "id": "qiongtong_112",
+      "file": "112_癸水四月.txt",
+      "title": "四月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 4,
+      "month_name": "四月",
+      "branch": "巳",
+      "season": "初夏",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "四月",
+        "巳月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "四月癸水，巳月火旺水涸，辛金发源为急。"
+    },
+    {
+      "id": "qiongtong_113",
+      "file": "113_癸水五月.txt",
+      "title": "五月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 5,
+      "month_name": "五月",
+      "branch": "午",
+      "season": "仲夏",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "五月",
+        "午月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "五月癸水，午月火旺水涸，辛金发源，壬水为辅。"
+    },
+    {
+      "id": "qiongtong_114",
+      "file": "114_癸水六月.txt",
+      "title": "六月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 6,
+      "month_name": "六月",
+      "branch": "未",
+      "season": "季夏",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "六月",
+        "未月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "六月癸水，未月火土燥水，辛金发源为先。"
+    },
+    {
+      "id": "qiongtong_115",
+      "file": "115_癸水七月.txt",
+      "title": "七月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 7,
+      "month_name": "七月",
+      "branch": "申",
+      "season": "初秋",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "七月",
+        "申月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "七月癸水，申月得地，丁火合壬，甲木泄秀。"
+    },
+    {
+      "id": "qiongtong_116",
+      "file": "116_癸水八月.txt",
+      "title": "八月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 8,
+      "month_name": "八月",
+      "branch": "酉",
+      "season": "仲秋",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "八月",
+        "酉月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "八月癸水，酉月金旺生水，辛金发源，丙火暖局。"
+    },
+    {
+      "id": "qiongtong_117",
+      "file": "117_癸水九月.txt",
+      "title": "九月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 9,
+      "month_name": "九月",
+      "branch": "戌",
+      "season": "季秋",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "九月",
+        "戌月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "九月癸水，戌月土燥，辛金发源，甲木疏土。"
+    },
+    {
+      "id": "qiongtong_118",
+      "file": "118_癸水十月.txt",
+      "title": "十月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 10,
+      "month_name": "十月",
+      "branch": "亥",
+      "season": "初冬",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "十月",
+        "亥月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十月癸水，亥月水旺，辛金发源为用。"
+    },
+    {
+      "id": "qiongtong_119",
+      "file": "119_癸水十一月.txt",
+      "title": "十一月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 11,
+      "month_name": "十一月",
+      "branch": "子",
+      "season": "仲冬",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "十一月",
+        "子月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十一月癸水，子月水寒，丙火暖局为先。"
+    },
+    {
+      "id": "qiongtong_120",
+      "file": "120_癸水十二月.txt",
+      "title": "十二月癸水",
+      "stem": "癸",
+      "element": "水",
+      "month": 12,
+      "month_name": "十二月",
+      "branch": "丑",
+      "season": "季冬",
+      "topic": "调候用神",
+      "keywords": [
+        "癸水",
+        "十二月",
+        "丑月",
+        "调候"
+      ],
+      "priority": "important",
+      "summary": "十二月癸水，丑月寒土凝水，丙丁火暖局为先。"
+    }
+  ]
+}

@@ -1,0 +1,331 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: 命
+          - generic [ref=e7]:
+            - heading "命盘审盘台" [level=1] [ref=e8]
+            - paragraph [ref=e9]: 四柱排盘、典籍依据、断前事校准
+        - generic [ref=e10]:
+          - button "填入示例" [ref=e11] [cursor=pointer]
+          - button "进行断前事校正" [active] [ref=e315] [cursor=pointer]
+          - button "清空" [ref=e12] [cursor=pointer]
+    - main [ref=e13]:
+      - region "出生信息录入" [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - heading "先定时辰，再看判断。" [level=2] [ref=e17]
+            - paragraph [ref=e18]: 录入出生信息后生成初盘，随后用典籍分析和断前事反馈检验结论。
+            - generic "当前流程" [ref=e19]:
+              - generic [ref=e22]: 录入信息
+              - generic [ref=e25]: 基础命盘
+              - generic [ref=e28]: 典籍推导
+              - generic [ref=e31]: 断前事校正
+              - generic [ref=e34]: 未来趋势
+            - generic [ref=e35]: 结果用于参考和自我观察，不替代医疗、法律、投资等现实决策。
+          - generic [ref=e36]:
+            - group "历法" [ref=e37]:
+              - generic [ref=e38]: 历法
+              - group "历法" [ref=e39]:
+                - button "阳历" [pressed] [ref=e40] [cursor=pointer]
+                - button "农历" [ref=e41] [cursor=pointer]
+            - generic [ref=e42]:
+              - generic [ref=e43]: 出生日期
+              - textbox "出生日期" [ref=e44]: 1990-06-15
+            - generic [ref=e45]:
+              - generic [ref=e46]: 出生时间
+              - textbox "出生时间" [ref=e47]: 12:20
+            - group "性别" [ref=e48]:
+              - generic [ref=e49]: 性别
+              - group "性别" [ref=e50]:
+                - button "男" [pressed] [ref=e51] [cursor=pointer]
+                - button "女" [ref=e52] [cursor=pointer]
+            - generic [ref=e54]:
+              - checkbox "启用真太阳时" [checked] [ref=e55]
+              - generic [ref=e56]: 启用真太阳时
+            - generic [ref=e57]:
+              - generic [ref=e58]: 出生地
+              - combobox "出生地" [ref=e59]:
+                - option "选择出生地"
+                - option "上海 / 上海"
+                - option "云南 / 昆明"
+                - option "内蒙古 / 呼和浩特"
+                - option "北京 / 北京"
+                - option "台湾 / 台北"
+                - option "吉林 / 长春"
+                - option "四川 / 成都"
+                - option "天津 / 天津"
+                - option "宁夏 / 银川"
+                - option "安徽 / 合肥"
+                - option "山东 / 济南"
+                - option "山西 / 太原"
+                - option "广东 / 广州" [selected]
+                - option "广西 / 南宁"
+                - option "新疆 / 乌鲁木齐"
+                - option "江苏 / 南京"
+                - option "江西 / 南昌"
+                - option "河北 / 石家庄"
+                - option "河南 / 郑州"
+                - option "浙江 / 杭州"
+                - option "海南 / 海口"
+                - option "湖北 / 武汉"
+                - option "湖南 / 长沙"
+                - option "澳门 / 澳门"
+                - option "甘肃 / 兰州"
+                - option "福建 / 福州"
+                - option "西藏 / 拉萨"
+                - option "贵州 / 贵阳"
+                - option "辽宁 / 沈阳"
+                - option "重庆 / 重庆"
+                - option "陕西 / 西安"
+                - option "青海 / 西宁"
+                - option "香港 / 香港"
+                - option "黑龙江 / 哈尔滨"
+            - generic [ref=e61]: 启用后按省会城市经度校正；不启用则按北京时间。
+            - button "开始排盘" [ref=e63] [cursor=pointer]
+      - generic [ref=e64]:
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: 基础命盘已排出
+            - heading "日主 辛（金），太弱；用神 土，喜 金，忌 火" [level=2] [ref=e68]
+            - generic [ref=e69]:
+              - generic [ref=e70]: 格局：正格-身弱
+              - generic [ref=e71]: 当前大运：乙酉（2017-2026）
+              - generic [ref=e72]: 真太阳时：11:52
+          - generic [ref=e73]:
+            - button "复制摘要" [ref=e74] [cursor=pointer]
+            - button "重新录入" [ref=e75] [cursor=pointer]
+        - generic [ref=e76]:
+          - generic [ref=e77]:
+            - heading "正在进行断前事校正" [level=3] [ref=e317]
+            - paragraph [ref=e79]: 请根据真实经历反馈。你可以返回上一题修改，系统会在最后统一审盘。
+          - button "开始断前事校正" [ref=e307] [cursor=pointer]
+        - generic [ref=e80]:
+          - generic [ref=e81]: 阶段 2 / 固定基本盘
+          - generic [ref=e82]:
+            - generic [ref=e83]:
+              - generic [ref=e85]:
+                - heading "四柱排盘" [level=3] [ref=e86]
+                - paragraph [ref=e87]: 出生时间：1990年6月15日 11:52（阳历）；出生地点：广东广州；真太阳时校正：已启用（北京时间 12:20 → 真太阳时 11:52）
+              - generic [ref=e88]:
+                - article [ref=e89]:
+                  - generic [ref=e90]: 年柱
+                  - generic [ref=e91]:
+                    - generic [ref=e92]: 庚
+                    - generic [ref=e93]: 午
+                  - generic [ref=e94]:
+                    - generic [ref=e95]: 天干十神：劫财
+                    - generic [ref=e96]: 地支十神：七杀
+                    - generic [ref=e97]: 纳音：路旁土
+                    - generic [ref=e98]: 长生：病
+                  - generic [ref=e99]:
+                    - generic [ref=e100]: 丁 / 七杀
+                    - generic [ref=e101]: 己 / 偏印
+                - article [ref=e102]:
+                  - generic [ref=e103]: 月柱
+                  - generic [ref=e104]:
+                    - generic [ref=e105]: 壬
+                    - generic [ref=e106]: 午
+                  - generic [ref=e107]:
+                    - generic [ref=e108]: 天干十神：伤官
+                    - generic [ref=e109]: 地支十神：七杀
+                    - generic [ref=e110]: 纳音：杨柳木
+                    - generic [ref=e111]: 长生：病
+                  - generic [ref=e112]:
+                    - generic [ref=e113]: 丁 / 七杀
+                    - generic [ref=e114]: 己 / 偏印
+                - article [ref=e115]:
+                  - generic [ref=e116]: 日柱
+                  - generic [ref=e117]:
+                    - generic [ref=e118]: 辛
+                    - generic [ref=e119]: 亥
+                  - generic [ref=e120]:
+                    - generic [ref=e121]: 天干十神：日主
+                    - generic [ref=e122]: 地支十神：日支
+                    - generic [ref=e123]: 纳音：钗钏金
+                    - generic [ref=e124]: 长生：沐浴
+                  - generic [ref=e125]:
+                    - generic [ref=e126]: 壬 / 伤官
+                    - generic [ref=e127]: 甲 / 正财
+                - article [ref=e128]:
+                  - generic [ref=e129]: 时柱
+                  - generic [ref=e130]:
+                    - generic [ref=e131]: 甲
+                    - generic [ref=e132]: 午
+                  - generic [ref=e133]:
+                    - generic [ref=e134]: 天干十神：正财
+                    - generic [ref=e135]: 地支十神：七杀
+                    - generic [ref=e136]: 纳音：沙中金
+                    - generic [ref=e137]: 长生：病
+                  - generic [ref=e138]:
+                    - generic [ref=e139]: 丁 / 七杀
+                    - generic [ref=e140]: 己 / 偏印
+            - generic [ref=e141]:
+              - generic [ref=e143]:
+                - heading "五行与用神" [level=3] [ref=e144]
+                - paragraph [ref=e145]: 先看扶抑方向，再展开细节。
+              - generic [ref=e146]:
+                - generic [ref=e147]:
+                  - generic [ref=e148]: 日主强弱
+                  - generic [ref=e149]: 太弱
+                - generic [ref=e150]:
+                  - generic [ref=e151]: 用神
+                  - generic [ref=e152]: 土
+                - generic [ref=e153]:
+                  - generic [ref=e154]: 喜神
+                  - generic [ref=e155]: 金
+                - generic [ref=e156]:
+                  - generic [ref=e157]: 忌神
+                  - generic [ref=e158]: 火
+              - generic [ref=e159]:
+                - generic [ref=e160]:
+                  - strong [ref=e161]: 金
+                  - generic [ref=e164]: 15.1%
+                - generic [ref=e165]:
+                  - strong [ref=e166]: 木
+                  - generic [ref=e169]: 11.8%
+                - generic [ref=e170]:
+                  - strong [ref=e171]: 水
+                  - generic [ref=e174]: 21.5%
+                - generic [ref=e175]:
+                  - strong [ref=e176]: 火
+                  - generic [ref=e179]: 46.2%
+                - generic [ref=e180]:
+                  - strong [ref=e181]: 土
+                  - generic [ref=e184]: 5.4%
+          - generic [ref=e185]:
+            - generic [ref=e187]:
+              - heading "大运与辅助信息" [level=3] [ref=e188]
+              - paragraph [ref=e189]: 当前大运用于后续未来趋势判断。
+            - generic [ref=e190]:
+              - article [ref=e191]:
+                - generic [ref=e192]: 癸未
+                - generic [ref=e193]: 食神
+                - generic [ref=e194]: 8-17岁
+                - generic [ref=e195]: 1997-2006
+              - article [ref=e196]:
+                - generic [ref=e197]: 甲申
+                - generic [ref=e198]: 正财
+                - generic [ref=e199]: 18-27岁
+                - generic [ref=e200]: 2007-2016
+              - article [ref=e201]:
+                - generic [ref=e202]: 乙酉
+                - generic [ref=e203]: 偏财
+                - generic [ref=e204]: 28-37岁
+                - generic [ref=e205]: 2017-2026
+              - article [ref=e206]:
+                - generic [ref=e207]: 丙戌
+                - generic [ref=e208]: 正官
+                - generic [ref=e209]: 38-47岁
+                - generic [ref=e210]: 2027-2036
+              - article [ref=e211]:
+                - generic [ref=e212]: 丁亥
+                - generic [ref=e213]: 七杀
+                - generic [ref=e214]: 48-57岁
+                - generic [ref=e215]: 2037-2046
+              - article [ref=e216]:
+                - generic [ref=e217]: 戊子
+                - generic [ref=e218]: 正印
+                - generic [ref=e219]: 58-67岁
+                - generic [ref=e220]: 2047-2056
+              - article [ref=e221]:
+                - generic [ref=e222]: 己丑
+                - generic [ref=e223]: 偏印
+                - generic [ref=e224]: 68-77岁
+                - generic [ref=e225]: 2057-2066
+              - article [ref=e226]:
+                - generic [ref=e227]: 庚寅
+                - generic [ref=e228]: 劫财
+                - generic [ref=e229]: 78-87岁
+                - generic [ref=e230]: 2067-2076
+              - article [ref=e231]:
+                - generic [ref=e232]: 辛卯
+                - generic [ref=e233]: 比肩
+                - generic [ref=e234]: 88-97岁
+                - generic [ref=e235]: 2077-2086
+            - generic [ref=e236]:
+              - generic [ref=e237]: 空亡：寅、卯
+              - generic [ref=e238]: 命宫：辛巳
+              - generic [ref=e239]: 胎元：丙寅
+              - generic [ref=e240]: 天乙贵人：year
+              - generic [ref=e241]: 天乙贵人：month
+              - generic [ref=e242]: 天乙贵人：hour
+        - generic [ref=e243]:
+          - generic [ref=e244]: 阶段 2 / 典籍与非固定判断
+          - generic [ref=e245]:
+            - generic [ref=e247]:
+              - heading "典籍推导" [level=3] [ref=e248]
+              - paragraph [ref=e249]: AI 正在读取原文依据，判断旺衰、格局、用神这些需要综合推导的部分。
+            - generic [ref=e250]:
+              - generic [ref=e262]:
+                - article [ref=e263]:
+                  - heading "旺衰判断：太弱" [level=4] [ref=e264]
+                  - paragraph [ref=e265]: 日主辛金生于午月火旺之地，失令；地支无金根，天干无金帮身，仅得时支亥水稍助，但亥水被三午火冲克，力量极弱。符合《滴天髓》“失令失地无根无生”的极弱标准，但未构成从格（因有亥水微根），故为太弱。
+                - article [ref=e266]:
+                  - heading "格局判断" [level=4] [ref=e267]
+                  - paragraph [ref=e268]: 正官格（《子平真诠·论用神格局高低》：“凡格从月令定。”月令午火藏丁火，丁火为辛金之正官，月令正官当权，故为正官格。）破格（《子平真诠·论用神格局高低》：“无情者，用神被克被泄，无辅佐之神也。”月令官星被年支午火、时支午火助旺，但天干透壬水伤官，壬水克午中丁火官星，伤官见官，官星受损，且无印星制伤护官，故为无情破格。）。月令午火为正官，但天干壬水伤官透出，直接克制月令官星，官星受创。原局无印星（土）制伤护官，也无财星（木）化伤生官，救应全无，官星自身虚浮无力（仅午中藏丁，无根），符合“无情而无力”的下格。
+                - article [ref=e269]:
+                  - heading "用神三法：土（首选），金（次选，需慎用）" [level=4] [ref=e270]
+                  - paragraph [ref=e271]: 三种方法均以土为第一用神，因土能制伤官（救格）、生辛金（扶身）、化官星（调候）。金虽能助身，但会生水助伤官，对格局不利，故优先级低于土。综合《子平真诠》格局优先原则，应以救格为要。
+              - generic [ref=e272]:
+                - heading "引用典籍" [level=4] [ref=e273]
+                - generic [ref=e274]:
+                  - generic [ref=e275]:
+                    - generic [ref=e276]: 子平真诠 / 论用神格局高低
+                    - generic [ref=e277]: 16分
+                  - generic [ref=e278]:
+                    - generic [ref=e279]: 子平真诠 / 论印绶
+                    - generic [ref=e280]: 15分
+                  - generic [ref=e281]:
+                    - generic [ref=e282]: 穷通宝鉴 / 正月辛金
+                    - generic [ref=e283]: 14分
+                  - generic [ref=e284]:
+                    - generic [ref=e285]: 滴天髓 / 正印格
+                    - generic [ref=e286]: 11分
+                  - generic [ref=e287]:
+                    - generic [ref=e288]: 滴天髓 / 旺衰
+                    - generic [ref=e289]: 10分
+                  - generic [ref=e290]:
+                    - generic [ref=e291]: 子平真诠 / 论行运用神强弱
+                    - generic [ref=e292]: 8分
+                  - generic [ref=e293]:
+                    - generic [ref=e294]: 子平真诠 / 论十干十二支
+                    - generic [ref=e295]: 6分
+                  - generic [ref=e296]:
+                    - generic [ref=e297]: 子平真诠 / 论贫富
+                    - generic [ref=e298]: 4分
+                  - generic [ref=e299]:
+                    - generic [ref=e300]: 滴天髓 / 地道
+                    - generic [ref=e301]: 2分
+                  - generic [ref=e302]:
+                    - generic [ref=e303]: 滴天髓 / 兄弟
+                    - generic [ref=e304]: 2分
+  - complementary "断前事校正浮窗" [ref=e318]:
+    - generic [ref=e319]:
+      - generic [ref=e320]:
+        - heading "断前事校正" [level=3] [ref=e321]
+        - paragraph [ref=e322]: 回答后可返回上一题修改，最后统一提交。
+      - button "关闭断前事浮窗" [ref=e323] [cursor=pointer]: ×
+    - generic [ref=e324]:
+      - generic [ref=e325]:
+        - generic [ref=e326]: 第 1 / 7 题
+        - generic [ref=e327]: 性格
+      - article [ref=e328]:
+        - generic [ref=e329]: 性格
+        - heading "先说说你的性格" [level=4] [ref=e330]
+        - paragraph [ref=e331]: 你外表看似温和，但内心刚强，有不服输的劲头。平时话不多，可一旦开口往往一针见血，容易因为直言而得罪人。做事有主见，不喜欢被人管束，但有时会因过于执着而显得固执。
+        - generic [ref=e332]: 《滴天髓》云：‘辛金软弱，温润而清；畏土之多，乐水之盈。’
+        - generic [ref=e333]: 依据：辛金日主生于午月，火旺金弱，但得亥水伤官泄秀，性格外柔内刚。伤官透干，聪明但易言辞尖锐。
+        - generic [ref=e334]:
+          - button "说对了" [ref=e335] [cursor=pointer]
+          - button "方向对，细节偏" [ref=e336] [cursor=pointer]
+          - button "不对" [ref=e337] [cursor=pointer]
+          - button "补充背景" [ref=e338] [cursor=pointer]
+        - textbox "可选：补充你的具体情况，例如“我是独生子”“父母长期分居”“这条完全相反”" [ref=e339]
+    - generic [ref=e340]:
+      - button "上一题" [disabled] [ref=e341]
+      - button "下一题" [ref=e342] [cursor=pointer]
+      - generic [ref=e343]: 0/7 已选择
+      - button "提交校正（0/7）" [disabled] [ref=e344]
+  - generic: 已填入示例，可直接生成

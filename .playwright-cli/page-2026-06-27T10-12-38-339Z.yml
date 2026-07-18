@@ -1,0 +1,293 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - generic [ref=e6]: 命
+          - generic [ref=e7]:
+            - heading "命盘审盘台" [level=1] [ref=e8]
+            - paragraph [ref=e9]: 四柱排盘、典籍依据、断前事校准
+        - generic [ref=e10]:
+          - button "填入示例" [ref=e11] [cursor=pointer]
+          - button "清空" [ref=e12] [cursor=pointer]
+    - main [ref=e13]:
+      - region "出生信息录入" [ref=e14]:
+        - generic [ref=e15]:
+          - generic [ref=e16]:
+            - generic [ref=e17]:
+              - generic [ref=e18]: 先校验，再解读
+              - heading "让命盘先经过你的经历。" [level=2] [ref=e19]
+              - paragraph [ref=e20]: 先排固定盘，再用断前事校正旺衰、格局和用神，最后公开正式报告。
+              - generic [ref=e21]:
+                - generic [ref=e22]: 快捷输入
+                - generic [ref=e23]:
+                  - textbox "快捷输入" [ref=e24]:
+                    - /placeholder: 例如：1990-06-15 12:20 广州 男
+                    - text: 1990-06-15 12:20 广州 男
+                  - button "识别" [ref=e25] [cursor=pointer]
+                - generic [ref=e26]: 识别后会回填下方字段，提交前可以逐项检查。
+            - generic [ref=e27]:
+              - generic "当前流程" [ref=e28]:
+                - generic [ref=e31]: 录入
+                - generic [ref=e34]: 命盘
+                - generic [ref=e37]: 审盘
+                - generic [ref=e40]: 校正
+                - generic [ref=e43]: 未来
+              - generic [ref=e44]: 结果用于参考和自我观察，不替代医疗、法律、投资等现实决策。
+          - generic [ref=e45]:
+            - group "历法" [ref=e46]:
+              - generic [ref=e47]: 历法
+              - group "历法" [ref=e48]:
+                - button "阳历" [pressed] [ref=e49] [cursor=pointer]
+                - button "农历" [ref=e50] [cursor=pointer]
+            - generic [ref=e51]:
+              - generic [ref=e52]: 出生日期
+              - button "出生日期" [ref=e53] [cursor=pointer]:
+                - generic [ref=e54]: 日
+                - generic [ref=e55]: 1990-06-15 12:20
+            - group "主角设定" [ref=e56]:
+              - generic [ref=e57]: 主角设定
+              - group "性别" [ref=e58]:
+                - button "女" [ref=e59] [cursor=pointer]
+                - button "男" [pressed] [ref=e60] [cursor=pointer]
+            - generic [ref=e61]:
+              - generic [ref=e62]: 降生之地
+              - combobox "降生之地" [ref=e63]:
+                - option "选择出生地"
+                - option "上海 / 上海"
+                - option "云南 / 昆明"
+                - option "内蒙古 / 呼和浩特"
+                - option "北京 / 北京"
+                - option "台湾 / 台北"
+                - option "吉林 / 长春"
+                - option "四川 / 成都"
+                - option "天津 / 天津"
+                - option "宁夏 / 银川"
+                - option "安徽 / 合肥"
+                - option "山东 / 济南"
+                - option "山西 / 太原"
+                - option "广东 / 广州" [selected]
+                - option "广西 / 南宁"
+                - option "新疆 / 乌鲁木齐"
+                - option "江苏 / 南京"
+                - option "江西 / 南昌"
+                - option "河北 / 石家庄"
+                - option "河南 / 郑州"
+                - option "浙江 / 杭州"
+                - option "海南 / 海口"
+                - option "湖北 / 武汉"
+                - option "湖南 / 长沙"
+                - option "澳门 / 澳门"
+                - option "甘肃 / 兰州"
+                - option "福建 / 福州"
+                - option "西藏 / 拉萨"
+                - option "贵州 / 贵阳"
+                - option "辽宁 / 沈阳"
+                - option "重庆 / 重庆"
+                - option "陕西 / 西安"
+                - option "青海 / 西宁"
+                - option "香港 / 香港"
+                - option "黑龙江 / 哈尔滨"
+            - generic [ref=e64]:
+              - generic [ref=e65]: 主角名字
+              - textbox "主角名字" [ref=e66]:
+                - /placeholder: 请输入你的昵称
+            - generic [ref=e67]:
+              - generic [ref=e68]:
+                - checkbox "启用真太阳时（推荐）" [checked] [ref=e69]
+                - generic [ref=e70]: 启用真太阳时（推荐）
+              - generic [ref=e71]: 按出生地经度校正，不启用则按北京时间。
+            - generic [ref=e72]:
+              - generic [ref=e73]:
+                - checkbox "出生时间只是大概记忆" [ref=e74]
+                - generic [ref=e75]: 出生时间只是大概记忆
+              - generic [ref=e76]: 断前事阶段会重点校验时辰。
+            - button "新增命盘 →" [ref=e78] [cursor=pointer]
+      - generic [ref=e79]:
+        - generic [ref=e80]:
+          - generic [ref=e81]:
+            - generic [ref=e82]: 固定基本盘已排出
+            - heading "日主 辛（金），固定盘已排出；旺衰、格局、用神待断前事校正后公开" [level=2] [ref=e83]
+            - generic [ref=e84]:
+              - generic [ref=e85]: 后台审盘：草稿生成中
+              - generic [ref=e86]: 当前大运：乙酉（2017-2026）
+              - generic [ref=e87]: 真太阳时：11:52
+          - generic [ref=e88]:
+            - button "复制摘要" [ref=e89] [cursor=pointer]
+            - button "重新录入" [ref=e90] [cursor=pointer]
+        - generic [ref=e92]:
+          - heading "基础命盘已排出，正在后台生成审盘草稿" [level=3] [ref=e93]
+          - paragraph [ref=e94]: 当前只公开固定公式结果。旺衰、格局、用神会先在后台生成草稿，用于断前事校正，暂不展示。
+        - generic "审盘流程状态" [ref=e95]:
+          - generic [ref=e96]:
+            - generic [ref=e97]: 已确定
+            - generic [ref=e98]: 公式命盘已排出
+            - paragraph [ref=e99]: 四柱、藏干、五行分布和大运已经完成。出生时间按当前输入计算；如后续偏差过大，会再询问时辰是否精准。
+          - generic [ref=e100]:
+            - generic [ref=e101]: 正在判断
+            - generic [ref=e102]: 后台审盘中
+            - paragraph [ref=e103]: 正在生成未公开草稿，用来设计断前事问题。
+          - generic [ref=e104]:
+            - generic [ref=e105]: 下一步
+            - generic [ref=e106]: 等待断前事
+            - paragraph [ref=e107]: 后台草稿完成后会询问是否用真实经历校正。
+        - generic [ref=e108]:
+          - generic [ref=e109]: 阶段 2 / 固定基本盘
+          - generic [ref=e110]:
+            - generic [ref=e111]:
+              - generic [ref=e113]:
+                - heading "四柱排盘（固定公式）" [level=3] [ref=e114]
+                - paragraph [ref=e115]: 出生时间：1990年6月15日 11:52（阳历）；出生地点：广东广州；真太阳时校正：已启用（北京时间 12:20 → 真太阳时 11:52）
+              - generic [ref=e116]:
+                - article [ref=e117]:
+                  - generic [ref=e118]: 年柱
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: 庚
+                    - generic [ref=e121]: 午
+                  - generic [ref=e122]:
+                    - generic [ref=e123]: 天干十神：劫财
+                    - generic [ref=e124]: 地支十神：七杀
+                    - generic [ref=e125]: 纳音：路旁土
+                    - generic [ref=e126]: 长生：病
+                  - generic [ref=e127]:
+                    - generic [ref=e128]: 丁 / 七杀
+                    - generic [ref=e129]: 己 / 偏印
+                - article [ref=e130]:
+                  - generic [ref=e131]: 月柱
+                  - generic [ref=e132]:
+                    - generic [ref=e133]: 壬
+                    - generic [ref=e134]: 午
+                  - generic [ref=e135]:
+                    - generic [ref=e136]: 天干十神：伤官
+                    - generic [ref=e137]: 地支十神：七杀
+                    - generic [ref=e138]: 纳音：杨柳木
+                    - generic [ref=e139]: 长生：病
+                  - generic [ref=e140]:
+                    - generic [ref=e141]: 丁 / 七杀
+                    - generic [ref=e142]: 己 / 偏印
+                - article [ref=e143]:
+                  - generic [ref=e144]: 日柱
+                  - generic [ref=e145]:
+                    - generic [ref=e146]: 辛
+                    - generic [ref=e147]: 亥
+                  - generic [ref=e148]:
+                    - generic [ref=e149]: 天干十神：日主
+                    - generic [ref=e150]: 地支十神：日支
+                    - generic [ref=e151]: 纳音：钗钏金
+                    - generic [ref=e152]: 长生：沐浴
+                  - generic [ref=e153]:
+                    - generic [ref=e154]: 壬 / 伤官
+                    - generic [ref=e155]: 甲 / 正财
+                - article [ref=e156]:
+                  - generic [ref=e157]: 时柱
+                  - generic [ref=e158]:
+                    - generic [ref=e159]: 甲
+                    - generic [ref=e160]: 午
+                  - generic [ref=e161]:
+                    - generic [ref=e162]: 天干十神：正财
+                    - generic [ref=e163]: 地支十神：七杀
+                    - generic [ref=e164]: 纳音：沙中金
+                    - generic [ref=e165]: 长生：病
+                  - generic [ref=e166]:
+                    - generic [ref=e167]: 丁 / 七杀
+                    - generic [ref=e168]: 己 / 偏印
+            - generic [ref=e169]:
+              - generic [ref=e171]:
+                - heading "五行分布与判断状态" [level=3] [ref=e172]
+                - paragraph [ref=e173]: 五行分布按固定公式计算；旺衰、格局、用神会在断前事完成后作为正式判断展示。
+              - generic [ref=e174]:
+                - generic [ref=e175]:
+                  - strong [ref=e176]: 金
+                  - generic [ref=e179]: 15.1%
+                - generic [ref=e180]:
+                  - strong [ref=e181]: 木
+                  - generic [ref=e184]: 11.8%
+                - generic [ref=e185]:
+                  - strong [ref=e186]: 水
+                  - generic [ref=e189]: 21.5%
+                - generic [ref=e190]:
+                  - strong [ref=e191]: 火
+                  - generic [ref=e194]: 46.2%
+                - generic [ref=e195]:
+                  - strong [ref=e196]: 土
+                  - generic [ref=e199]: 5.4%
+              - generic [ref=e200]: 系统已在后台生成审盘草稿，但不会在断前事前公开。你完成反馈后，这里会变成正式旺衰、格局、用神判断。
+              - generic [ref=e201]:
+                - generic [ref=e202]:
+                  - generic [ref=e203]:
+                    - generic [ref=e204]: 旺衰判断
+                    - generic [ref=e205]: 未公开
+                  - generic [ref=e206]: 待校正后公开
+                - generic [ref=e207]:
+                  - generic [ref=e208]:
+                    - generic [ref=e209]: 格局判断
+                    - generic [ref=e210]: 未公开
+                  - generic [ref=e211]: 待校正后公开
+                - generic [ref=e212]:
+                  - generic [ref=e213]:
+                    - generic [ref=e214]: 用神
+                    - generic [ref=e215]: 未公开
+                  - generic [ref=e216]: 待校正后公开
+                - generic [ref=e217]:
+                  - generic [ref=e218]:
+                    - generic [ref=e219]: 喜忌
+                    - generic [ref=e220]: 未公开
+                  - generic [ref=e221]: 待校正后公开
+          - generic [ref=e222]:
+            - generic [ref=e224]:
+              - heading "大运与辅助信息" [level=3] [ref=e225]
+              - paragraph [ref=e226]: 当前大运用于后续未来趋势判断。
+            - generic [ref=e227]:
+              - article [ref=e228]:
+                - generic [ref=e229]: 癸未
+                - generic [ref=e230]: 食神
+                - generic [ref=e231]: 8-17岁
+                - generic [ref=e232]: 1997-2006
+              - article [ref=e233]:
+                - generic [ref=e234]: 甲申
+                - generic [ref=e235]: 正财
+                - generic [ref=e236]: 18-27岁
+                - generic [ref=e237]: 2007-2016
+              - article [ref=e238]:
+                - generic [ref=e239]: 乙酉
+                - generic [ref=e240]: 偏财
+                - generic [ref=e241]: 28-37岁
+                - generic [ref=e242]: 2017-2026
+              - article [ref=e243]:
+                - generic [ref=e244]: 丙戌
+                - generic [ref=e245]: 正官
+                - generic [ref=e246]: 38-47岁
+                - generic [ref=e247]: 2027-2036
+              - article [ref=e248]:
+                - generic [ref=e249]: 丁亥
+                - generic [ref=e250]: 七杀
+                - generic [ref=e251]: 48-57岁
+                - generic [ref=e252]: 2037-2046
+              - article [ref=e253]:
+                - generic [ref=e254]: 戊子
+                - generic [ref=e255]: 正印
+                - generic [ref=e256]: 58-67岁
+                - generic [ref=e257]: 2047-2056
+              - article [ref=e258]:
+                - generic [ref=e259]: 己丑
+                - generic [ref=e260]: 偏印
+                - generic [ref=e261]: 68-77岁
+                - generic [ref=e262]: 2057-2066
+              - article [ref=e263]:
+                - generic [ref=e264]: 庚寅
+                - generic [ref=e265]: 劫财
+                - generic [ref=e266]: 78-87岁
+                - generic [ref=e267]: 2067-2076
+              - article [ref=e268]:
+                - generic [ref=e269]: 辛卯
+                - generic [ref=e270]: 比肩
+                - generic [ref=e271]: 88-97岁
+                - generic [ref=e272]: 2077-2086
+            - generic [ref=e273]:
+              - generic [ref=e274]: 空亡：寅、卯
+              - generic [ref=e275]: 命宫：辛巳
+              - generic [ref=e276]: 胎元：丙寅
+              - generic [ref=e277]: 天乙贵人：year
+              - generic [ref=e278]: 天乙贵人：month
+              - generic [ref=e279]: 天乙贵人：hour
+  - generic: 已识别并回填出生信息
