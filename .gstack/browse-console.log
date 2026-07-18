@@ -1,3 +1,0 @@
-[2026-06-26T16:55:02.344Z] [log] no classical-error div
-[2026-06-26T16:55:02.345Z] [log] <div style="text-align:center;padding:1.5rem;color:var(--text-dim);"><div style="font-size:1.5rem;margin-bottom:0.5rem;">⚠</div><div style="margin-bottom:0.8rem;">排盘失败，请检查网络后点击重试</div><button onclick="retryCallbacks['submitChart']()" style="background:var(--bg-input);border:1px solid var(--gold-dim);color:var(--gold);padding:0.5rem 1.5rem;border-radius:var(--radius);cursor:pointer;font-size:0.9rem;transition:all var(--transition);">点击重试</button></div>
-[2026-06-26T16:55:02.345Z] [log] no prediction-error div
