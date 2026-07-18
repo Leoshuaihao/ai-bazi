@@ -62,7 +62,30 @@ from api.routes.liunian import router as liunian_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    await _seed_test_user()
     yield
+
+async def _seed_test_user():
+    """Ensure test user leo exists with full entitlements."""
+    from sqlalchemy import select
+    from orm.db import async_session
+    from orm.user import User
+    from services.auth import hash_password
+    async with async_session() as db:
+        result = await db.execute(select(User).where(User.username == "leo"))
+        if result.scalars().first():
+            return
+        user = User(username="leo", password_hash=hash_password("123456"))
+        db.add(user)
+        await db.commit()
+        await db.refresh(user)
+        from orm.points import Points
+        from orm.entitlement import Entitlement
+        db.add(Points(user_id=user.id, balance=10000))
+        for feat in ("liuyue", "liunian", "hepan", "dayun_chat", "classical"):
+            db.add(Entitlement(user_id=user.id, feature=feat))
+        await db.commit()
+        print(f"[seed] created leo (id={user.id})")
 
 app = FastAPI(
     title="AI八字排盘引擎",
