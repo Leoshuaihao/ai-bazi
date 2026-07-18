@@ -1,5 +1,7 @@
-"""Auth service: SMS verification code + JWT."""
+"""Auth service: username+password + JWT."""
 import os
+import hashlib
+import secrets
 import random
 import time
 from datetime import datetime, timedelta
@@ -16,6 +18,48 @@ JWT_EXPIRE_DAYS = 7
 CODE_LENGTH = 6
 CODE_EXPIRE_MINUTES = 5
 RESEND_COOLDOWN_SECONDS = 60
+PBKDF2_ITERATIONS = 600_000
+
+
+def hash_password(password: str) -> str:
+    """Hash password with PBKDF2 + SHA256 + salt."""
+    salt = secrets.token_hex(16)
+    dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), PBKDF2_ITERATIONS)
+    return f"pbkdf2:sha256:{PBKDF2_ITERATIONS}${salt}${dk.hex()}"
+
+
+def verify_password(password: str, password_hash: str) -> bool:
+    """Verify password against PBKDF2 hash."""
+    try:
+        _, _, iterations, rest = password_hash.split(":", 3)
+        salt, expected = rest.split("$", 1)
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(iterations))
+        return dk.hex() == expected
+    except (ValueError, AttributeError):
+        return False
+
+
+async def register_user(db: AsyncSession, username: str, password: str) -> User | None:
+    """Register a new user. Returns User or None if username taken."""
+    existing = await db.execute(select(User).where(User.username == username))
+    if existing.scalars().first():
+        return None
+    user = User(username=username, password_hash=hash_password(password))
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
+async def login_user(db: AsyncSession, username: str, password: str) -> User | None:
+    """Authenticate user by username + password. Returns User or None."""
+    result = await db.execute(select(User).where(User.username == username))
+    user = result.scalars().first()
+    if not user or not verify_password(password, user.password_hash):
+        return None
+    user.last_login_at = datetime.utcnow()
+    await db.commit()
+    return user
 
 
 def generate_code() -> str:
@@ -73,12 +117,26 @@ async def verify_code(db: AsyncSession, phone: str, code: str) -> bool:
 
 
 async def get_or_create_user(db: AsyncSession, phone: str) -> User:
-    """Get existing user by phone or create new one."""
+    """Get existing user by phone or create new one (legacy SMS flow)."""
     stmt = select(User).where(User.phone == phone)
     result = await db.execute(stmt)
     user = result.scalars().first()
     if not user:
-        user = User(phone=phone)
+        # Legacy phone-only user: generate username from phone
+        username = "u" + phone[-6:]
+        # Ensure unique
+        i = 0
+        while True:
+            check = await db.execute(select(User).where(User.username == username))
+            if not check.scalars().first():
+                break
+            i += 1
+            username = f"u{phone[-6:]}_{i}"
+        user = User(
+            username=username,
+            password_hash=hash_password(phone),  # phone as temp password
+            phone=phone,
+        )
         db.add(user)
         await db.commit()
         await db.refresh(user)
