@@ -99,45 +99,6 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 app.add_middleware(SecurityHeadersMiddleware)
 
 # ============================================================
-# Temporary Admin: Reset DB + create test user (REMOVE AFTER USE)
-# ============================================================
-from fastapi.responses import PlainTextResponse
-
-@app.post("/api/admin/reset")
-async def admin_reset():
-    from sqlalchemy import text, select
-    from orm.db import async_session
-    from orm.user import User
-    from services.auth import hash_password
-
-    async with async_session() as session:
-        # Delete all users
-        await session.execute(text("DELETE FROM points"))
-        await session.execute(text("DELETE FROM entitlements"))
-        await session.execute(text("DELETE FROM verification_codes"))
-        await session.execute(text("DELETE FROM users"))
-        await session.commit()
-
-        # Create test user
-        user = User(username="leo", password_hash=hash_password("123456"))
-        session.add(user)
-        await session.commit()
-        await session.refresh(user)
-
-        # Add 10000 points
-        from orm.points import Points
-        pts = Points(user_id=user.id, balance=10000)
-        session.add(pts)
-
-        # Add all entitlements
-        from orm.entitlement import Entitlement
-        for feat in ("liuyue", "liunian", "hepan", "dayun_chat", "classical"):
-            session.add(Entitlement(user_id=user.id, feature=feat))
-
-        await session.commit()
-        return PlainTextResponse(f"OK: created user leo (id={user.id}) with 10000 points and all entitlements")
-
-# ============================================================
 # Rate Limiting (simple in-memory)
 # ============================================================
 import time
