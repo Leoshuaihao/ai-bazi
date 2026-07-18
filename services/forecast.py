@@ -1053,13 +1053,26 @@ async def generate_forecast(
                         "key_actions": key_actions,
                         "score": entry.get("score", 50),
                     }
-                # Intelligent fallback: pick based on classified liunian data
+                # Intelligent fallback: regenerate liunian data if needed
                 if not forecast[dim].get("key_years"):
-                    best = [ln for ln in liunian_list if "用神" in ln.get("label", "")]
-                    warn = [ln for ln in liunian_list if "忌神" in ln.get("label", "")]
+                    GAN_C = ["甲","乙","丙","丁","戊","己","庚","辛","壬","癸"]
+                    ZHI_C = ["子","丑","寅","卯","辰","巳","午","未","申","酉","戌","亥"]
+                    liunian_fallback = []
+                    for y in range(es, du_ey + 1):
+                        idx = (y - 4) % 60
+                        gz = GAN_C[idx % 10] + ZHI_C[idx % 12]
+                        wx = WUXING_MAP.get(gz[0], "")
+                        is_yong = wx == (yongshen.get("primary","") or "")
+                        is_ji = wx == (yongshen.get("ji_shen","") or "")
+                        label = "用神年✅" if is_yong else ("忌神年⚠️" if is_ji else "平年")
+                        tg = classify_liunian({"stem": gz[0], "branch": gz[1]}, day_master, yongshen.get("primary","") or "", yongshen.get("ji_shen","") or "")["ten_god"]
+                        liunian_fallback.append({"year": y, "ganzhi": gz, "label": label, "ten_god": tg, "advice": f"{tg}星入命"})
+                    best = [ln for ln in liunian_fallback if "用神" in ln.get("label", "")]
+                    warn = [ln for ln in liunian_fallback if "忌神" in ln.get("label", "")]
                     picks = best[:1] + warn[:1] if warn else best[:2]
-                    forecast[dim]["key_years"] = [p["year"] for p in picks]
-                    forecast[dim]["key_actions"] = {str(p["year"]): p.get("advice", "关注此年") for p in picks}
+                    if picks:
+                        forecast[dim]["key_years"] = [p["year"] for p in picks]
+                        forecast[dim]["key_actions"] = {str(p["year"]): p.get("advice", "关注此年") for p in picks}
 
                 # 提取新增结构化字段
                 forecast["current_dayun_analysis"] = ai_result.get("current_dayun_analysis", {})
