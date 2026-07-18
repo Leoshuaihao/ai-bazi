@@ -31,9 +31,12 @@ def hash_password(password: str) -> str:
 def verify_password(password: str, password_hash: str) -> bool:
     """Verify password against PBKDF2 hash."""
     try:
-        _, _, iterations, rest = password_hash.split(":", 3)
-        salt, expected = rest.split("$", 1)
-        dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(iterations))
+        parts = password_hash.split(":")
+        if len(parts) != 3:
+            return False
+        _, _, rest = parts  # rest = "iterations$salt$hex"
+        iters_str, salt, expected = rest.split("$")
+        dk = hashlib.pbkdf2_hmac("sha256", password.encode(), salt.encode(), int(iters_str))
         return dk.hex() == expected
     except (ValueError, AttributeError):
         return False
