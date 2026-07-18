@@ -8,7 +8,9 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from orm.user import User, VerificationCode
 
-JWT_SECRET = os.getenv("JWT_SECRET", "dev-secret-change-in-production")
+JWT_SECRET = os.getenv("JWT_SECRET")
+if not JWT_SECRET:
+    raise RuntimeError("JWT_SECRET environment variable is required. Please set a random 256-bit key.")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRE_DAYS = 7
 CODE_LENGTH = 6

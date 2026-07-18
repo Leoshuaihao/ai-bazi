@@ -53,7 +53,7 @@
   <span class="input-trigger-arrow">▾</span>
 </div>
 
-<section id="setup-panel" class="form-panel" aria-label="出生信息录入" hidden>
+<section id="setup-panel" class="form-panel" aria-label="出生信息录入">
   <div class="form-head"><h3>输入生辰，排定命盘</h3><p>输入你的出生信息，系统将为你生成八字命盘</p></div>
   <form id="birth-form" class="form-body">
     <div class="field">
@@ -584,7 +584,7 @@ function toggleInputPanel(){
 }
 
 // Trigger shown on init
-document.addEventListener('DOMContentLoaded',()=>{ const t=$('#input-trigger'); if(t)t.hidden=false; });
+document.addEventListener('DOMContentLoaded',()=>{ const t=$('#input-trigger'); if(t){t.hidden=false;t.classList.add('open');} });
 
 function setSeg(k,v){S[k]=v;$$(`[data-${k}]`).forEach(b=>b.setAttribute('aria-pressed',String(b.dataset[k]===v)))}
 function pad2(v){return String(v||0).padStart(2,'0')}

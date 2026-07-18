@@ -43,32 +43,11 @@ async def send_code(req: SendCodeRequest, db: AsyncSession = Depends(get_session
 
 @router.post("/login", response_model=LoginResponse)
 async def login(req: LoginRequest, db: AsyncSession = Depends(get_session)):
-    # 开发模式：万能验证码 990204
-    is_dev_master = (req.code == "990204")
-    if not is_dev_master and not await verify_code(db, req.phone, req.code):
+    if not await verify_code(db, req.phone, req.code):
         raise HTTPException(status_code=400, detail="验证码错误或已过期")
 
     user = await get_or_create_user(db, req.phone)
     token = create_jwt(user.id)
-
-    # 开发模式：自动赋予所有权限
-    if is_dev_master:
-        from sqlalchemy import select
-        from orm.entitlement import Entitlement
-        for feat in ("liuyue", "liunian", "hepan"):
-            stmt = select(Entitlement).where(Entitlement.user_id == user.id, Entitlement.feature == feat)
-            existing = (await db.execute(stmt)).scalars().first()
-            if not existing:
-                db.add(Entitlement(user_id=user.id, feature=feat))
-        # 给 1000 积分
-        from orm.points import Points
-        pts = await db.get(Points, user.id)
-        if not pts:
-            pts = Points(user_id=user.id, balance=1000)
-            db.add(pts)
-        else:
-            pts.balance = max(pts.balance, 1000)
-        await db.commit()
 
     return LoginResponse(
         token=token,
@@ -78,19 +57,3 @@ async def login(req: LoginRequest, db: AsyncSession = Depends(get_session)):
             trial_chats_remaining=user.trial_chats_remaining,
         ),
     )
-
-
-@router.get("/dev-code/{phone}")
-async def get_dev_code(phone: str, db: AsyncSession = Depends(get_session)):
-    """开发模式：获取最新验证码（生产环境需删除）"""
-    from sqlalchemy import select
-    from orm.user import VerificationCode
-    stmt = select(VerificationCode).where(
-        VerificationCode.phone == phone,
-        VerificationCode.used == False,
-    ).order_by(VerificationCode.id.desc())
-    result = await db.execute(stmt)
-    vc = result.scalars().first()
-    if vc:
-        return {"code": vc.code}
-    return {"code": "none"}

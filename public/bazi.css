@@ -471,6 +471,19 @@ body {
   .step-label { font-size: 0.62rem; }
   .step-circle { width: 32px; height: 32px; font-size: 0.82rem; }
   .step-line { width: 34px; }
+  /* REQ-P2-01: fix text overflow on mobile */
+  .card, .btn, .date-btn, .ctrl, .sel, .tcell, .tag, .brief-tag, .tg-slot {
+    overflow-wrap: break-word; word-break: break-word; hyphens: auto;
+  }
+  .card h2, .card h3, .subject-title { font-size: 1rem; }
+  .subject-subtitle { font-size: 0.82rem; }
+  /* REQ-P2-02: ensure key buttons visible on mobile */
+  .btn-lg { width: 100%; min-width: unset; }
+  #submit-btn, #sample-btn, #top-reset-btn { display: block; width: 100%; }
+  .btn { white-space: normal; line-height: 1.4; }
+  .subject-head { flex-direction: column; gap: 8px; }
+  /* REQ-P0-05: ensure date picker trigger is visible */
+  #birth-datetime-trigger { z-index: 1; position: relative; }
 }
 
 /* Auth modal */
