@@ -900,8 +900,8 @@ async def predictions_start(birth: BirthInfo):
     """
     _validate_birth_info(birth)
     try:
-        from services.predictions import process_birth_info
-        birth_data, chart = process_birth_info(birth)
+        params, true_solar_info = process_birth_info(birth)
+        chart = calculate_bazi(**params)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"排盘失败: {str(e)}")
 
