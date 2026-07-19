@@ -886,6 +886,88 @@ async def predictions_next(request: dict):
 # P1 Phase 2: 校验判定 + 双路径修正
 # ============================================================
 
+# ── 新流程端点：逐步验证收敛 ──
+
+from services.verification import init_verification, process_verification, get_session as get_verification_session
+
+
+@app.post("/api/predictions/start")
+async def predictions_start(birth: BirthInfo):
+    """新的断前事入口：排盘 + 格局分类 + 返回第一条验证问题
+
+    替代旧的 /api/predictions/generate（固定7题），
+    改为逐步对话式验证，收敛后锁定格局和用神。
+    """
+    _validate_birth_info(birth)
+    try:
+        from services.predictions import process_birth_info
+        birth_data, chart = process_birth_info(birth)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"排盘失败: {str(e)}")
+
+    chart_data = chart.model_dump() if hasattr(chart, "model_dump") else chart
+    result = init_verification(chart_data)
+
+    # 生成 prediction session（兼容旧校准流程）
+    import uuid
+    session_id = str(uuid.uuid4())
+    _prediction_sessions[session_id] = {
+        "chart_data": chart_data,
+        "predictions": [],
+        "feedbacks": [],
+        "verification_session_id": result["session_id"],
+    }
+
+    return {
+        "session_id": session_id,
+        "chart_data": chart_data,
+        "hypotheses": result["hypotheses"],
+        "question": result["question"],
+    }
+
+
+@app.post("/api/predictions/verify")
+async def predictions_verify(request: dict):
+    """验证反馈接口：提交对当前问题的回答，返回下一条问题或锁定结果
+
+    请求: {"session_id": str, "answer": "accurate|partial|inaccurate", "note": str}
+    未锁定: {"locked": false, "question": {...}, "hypotheses": [...]}
+    已锁定: {"locked": true, "result": {pattern, yong_shen, five_element, gong_way, confidence}, "hypotheses": [...]}
+    """
+    prediction_session_id = request.get("session_id", "")
+    answer = request.get("answer", "")
+    note = request.get("note", "")
+
+    if not prediction_session_id:
+        raise HTTPException(status_code=400, detail="缺少 session_id")
+
+    if answer not in ("accurate", "partial", "inaccurate"):
+        raise HTTPException(status_code=400, detail="answer 必须是 accurate/partial/inaccurate")
+
+    # 从 prediction session 中获取 verification session
+    pred_session = _prediction_sessions.get(prediction_session_id)
+    if not pred_session:
+        raise HTTPException(status_code=404, detail="未找到会话")
+
+    verification_sid = pred_session.get("verification_session_id", "")
+    if not verification_sid:
+        raise HTTPException(status_code=400, detail="请先调用 /api/predictions/start")
+
+    result = await process_verification(verification_sid, answer, note)
+
+    if result.get("error"):
+        raise HTTPException(status_code=400, detail=result["error"])
+
+    if result.get("locked"):
+        # 锁定后，将结果写入 prediction session 供后续校准使用
+        pred_session["locked_result"] = result["result"]
+        pred_session["hypotheses"] = result["hypotheses"]
+
+    return result
+
+
+# ── 旧端点保留（兼容） ──
+
 
 @app.post("/api/calibrate")
 def calibrate(request: dict):
