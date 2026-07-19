@@ -339,24 +339,151 @@ def _parse_review_json(response: str) -> Optional[dict]:
 
 
 # ============================================================
-# Mock 复盘（无 API Key 时的规则推导）
+# Mock 复盘规则引擎
 # ============================================================
+
+# 反馈 note 关键词 → 错误层面映射
+_MOCK_ERROR_PATTERNS = [
+    # (category_keywords, note_keywords, primary_layer, explanation)
+    # 兄弟关
+    (("兄弟", "比劫"), ("一个", "独生", "只有", "没有", "少", "姐妹"), "shishen_layer",
+     "兄弟数量判断错误：比劫多≠兄弟多，十神→六亲映射在此八字不适用"),
+    (("兄弟", "比劫"), ("关系好", "和睦", "不错", "关系"), "shishen_layer",
+     "兄弟关系判断错误：劫财争合推断过度"),
+
+    # 父母关
+    (("父母",), ("关系好", "和睦", "健康", "在", "没", "没死", "活着", "去世", "离异"), "pattern_layer",
+     "父母断错误：年柱十神配六亲可能需查渊海子平原始定义"),
+    (("父母",), ("富", "有钱", "生意", "经商", "从商"), "shishen_layer",
+     "父母职业判断错误：六亲映射需参考渊海子平"),
+
+    # 性格
+    (("性格",), ("内向", "安静", "温和", "温柔", "不是", "相反"), "wangshuai_layer",
+     "性格判断错误：日主旺衰判断可能偏差，导致性格特征错位"),
+    (("性格",), ("急躁", "冲动", "暴", "刚", "强", "强势"), "wangshuai_layer",
+     "性格判断错误：旺衰倾向可能需要调整"),
+
+    # 学历
+    (("学历",), ("高中", "中专", "初中", "大专", "低", "不", "没有", "没读"), "yongshen_layer",
+     "学历判断错误：印星为用神/忌神的判断需修正"),
+
+    # 婚姻关
+    (("婚姻",), ("晚", "没结", "未婚", "离", "离异"), "yongshen_layer",
+     "婚姻应期判断错误：用神/忌神在流年中的作用需修正"),
+    (("婚姻",), ("幸福", "好", "不错"), "ai_overreach",
+     "婚姻幸福度推断过度：典籍判断无误，AI润色过度"),
+
+    # 事业
+    (("事业", "工作"), ("不好", "一般", "普通", "打工", "上班", "事业单位", "失业"), "yongshen_layer",
+     "事业判断错误：食伤/官杀为用忌的判断需修正"),
+    (("事业", "工作"), ("好", "不错", "创业", "老板", "成功"), "yongshen_layer",
+     "事业高度判断偏差：用神五行可能需要调整"),
+
+    # 关键年份
+    (("关键年份", "年份"), None, "wangshuai_layer",
+     "关键年份判断错误：旺衰判断偏差导致大运流年分析不准"),
+]
+
+# 错误层面 → 权重调整动作
+_MOCK_LAYER_ADJUSTMENTS = {
+    "wangshuai_layer": [
+        ("wangshuai:dishui", "reduce", 0.85, "滴天髓旺衰判断可能不符合此八字"),
+        ("wangshuai:sanming", "boost", 1.10, "可参考三命通会的旺衰判断"),
+    ],
+    "pattern_layer": [
+        ("pattern:ziping", "reduce", 0.85, "子平真诠格局判断可能不符合此八字"),
+        ("shishen:yuanhai", "boost", 1.10, "六亲映射应参考渊海子平原始定义"),
+    ],
+    "yongshen_layer": [
+        ("yongshen:ziping", "reduce", 0.88, "子平真诠用神取法可能不符合此八字"),
+        ("yongshen:qiongtong", "boost", 1.10, "可参考穷通宝鉴的调候用神"),
+    ],
+    "shishen_layer": [
+        ("pattern:ziping", "reduce", 0.88, "子平真诠十神→六亲映射可能不适用"),
+        ("shishen:yuanhai", "boost", 1.15, "十神定义应参考渊海子平原始定义"),
+    ],
+    "ai_overreach": [
+        ("wangshuai:dishui", "reduce", 0.93, "典籍判断无误，AI推理过度需轻微调整"),
+    ],
+}
+
+
+def _analyze_error_layer(
+    pred: dict, fb_note: str
+) -> tuple[str, str, list[str]]:
+    """根据预测类别和反馈内容，分析错误层面。
+
+    Returns:
+        (primary_layer, explanation, secondary_layers)
+    """
+    category = pred.get("category", "")
+    note = fb_note
+
+    # 遍历所有规则
+    for cat_keywords, note_keywords, layer, explanation in _MOCK_ERROR_PATTERNS:
+        # 检查类别匹配
+        cat_match = any(kw in category for kw in cat_keywords)
+        if not cat_match:
+            continue
+
+        # 检查 note 关键词匹配（None = 任意匹配）
+        if note_keywords is None:
+            return (layer, explanation, [])
+
+        note_match = any(kw in note for kw in note_keywords)
+        if note_match:
+            return (layer, explanation, [])
+
+    # 无匹配规则：默认按 depends_on 的第一个判断
+    depends = pred.get("depends_on", [])
+    if depends:
+        first_dep = depends[0]
+        if ":dishui" in first_dep:
+            return ("wangshuai_layer", "无法精准定位，推测旺衰层", [])
+        elif ":qiongtong" in first_dep:
+            return ("yongshen_layer", "无法精准定位，推测用神层", [])
+        elif ":yuanhai" in first_dep:
+            return ("shishen_layer", "无法精准定位，推测十神层", [])
+
+    return ("pattern_layer", "无法精准定位，推测格局层", [])
+
 
 def _mock_review(predictions: list[dict], feedbacks: list[dict], session_id: str = "") -> dict:
     """Mock复盘：基于规则推导，不调用AI
+
+    规则引擎流程：
+    1. 对每条 inaccurate 反馈，分析 note 内容判断错误层面
+    2. 按层面统计贡献度
+    3. 对受影响的层面定向调整权重（reduce 错误典籍，boost 替代典籍）
+    4. 避免全量机械降权
 
     Args:
         session_id: 用户session，用于将权重调整应用到正确的会话
     """
     fb_map = {f["prediction_id"]: f for f in feedbacks}
     inaccurate_count = 0
-    inaccurate_categories = []
+    layer_contributions = {layer: 0 for layer in _MOCK_LAYER_ADJUSTMENTS}
+    layer_details = []
 
     for pred in predictions:
         fb = fb_map.get(pred["id"], {})
-        if fb.get("status") == "inaccurate":
-            inaccurate_count += 1
-            inaccurate_categories.append(pred.get("category", ""))
+        if fb.get("status") != "inaccurate":
+            continue
+
+        inaccurate_count += 1
+        note = fb.get("note", "")
+        content = pred.get("content", "")
+
+        # 分析错误层面
+        primary_layer, explanation, _ = _analyze_error_layer(pred, note)
+        layer_contributions[primary_layer] = layer_contributions.get(primary_layer, 0) + 1
+        layer_details.append({
+            "category": pred.get("category", ""),
+            "content": content[:60],
+            "feedback": note[:60],
+            "diagnosed_layer": primary_layer,
+            "explanation": explanation,
+        })
 
     if inaccurate_count == 0:
         return {
@@ -368,36 +495,135 @@ def _mock_review(predictions: list[dict], feedbacks: list[dict], session_id: str
             "method": "mock_rule",
         }
 
-    # 统计每个阶段×典籍被标记 inaccurate 的次数
-    stage_corpus_hits = {}
-    for pred in predictions:
-        fb = fb_map.get(pred["id"], {})
-        if fb.get("status") == "inaccurate":
-            for dep in pred.get("depends_on", []):
-                stage_corpus_hits[dep] = stage_corpus_hits.get(dep, 0) + 1
+    # 计算各层面贡献度（百分比）
+    total_hits = sum(layer_contributions.values())
+    error_analysis = {}
+    for layer in _MOCK_LAYER_ADJUSTMENTS:
+        count = layer_contributions.get(layer, 0)
+        contribution = round(count / max(total_hits, 1), 2)
+        layer_names = {
+            "wangshuai_layer": "旺衰层",
+            "pattern_layer": "格局层",
+            "yongshen_layer": "用神层",
+            "shishen_layer": "十神解读层",
+            "ai_overreach": "AI过度推理",
+        }
+        # 找到该层面被诊断的具体原因
+        reasons = [d["explanation"] for d in layer_details if d["diagnosed_layer"] == layer]
+        reason = reasons[0] if reasons else f"{layer_names.get(layer, layer)}可能有偏差"
+        error_analysis[layer] = {"contribution": contribution, "reason": reason}
+
+    # 根据各层面命中次数生成权重调整
+    # 使用集合去重：同一个 key 可能被多个诊断触发，取最强的 action
+    adjustments_map = {}
+    for layer, count in layer_contributions.items():
+        if count == 0:
+            continue
+        for key, action, base_factor, reason in _MOCK_LAYER_ADJUSTMENTS.get(layer, []):
+            # 多次命中同一层面则增强调整幅度
+            factor = base_factor if action == "reduce" else base_factor + (count - 1) * 0.05
+            factor = factor if action == "reduce" else min(base_factor + (count - 1) * 0.05, 1.25)
+
+            if key not in adjustments_map:
+                adjustments_map[key] = (action, factor, reason)
+            else:
+                # 同一 key 有多个调整，取更强的
+                old_action, old_factor, old_reason = adjustments_map[key]
+                if action == "boost" and old_action == "reduce":
+                    # boost 和 reduce 冲突，取命中次数多的层面
+                    adjustments_map[key] = (action, factor, reason)
+                elif action == "reduce" and old_factor > factor:
+                    # 取更强（更低）的 reduce
+                    adjustments_map[key] = (action, factor, reason)
+                elif action == "boost" and factor > old_factor:
+                    # 取更强的 boost
+                    adjustments_map[key] = (action, factor, reason)
 
     adjustments = []
-    for key, hits in stage_corpus_hits.items():
-        factor = max(0.80, 1.0 - hits * 0.10)
+    for key, (action, factor, reason) in adjustments_map.items():
         adjustments.append({
             "key": key,
-            "action": "reduce",
-            "factor": factor,
-            "reason": f"在 {inaccurate_count} 条 inaccurate 反馈中被标记 {hits} 次",
+            "action": action,
+            "factor": round(factor, 3),
+            "reason": reason,
+        })
+
+    # 整理综合评估
+    layer_summary = []
+    for layer, count in layer_contributions.items():
+        if count > 0:
+            layer_name = {
+                "wangshuai_layer": "旺衰判断",
+                "pattern_layer": "格局判断",
+                "yongshen_layer": "用神判断",
+                "shishen_layer": "十神解读",
+                "ai_overreach": "AI推理",
+            }.get(layer, layer)
+            layer_summary.append(f"{layer_name}({count}条)")
+
+    # --- 生成校准联动建议 ---
+    suggested_actions = []
+    wangshuai_cont = error_analysis.get("wangshuai_layer", {}).get("contribution", 0)
+    pattern_cont = error_analysis.get("pattern_layer", {}).get("contribution", 0)
+    combined_fundamental = wangshuai_cont + pattern_cont
+
+    # 核心三关是否被标记 inaccurate
+    core_categories = {"父母关", "兄弟关", "婚姻关"}
+    core_inaccurate = sum(
+        1 for d in layer_details
+        if d["category"] in core_categories
+    )
+
+    if core_inaccurate >= 3:
+        suggested_actions.append({
+            "action": "recalibrate_time",
+            "reason": (
+                f"核心三关（父母/兄弟/婚姻）全部不准确，"
+                f"极可能时辰或日柱有误。强烈建议换时辰校准。"
+            ),
+            "confidence": 0.85,
+            "auto_trigger": False,
+            "endpoint": "/api/calibrate/compare",
+            "method": "POST",
+            "params": {"session_id": session_id},
+        })
+    elif combined_fundamental >= 0.7 or (wangshuai_cont >= 0.4 and core_inaccurate >= 2):
+        suggested_actions.append({
+            "action": "recalibrate_time",
+            "reason": (
+                f"旺衰层+格局层错误占比{int(combined_fundamental*100)}%，"
+                f"核心三关{core_inaccurate}条不准，可能时辰有误。"
+                f"建议尝试换时辰重新排盘校准。"
+            ),
+            "confidence": round(combined_fundamental, 2),
+            "auto_trigger": False,
+            "endpoint": "/api/calibrate/compare",
+            "method": "POST",
+            "params": {"session_id": session_id},
+        })
+    elif wangshuai_cont >= 0.5:
+        suggested_actions.append({
+            "action": "recalibrate_time",
+            "reason": f"旺衰层错误占{int(wangshuai_cont*100)}%，可能时辰或日主强弱判断有误",
+            "confidence": round(wangshuai_cont, 2),
+            "auto_trigger": False,
+            "endpoint": "/api/calibrate/compare",
+            "method": "POST",
+            "params": {"session_id": session_id},
         })
 
     return {
         "review": {
-            "overall_assessment": f"{inaccurate_count}条预测不准确，涉及{len(adjustments)}个典籍权重",
-            "error_analysis": {
-                "wangshuai_layer": {"contribution": 0.3, "reason": "旺衰判断可能有偏差"},
-                "pattern_layer": {"contribution": 0.3, "reason": "格局判断可能有偏差"},
-                "yongshen_layer": {"contribution": 0.2, "reason": "用神判断可能有偏差"},
-                "shishen_layer": {"contribution": 0.1, "reason": "十神解读可能有偏差"},
-                "ai_overreach": {"contribution": 0.1, "reason": "AI推理可能有偏差"},
-            },
+            "overall_assessment": (
+                f"{inaccurate_count}条预测不准确，主要涉及{', '.join(layer_summary)}。"
+                f"共调整{len(adjustments)}个典籍权重。"
+            ),
+            "error_analysis": error_analysis,
             "weight_adjustments": adjustments,
+            "diagnosis_details": layer_details,
+            "suggested_actions": suggested_actions,
         },
         "applied": apply_adjustments(session_id or "mock_session", adjustments) if adjustments else None,
-        "method": "mock_rule",
+        "method": "mock_rule_v2",
+        "suggested_actions": suggested_actions,
     }

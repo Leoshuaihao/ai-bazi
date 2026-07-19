@@ -1,6 +1,6 @@
 # AI 八字排盘引擎 · 项目手册
 
-> 最后更新：2026-07-19 | 版本：2.1-dev
+> 最后更新：2026-07-19 | 版本：V2.4
 
 ## 一、项目身份
 
@@ -76,17 +76,26 @@
 ### 决策 3：反馈闭环
 用户对断定过去的推断逐条反馈（accurate/partial/inaccurate），系统据此判定是否需要修正时钟或重新判断旺衰/格局。**反馈当前不持久化**（ephemeral，仅在 session 中）。
 
-### 决策 4：典籍 RAG 按阶段加权（2026-07-19 新增）
-每本典籍在不同分析阶段有不同的权威度：
-- 定格局 → 子平真诠第一（权重×2.0）
-- 取用神 → 子平真诠 + 穷通宝鉴并列
-- 断旺衰 → 滴天髓第一
-- 穷通宝鉴按月令+日主五行过滤噪声
+### 决策 4：典籍 RAG 按阶段加权（2026-07-19）
+每本典籍在不同分析阶段有不同的权威度（5阶段×8典籍）：
+- 基础理论（basics） → 三命通会第一（百科全书）
+- 十神解读（shishen） → 渊海子平第一（十神原始定义）
+- 定格局（pattern） → 子平真诠第一（权重×2.0）
+- 取用神（yongshen） → 子平真诠 + 穷通宝鉴并列
+- 断旺衰（wangshuai） → 滴天髓第一
+- 穷通宝鉴按月令+日干精准匹配过滤（ri_zhu_stem 分级：1.0/0.8/0.5/0.3/0.0）
 
-### 决策 5：Mock 回退
-DeepSeek API Key 未配置时自动回退到模板化输出（规则推导），保证系统不掉线。
+### 决策 5：活权重（per-user 动态权重，2026-07-19 V2.2）
+在固定 STAGE_PRIORITY 之上叠加 per-user 权重（0.3~2.0）：
+- 用户反馈 inaccurate → LLM 复盘分析错误层面 → 定向调整权重
+- Mock 模式：12条规则+5层面（旺衰/格局/用神/十神/AI过度）规则引擎V2
+- 核心三关全挂 → 自动建议 recalibrate_time 校准时辰
+- 学习率 0.15，单次调整幅度受限，可回滚
 
-### 决策 6：用户名密码认证
+### 决策 6：Mock 回退
+DeepSeek API Key 未配置时自动回退到模板化输出（规则推导），保证系统不掉线。反馈复盘同样有 Mock 规则引擎V2 回退。
+
+### 决策 7：用户名密码认证
 注册/登录用 PBKDF2-SHA256 密码哈希（60万次迭代），JWT 7天过期。短信验证码预留但未启用。
 
 ---
@@ -139,38 +148,51 @@ python main.py  # 默认在 0.0.0.0:8022
 | V2.0 | 2026-07-18 | 短信验证码→用户名密码认证 |
 | V2.0 | 2026-07-18 | 大运流年 key_years/key_actions bug修复 |
 | V2.0 | 2026-07-19 | 典籍库从3本扩到8本（三命通会、渊海子平等新增） |
-| V2.1 | 2026-07-19 | **典籍RAG权重重构**：按阶段感知检索+穷通宝鉴日主过滤 |
+| V2.1 | 2026-07-19 | **典籍RAG权重重构**：5阶段感知检索+穷通宝鉴日干精准过滤 |
+| V2.2 | 2026-07-19 | **反馈自适应系统**：per-user活权重+LLM复盘+3个API端点 |
+| V2.2 | 2026-07-19 | 补齐：Mock复盘规则逻辑V2（12条规则+5层面定向调整+校准联动） |
+| V2.3 | 2026-07-19 | **SQLite典籍库**：FTS5全文检索（3.6MB, 281章, 8本典籍） |
+| V2.3 | 2026-07-19 | 补齐：穷通宝鉴精准日干过滤（ri_zhu_stem分级+章节注入加分） |
+| V2.4 | 2026-07-19 | **新典籍挂载**：三命通会+渊海子平接入RAG（basics/shishen阶段） |
 
-### V2.1 详细改动清单
+### V2.1-V2.4 详细改动清单
 
-**已修改文件：**
-- `services/rag_retriever.py`：+100行
-  - 新增 `STAGE_PRIORITY` 映射（pattern/yongshen/wangshuai 三阶段×典籍权重）
-  - 新增 `retrieve_by_stage()`、`retrieve_all_stages()`、`merge_stage_results()`
-  - 新增 `_filter_qiongtong_noise()` 穷通宝鉴按月令+五行过滤
-- `main.py`：3个调用点改用 stage-aware 检索
-- `services/reanalysis.py`：1个调用点改用 stage-aware
+**核心已修改文件：**
+- `services/rag_retriever.py`：
+  - `STAGE_PRIORITY` 5阶段×8典籍权重映射（basics/shishen/pattern/yongshen/wangshuai）
+  - `retrieve_by_stage()` / `retrieve_all_stages()` 支持 user_weights + ri_zhu_stem
+  - `search_corpus_fts()` FTS5检索 + 穷通宝鉴精准日干章节注入加分
+  - `_filter_qiongtong_noise()` ri_zhu_stem 分级匹配（1.0/0.8/0.5/0.3/0.0）
+- `services/feedback_weights.py`：
+  - LLM复盘 + Mock规则引擎V2（`_MOCK_ERROR_PATTERNS` 12条 + `_MOCK_LAYER_ADJUSTMENTS` 5层面）
+  - `_analyze_error_layer()` 错误层面分析
+  - 校准联动（核心三关全挂→建议 recalibrate_time）
+  - 3个API端点：`/api/feedback/review`、`/weights`、`/weights/reset`
+- `services/predictions.py`：`CATEGORY_DEPENDS_MAP` 7类预测→分析阶段映射
+- `models.py`：PreEventStatement 新增 depends_on 字段，新增 FeedbackReviewRequest
+- `main.py`：3个端点加 session_id/ri_zhu_stem 参数，传入 user_weights
+- `scripts/build_corpus_db.py`：构建 SQLite 典籍库
+- `data/classical_corpus.db`：SQLite数据库（3.6MB, 281章, FTS5索引）
 
 **已验证效果（1999-02-04 14:30 丁火丑月男命）：**
 - 子平真诠 Top-5 占比从 62% 降到 37%
 - 滴天髓·旺衰 从零入选变 primary 权威 Top-5
-- 穷通宝鉴噪声从 120 章过滤到 ~10 章
+- 穷通宝鉴噪声从 120 章过滤到精准匹配
+- 活权重闭环：反馈 inaccurate → 复盘降权 → 滴天髓浮上 Top-1
+- 核心三关全挂 → 自动建议换时辰校准
 
 ### 规划中
 
 | 版本 | 内容 | 优先级 |
 |------|------|--------|
-| V2.2 | **反馈自适应系统**：LLM 复盘→活权重 | 🔴 高 |
-| V2.3 | **SQLite 典籍库**：FTS5 全文检索替代关键词匹配 | 🟡 中 |
-| V2.4 | 新增典籍挂载（三命通会+渊海子平接入RAG） | 🟡 中 |
 | V2.5 | 全局反馈统计（跨用户累积准确率调整全局权重） | 🟢 低 |
 
 ### 技术债务
-- 反馈数据不持久化（无法跨会话学习）
-- 5本新典籍无结构化 index.json（三命通会、渊海子平等）
+- 反馈数据不持久化（无法跨会话学习，活权重仅在内存中）
+- 5本新典籍无结构化 index.json（已通过 SQLite FTS5 补偿，但章节级 topic/keywords 标注仍不完整）
 - `data/classical_corpus/` 里 `dishui/`+`dishui_chanwei/`+`dishui_ren/` 信息重叠
 - 前端仅有静态 HTML，无 SPA 框架
-- 测试覆盖率不完整
+- 测试覆盖率不完整（缺3项补齐的专门测试脚本）
 
 ---
 
@@ -212,6 +234,7 @@ python main.py  # 默认在 0.0.0.0:8022
 | 术语 | 英文/代码 | 含义 |
 |------|----------|------|
 | 日主 | ri_zhu / day_master | 出生日的天干，代表命主本人 |
+| 日干 | ri_zhu_stem | 日主的天干（甲乙丙丁...），用于穷通宝鉴精准匹配 |
 | 旺衰 | strength / wangshuai | 日主在八字中的强弱程度 |
 | 用神 | yongshen | 对日主最有利的五行 |
 | 格局 | pattern | 月令决定的八字结构类型（正官格/七杀格等） |
@@ -221,6 +244,12 @@ python main.py  # 默认在 0.0.0.0:8022
 | 子平 | ziping | 《子平真诠》，格局论命核心典籍 |
 | 滴天髓 | dishui | 《滴天髓》，命理哲学纲领典籍 |
 | 穷通 | qiongtong | 《穷通宝鉴》，调候用神工具书 |
-| 定格局 | pattern stage | 分析阶段1：判断格局类型 |
-| 取用神 | yongshen stage | 分析阶段2：判断用神 |
-| 断旺衰 | wangshuai stage | 分析阶段3：判断日主强弱 |
+| 三命通会 | sanming | 《三命通会》，命理百科全书（basics阶段primary） |
+| 渊海子平 | yuanhai | 《渊海子平》，十神原始定义（shishen阶段primary） |
+| 基础理论 | basics stage | 分析阶段0：天干地支五行基础（三命通会primary） |
+| 十神解读 | shishen stage | 分析阶段1：十神→六亲映射（渊海子平primary） |
+| 定格局 | pattern stage | 分析阶段2：判断格局类型（子平真诠primary） |
+| 取用神 | yongshen stage | 分析阶段3：判断用神 |
+| 断旺衰 | wangshuai stage | 分析阶段4：判断日主强弱（滴天髓primary） |
+| 活权重 | user_weights | per-user 动态权重，由反馈复盘驱动调整（0.3~2.0） |
+| 校准联动 | recalibrate_time | 核心三关全挂时建议换时辰重新排盘 |

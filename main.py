@@ -451,6 +451,7 @@ async def get_analysis(birth: BirthInfo, session_id: str = ""):
             keywords,
             ri_zhu_wuxing=WUXING_MAP.get(chart.day_master, ""),
             month_branch=chart.four_pillars["month"].branch,
+            ri_zhu_stem=chart.day_master,
             per_stage_k=3,
             user_weights=user_weights,
         )
@@ -585,6 +586,7 @@ async def classical_analysis(birth: BirthInfo, session_id: str = ""):
             keywords,
             ri_zhu_wuxing=chart_data["ri_zhu_wuxing"],
             month_branch=chart_data["month_branch"],
+            ri_zhu_stem=chart_data.get("ri_zhu", ""),
             per_stage_k=4,
             user_weights=user_weights,
         )
@@ -1678,6 +1680,7 @@ async def feedback_review(request: FeedbackReviewRequest):
         "applied": result.get("applied"),
         "current_weights": current_weights,
         "method": result.get("method", "mock_rule"),
+        "suggested_actions": result.get("suggested_actions", []),
     }
 
 
@@ -2010,6 +2013,7 @@ async def generate_dayun_reading(request: dict):
             keywords,
             ri_zhu_wuxing=chart_data.get("ri_zhu_wuxing", ""),
             month_branch=chart_data.get("month_branch", ""),
+            ri_zhu_stem=chart_data.get("day_master", ""),
             per_stage_k=3,
             user_weights=user_weights,
         )

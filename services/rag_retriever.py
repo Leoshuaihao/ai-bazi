@@ -283,6 +283,7 @@ def search_corpus_fts(
     corpus_ids: list[str] | None = None,
     ri_zhu_wuxing: str = "",
     month_branch: str = "",
+    ri_zhu_stem: str = "",
     top_k: int = 10,
 ) -> list[dict]:
     """
@@ -294,6 +295,7 @@ def search_corpus_fts(
         corpus_ids: 可选，限制典籍范围
         ri_zhu_wuxing: 日主五行（用于穷通宝鉴后过滤）
         month_branch: 月令
+        ri_zhu_stem: 日干（用于穷通宝鉴精准匹配，如"丁"）
         top_k: 返回条数
 
     Returns:
@@ -347,13 +349,16 @@ def search_corpus_fts(
         r = dict(row)
 
         # 穷通宝鉴后过滤（如果日主/月令提供了，进一步过滤）
+        qiongtong_quality = 1.0
         if r["corpus_id"] == "qiongtong" and ri_zhu_wuxing and month_branch:
-            quality = _filter_qiongtong_noise(
-                r["corpus_id"], {"title": r["title"]}, ri_zhu_wuxing, month_branch
+            qiongtong_quality = _filter_qiongtong_noise(
+                r["corpus_id"], {"title": r["title"]}, ri_zhu_wuxing, month_branch,
+                ri_zhu_stem=ri_zhu_stem,
             )
-            if quality == 0.0:
+            if qiongtong_quality == 0.0:
                 continue
 
+        base_score = (20.0 - len(results) * 2) * qiongtong_quality
         results.append({
             "id": str(r["id"]),
             "source": CORPUS_META_SOURCE.get(r["corpus_id"], r["corpus_id"]),
@@ -361,8 +366,8 @@ def search_corpus_fts(
             "text": r["full_text"],
             "topic": r["topic"] or "",
             "context": r["summary"] or "",
-            "score": 20.0 - len(results) * 2,  # 按排名给分（非FTS的兼容分）
-            "weighted_score": 20.0 - len(results) * 2,
+            "score": base_score,
+            "weighted_score": base_score,
             "authority": "fts_match",
             "full_text": r["full_text"],
             "file": r["file_path"] or "",
@@ -370,6 +375,58 @@ def search_corpus_fts(
             "keywords_matched": keywords,
             "fts_rank": r["fts_rank"],
         })
+
+    # 精准匹配后加权：穷通宝鉴精准日干+月令匹配直接注入
+    if ri_zhu_stem and month_branch:
+        target_month = QIONGTONG_MONTH_MAP.get(month_branch, "")
+        if target_month and ri_zhu_stem:
+            # 在 chapters 表中直接查找精准匹配章节
+            exact_title = f"{target_month}{ri_zhu_stem}"
+            try:
+                conn = sqlite3.connect(_DB_PATH)
+                conn.row_factory = sqlite3.Row
+                exact_rows = conn.execute(
+                    "SELECT * FROM chapters WHERE corpus_id='qiongtong' AND title LIKE ?",
+                    (f"%{exact_title}%",)
+                ).fetchall()
+                conn.close()
+
+                for er in exact_rows:
+                    er_dict = dict(er)
+                    # 检查是否已在结果中
+                    already_in = any(
+                        r["corpus"] == "qiongtong" and er_dict["title"] in r["chapter"]
+                        for r in results
+                    )
+                    if already_in:
+                        # 已在结果中，加分即可
+                        for r in results:
+                            if r["corpus"] == "qiongtong" and er_dict["title"] in r["chapter"]:
+                                r["score"] += 15.0
+                                r["weighted_score"] += 15.0
+                    else:
+                        # 不在结果中，直接注入
+                        results.append({
+                            "id": str(er_dict["id"]),
+                            "source": CORPUS_META_SOURCE.get("qiongtong", "穷通宝鉴"),
+                            "chapter": er_dict["title"],
+                            "text": er_dict["full_text"],
+                            "topic": er_dict["topic"] or "",
+                            "context": er_dict.get("summary", "") or "",
+                            "score": 25.0,  # 高分注入
+                            "weighted_score": 25.0,
+                            "authority": "fts_match",
+                            "full_text": er_dict["full_text"],
+                            "file": er_dict.get("file_path", ""),
+                            "corpus": "qiongtong",
+                            "keywords_matched": keywords,
+                            "fts_rank": 0,
+                        })
+            except Exception:
+                pass
+
+    # 按分重排
+    results.sort(key=lambda x: x["weighted_score"], reverse=True)
 
     return results
 
@@ -446,11 +503,18 @@ def _retrieve_chapters(keywords: list[str], top_k: int = 5) -> list[dict]:
 # ============================================================
 
 def _filter_qiongtong_noise(
-    corpus_name: str, chapter: dict, ri_zhu_wuxing: str, month_branch: str
+    corpus_name: str, chapter: dict, ri_zhu_wuxing: str, month_branch: str,
+    ri_zhu_stem: str = "",
 ) -> float:
     """
     穷通宝鉴噪声过滤：检查章节是否匹配当前日主和月令。
-    返回质量乘数（1.0=完全匹配，0.3=不匹配但同五行，0.0=无关）。
+
+    返回质量乘数：
+    - 1.0: 精准日干+月令匹配（如 丁火+丑月→"十二月丁火"）
+    - 0.8: 同五行日干+月令匹配（如 丁火+丑月→"十二月丙火"，调候规律相近）
+    - 0.5: 精准日干但月令不匹配（如 丁火+丑月→"六月丁火"）
+    - 0.3: 同五行但月令不匹配
+    - 0.0: 无关
     """
     if corpus_name != "qiongtong":
         return 1.0  # 其他典籍不过滤
@@ -467,31 +531,38 @@ def _filter_qiongtong_noise(
     # 月令匹配
     month_match = target_month in title
 
-    # 日主匹配（穷通宝鉴标题包含十干如"甲木""乙木"）
+    # 日干→章节文本映射
     GAN_TO_TEXT = {
         "甲": "甲木", "乙": "乙木", "丙": "丙火", "丁": "丁火",
         "戊": "戊土", "己": "己土", "庚": "庚金", "辛": "辛金",
         "壬": "壬水", "癸": "癸水",
     }
 
-    # 取日主五行而不是日干（因穷通章节按五行分类）
+    # 同五行日干（降级匹配用）
     SAME_ELEMENT_GAN = {
         "木": ["甲木", "乙木"], "火": ["丙火", "丁火"],
         "土": ["戊土", "己土"], "金": ["庚金", "辛金"],
         "水": ["壬水", "癸水"],
     }
 
-    day_gan_texts = SAME_ELEMENT_GAN.get(ri_zhu_wuxing, [])
-    gan_match = any(gan_text in title for gan_text in day_gan_texts)
+    # 精准日干匹配（如果提供了日干）
+    exact_stem_text = GAN_TO_TEXT.get(ri_zhu_stem, "")
+    exact_stem_match = exact_stem_text and exact_stem_text in title
 
-    if month_match and gan_match:
-        return 1.0  # 完美匹配（如"丑月丁火"→"十二月丁火"）
-    elif gan_match:
-        return 0.5  # 日主匹配但月令不匹配（调候规律相近月份有参考价值）
-    elif month_match:
-        return 0.2  # 月令匹配但日主不匹配（仅气候参考，弱相关）
+    # 同五行匹配（降级）
+    day_gan_texts = SAME_ELEMENT_GAN.get(ri_zhu_wuxing, [])
+    same_element_match = any(gan_text in title for gan_text in day_gan_texts)
+
+    if month_match and exact_stem_match:
+        return 1.0   # 精准匹配：日干+月令都对
+    elif month_match and same_element_match:
+        return 0.8   # 同五行+月令匹配（调候规律相近）
+    elif exact_stem_match:
+        return 0.5   # 精准日干但月令不对（调候规律相同五行有参考性）
+    elif same_element_match:
+        return 0.3   # 仅同五行
     else:
-        return 0.0  # 完全不相关，直接排除
+        return 0.0   # 无关
 
 
 def retrieve_by_stage(
@@ -499,6 +570,7 @@ def retrieve_by_stage(
     keywords: list[str],
     ri_zhu_wuxing: str = "",
     month_branch: str = "",
+    ri_zhu_stem: str = "",
     top_k: int = 5,
     user_weights: dict[str, float] | None = None,
 ) -> list[dict]:
@@ -512,6 +584,7 @@ def retrieve_by_stage(
         keywords: 检索关键词列表
         ri_zhu_wuxing: 日主五行（用于穷通宝鉴过滤）
         month_branch: 月令地支（用于穷通宝鉴过滤）
+        ri_zhu_stem: 日干（用于穷通宝鉴精准日干匹配）
         top_k: 返回结果数量
         user_weights: 用户活权重表 {"pattern:ziping": 1.0, ...}，None 则只用固定权重
 
@@ -523,11 +596,12 @@ def retrieve_by_stage(
         query = " ".join(keywords)
         fts_results = search_corpus_fts(
             query,
-            stage=None,  # 让FTS5不限analysis_layer（大部分章节未标注）
-            corpus_ids=None,  # 不限典籍范围，所有典籍参与竞争
+            stage=None,
+            corpus_ids=None,
             ri_zhu_wuxing=ri_zhu_wuxing,
             month_branch=month_branch,
-            top_k=top_k * 3,  # 多取一些再阶段加权筛选
+            ri_zhu_stem=ri_zhu_stem,
+            top_k=top_k * 3,
         )
 
         if fts_results:
@@ -587,7 +661,8 @@ def retrieve_by_stage(
             # 穷通宝鉴噪声过滤
             if corpus_name == "qiongtong" and ri_zhu_wuxing and month_branch:
                 quality = _filter_qiongtong_noise(
-                    corpus_name, chapter, ri_zhu_wuxing, month_branch
+                    corpus_name, chapter, ri_zhu_wuxing, month_branch,
+                    ri_zhu_stem=ri_zhu_stem,
                 )
                 if quality == 0.0:
                     continue
@@ -657,6 +732,7 @@ def retrieve_all_stages(
     keywords: list[str],
     ri_zhu_wuxing: str = "",
     month_branch: str = "",
+    ri_zhu_stem: str = "",
     per_stage_k: int = 4,
     user_weights: dict[str, float] | None = None,
 ) -> dict[str, list[dict]]:
@@ -668,6 +744,7 @@ def retrieve_all_stages(
         keywords: 检索关键词
         ri_zhu_wuxing: 日主五行
         month_branch: 月令地支
+        ri_zhu_stem: 日干（穷通精准匹配）
         per_stage_k: 每个阶段取多少条
         user_weights: 用户活权重表
 
@@ -682,6 +759,7 @@ def retrieve_all_stages(
             stage_name, keywords,
             ri_zhu_wuxing=ri_zhu_wuxing,
             month_branch=month_branch,
+            ri_zhu_stem=ri_zhu_stem,
             top_k=per_stage_k,
             user_weights=user_weights,
         )
