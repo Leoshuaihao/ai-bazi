@@ -257,6 +257,87 @@ def build_review_prompt(
 请根据以上信息完成复盘分析，按JSON格式输出。重点分析 inaccurate 预测的错误来源，并结合典籍原文给出权重调整建议。"""
 
 
+def _normalize_adjustments(adjustments: list[dict]) -> list[dict]:
+    """标准化 DeepSeek 返回的调整动作名称。
+
+    DeepSeek 可能返回 "reduce"/"increase"（或其他变体），
+    统一为 "decrease"/"increase"。
+    """
+    normalized = []
+    for adj in adjustments:
+        a = dict(adj)  # copy
+        action = a.get("action", "").lower()
+        if action == "reduce":
+            a["action"] = "decrease"
+        normalized.append(a)
+    return normalized
+
+
+def _generate_calibration_suggestions(
+    review: dict,
+    predictions: list[dict],
+    feedbacks: list[dict],
+) -> list[dict]:
+    """基于复盘结果生成校准建议（AI路径也适用）
+
+    规则：
+    - 核心三关（父母/兄弟/婚姻）全部 inaccurate → 建议 recalibrate_time
+    - wangshuai_layer contribution ≥ 0.4 且核心≥2 inaccurate → 建议 recalibrate_time
+    - 降权 > 0 → 建议 continue_collecting_feedback
+    """
+    suggested = []
+    error_analysis = review.get("error_analysis", {})
+
+    # 统计核心三关
+    core_categories = {"父母关", "兄弟关", "婚姻关"}
+    fb_map = {fb.get("prediction_id"): fb for fb in feedbacks}
+    pred_map = {p.get("id"): p for p in predictions}
+
+    core_inaccurate = 0
+    for pid, fb in fb_map.items():
+        pred = pred_map.get(pid, {})
+        if pred.get("category") in core_categories and fb.get("status") == "inaccurate":
+            core_inaccurate += 1
+
+    # 旺衰层贡献度
+    wangshuai_contribution = 0
+    for layer_name, info in error_analysis.items():
+        if "旺衰" in layer_name or "wangshuai" in layer_name:
+            wangshuai_contribution = info.get("contribution", 0)
+
+    # 规则1: 核心三关全挂
+    if core_inaccurate >= 3:
+        suggested.append({
+            "action": "recalibrate_time",
+            "confidence": 0.85,
+            "reason": "核心三关（父母/兄弟/婚姻）全部不准确，极可能时辰或日柱有误，建议重新校准出生时间。"
+        })
+
+    # 规则2: 旺衰贡献高 + 核心多挂
+    if wangshuai_contribution >= 0.4 and core_inaccurate >= 2:
+        existing = any(s["action"] == "recalibrate_time" for s in suggested)
+        if not existing:
+            suggested.append({
+                "action": "recalibrate_time",
+                "confidence": 0.75,
+                "reason": "旺衰判断是主要错误来源（贡献{:.0%}），核心预测大面积不准确，建议校准时辰。".format(wangshuai_contribution)
+            })
+
+    # 规则3: 有任何降权 → 建议继续收集反馈
+    adjustments = review.get("weight_adjustments", [])
+    has_reduce = any(
+        a.get("action", "").lower() in ("reduce", "decrease") for a in adjustments
+    )
+    if has_reduce:
+        suggested.append({
+            "action": "continue_collecting_feedback",
+            "confidence": 0.7,
+            "reason": "典籍权重已根据本次反馈调整，建议进入下一轮断前事验证效果。"
+        })
+
+    return suggested
+
+
 async def review_feedback(
     predictions: list[dict],
     feedbacks: list[dict],
@@ -298,12 +379,23 @@ async def review_feedback(
             return _mock_review(predictions, feedbacks)
 
         # 应用权重调整
-        adjustments = review.get("weight_adjustments", [])
+        adjustments_raw = review.get("weight_adjustments", [])
+        adjustments = _normalize_adjustments(adjustments_raw)
+        review["weight_adjustments"] = adjustments
         applied = apply_adjustments(session_id, adjustments) if session_id else None
+
+        # 基于 error_analysis 生成校准建议
+        suggested_actions = _generate_calibration_suggestions(review, predictions, feedbacks)
+        review["suggested_actions"] = suggested_actions
+
+        # 获取当前权重
+        new_weights = get_user_weights(session_id) if session_id else {}
 
         return {
             "review": review,
             "applied": applied,
+            "new_weights": new_weights,
+            "suggested_actions": suggested_actions,
             "method": "ai_deepseek",
         }
 

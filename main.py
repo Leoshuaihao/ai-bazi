@@ -1679,6 +1679,7 @@ async def feedback_review(request: FeedbackReviewRequest):
         "review": result["review"],
         "applied": result.get("applied"),
         "current_weights": current_weights,
+        "new_weights": result.get("new_weights", {}),
         "method": result.get("method", "mock_rule"),
         "suggested_actions": result.get("suggested_actions", []),
     }
