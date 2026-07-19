@@ -1244,9 +1244,20 @@ async def generate_forecast(
                               (isinstance(d, dict) and d.get('start_age') == dayun_start_age)), None)
     if not current_dayun:
         current_dayun = _find_current_dayun(chart.dayun, current_year)
-    # 统一转 dict，避免后续 .get() 调用出错
+    # 统一转 dict，避免后续 .get() 调用出错（支持 pydantic 对象、SimpleNamespace、dict）
     if hasattr(current_dayun, "model_dump"):
         current_dayun = current_dayun.model_dump()
+    elif not isinstance(current_dayun, dict) and current_dayun is not None:
+        # SimpleNamespace 等对象 → dict
+        current_dayun = {
+            "stem": getattr(current_dayun, "stem", ""),
+            "branch": getattr(current_dayun, "branch", ""),
+            "ten_god": getattr(current_dayun, "ten_god", ""),
+            "start_age": getattr(current_dayun, "start_age", 0),
+            "end_age": getattr(current_dayun, "end_age", 0),
+            "start_year": getattr(current_dayun, "start_year", 0),
+            "end_year": getattr(current_dayun, "end_year", 0),
+        }
 
     disclaimer = (
         "命理预测仅供参考，人生掌握在自己手中。"
