@@ -5,9 +5,11 @@ load_dotenv()
 
 import os
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.base import BaseHTTPMiddleware
+from starlette.responses import JSONResponse
 from contextlib import asynccontextmanager
 
 from orm.db import init_db
@@ -125,6 +127,16 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 app.add_middleware(SecurityHeadersMiddleware)
 
+
+# ── Production error handling (hide Pydantic validation details) ──
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    # In production, return generic error to avoid leaking internal data model details
+    return JSONResponse(
+        status_code=422,
+        content={"detail": "请求参数格式错误，请检查输入数据"},
+    )
+
 # ============================================================
 # Rate Limiting (simple in-memory)
 # ============================================================
@@ -132,6 +144,7 @@ import time
 from collections import defaultdict
 
 _rate_limits = defaultdict(list)
+_rate_limits_max_window = 3600  # 最大限流窗口（秒），用于清理
 
 def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> bool:
     now = time.time()
@@ -139,6 +152,12 @@ def check_rate_limit(key: str, max_requests: int, window_seconds: int) -> bool:
     if len(_rate_limits[key]) >= max_requests:
         return False
     _rate_limits[key].append(now)
+    # Periodic cleanup: remove empty or stale keys to prevent memory leak
+    if len(_rate_limits) > 1000:
+        stale = [k for k, v in _rate_limits.items()
+                 if not v or all(now - t > _rate_limits_max_window for t in v)]
+        for k in stale:
+            del _rate_limits[k]
     return True
 
 # 时辰对照表（供前端使用）
@@ -2101,8 +2120,18 @@ CHAT_PROMPT = """你是一位遵循子平派体系的命理师。用户正在查
 请用口语化的中文回答，1-3句话，直接、有用、不啰嗦。如果问题涉及判断，请简要说明判断依据。"""
 
 
-@app.post("/api/chat")
-async def ai_chat(request: dict):
+# ── Router includes (must be before app.post to give auth routes priority) ──
+app.include_router(auth_router)
+app.include_router(payment_router)
+app.include_router(points_router)
+app.include_router(invite_router)
+app.include_router(chat_router)       # POST /api/chat — auth + trial + points gating
+app.include_router(liuyue_router)
+app.include_router(liunian_router)
+
+# ── Legacy session-based chat (deprecated; use auth POST /api/chat instead) ──
+@app.post("/api/chat/session")
+async def ai_chat_session(request: dict):
     session_id = request.get("session_id", "")
     if not session_id:
         raise HTTPException(status_code=400, detail="缺少 session_id")
@@ -2180,14 +2209,6 @@ async def dayun_chat_endpoint(request: dict):
     except Exception: pass
     return {"answer": "抱歉，暂时无法回答，请稍后重试。"}
 
-
-app.include_router(auth_router)
-app.include_router(payment_router)
-app.include_router(points_router)
-app.include_router(invite_router)
-app.include_router(chat_router)
-app.include_router(liuyue_router)
-app.include_router(liunian_router)
 
 # 静态文件服务（放在路由定义之后，避免覆盖 API 路由）
 app.mount("/", StaticFiles(directory="public", html=True), name="static")
