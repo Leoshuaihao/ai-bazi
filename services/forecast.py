@@ -1165,7 +1165,18 @@ async def generate_ai_forecast(
         for d in chart.dayun:
             sa = d.start_age if hasattr(d, 'start_age') else d.get('start_age')
             if sa == dayun_start_age:
-                current_dayun = d.model_dump() if hasattr(d, 'model_dump') else d
+                if hasattr(d, 'model_dump'):
+                    current_dayun = d.model_dump()
+                elif isinstance(d, dict):
+                    current_dayun = d
+                else:
+                    # SimpleNamespace 等对象 → dict
+                    current_dayun = {
+                        "stem": getattr(d, "stem", ""), "branch": getattr(d, "branch", ""),
+                        "ten_god": getattr(d, "ten_god", ""),
+                        "start_age": getattr(d, "start_age", 0), "end_age": getattr(d, "end_age", 0),
+                        "start_year": getattr(d, "start_year", 0), "end_year": getattr(d, "end_year", 0),
+                    }
                 break
     if not current_dayun:
         current_dayun = _find_current_dayun(chart.dayun, current_year)
