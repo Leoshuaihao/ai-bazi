@@ -13,7 +13,7 @@ from contextlib import asynccontextmanager
 from orm.db import init_db
 import orm.models  # 必须在 init_db() 前导入，确保所有 ORM 模型注册到 Base.metadata
 from bazi_engine import calculate_bazi
-from models import BirthInfo, FeedbackItem, TrueSolarInfo
+from models import BirthInfo, FeedbackItem, TrueSolarInfo, FeedbackReviewRequest
 from rules.yongshen import calculate_strength_detail
 from services.deepseek_client import call_deepseek
 from services.rag_retriever import (
