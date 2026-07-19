@@ -13,6 +13,17 @@ import re
 import json
 
 from models import BaziChart, PreEventStatement
+
+# 预测类别 → 分析阶段的溯源映射
+CATEGORY_DEPENDS_MAP = {
+    "性格": ["wangshuai:dishui", "basics:sanming"],
+    "父母关": ["pattern:ziping", "shishen:yuanhai"],
+    "兄弟关": ["pattern:ziping", "shishen:yuanhai"],
+    "学历": ["yongshen:ziping"],
+    "婚姻关": ["yongshen:ziping", "yongshen:qiongtong"],
+    "事业": ["yongshen:qiongtong", "pattern:ziping"],
+    "关键年份": ["wangshuai:dishui", "yongshen:ziping", "wangshuai:sanming"],
+}
 from rules.wuxing import WUXING_MAP, HIDDEN_STEMS_MAP, get_sheng, get_ke, get_i_sheng, get_i_ke
 from services.deepseek_client import call_deepseek
 
@@ -226,6 +237,7 @@ def _build_personality(chart: BaziChart) -> PreEventStatement:
         classical_quote=info["quote"],
         basis=f"日主{dm}为{dm_wx}，日支{day_branch}为{branch_wx}",
         confidence=0.85,
+        depends_on=CATEGORY_DEPENDS_MAP["性格"],
     )
 
 
@@ -267,6 +279,7 @@ def _build_parents(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=basis_detail,
         confidence=0.80,
+        depends_on=CATEGORY_DEPENDS_MAP["父母关"],
     )
 
 
@@ -304,6 +317,7 @@ def _build_siblings(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=f"比劫出现约{count}次",
         confidence=conf,
+        depends_on=CATEGORY_DEPENDS_MAP["兄弟关"],
     )
 
 
@@ -344,6 +358,7 @@ def _build_education(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=f"印星出现约{yin_count}次，印星得地={'是' if yin_solid else '否'}",
         confidence=conf,
+        depends_on=CATEGORY_DEPENDS_MAP["学历"],
     )
 
 
@@ -405,9 +420,8 @@ def _build_marriage(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=f"日支{day_branch}五行{branch_wx}" + (f"，日支与{clash_branch}相冲" if is_clashed else ""),
         confidence=0.80,
+        depends_on=CATEGORY_DEPENDS_MAP["婚姻关"],
     )
-
-
 def _build_career(chart: BaziChart) -> PreEventStatement:
     """根据用神+官杀/食伤生成事业推断"""
     pillars_raw = {}
@@ -454,6 +468,7 @@ def _build_career(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=f"用神为{yongshen_wx}" + ("，官印相生" if has_guan_yin else "") + ("，食伤生财" if has_shishang_cai else ""),
         confidence=0.82,
+        depends_on=CATEGORY_DEPENDS_MAP["事业"],
     )
 
 
@@ -511,6 +526,7 @@ def _build_key_years(chart: BaziChart) -> PreEventStatement:
         classical_quote=quote,
         basis=basis,
         confidence=0.78,
+        depends_on=CATEGORY_DEPENDS_MAP["关键年份"],
     )
 
 
@@ -1001,6 +1017,7 @@ async def _ai_generate_single(
                     classical_quote=item.get("classical_quote", ""),
                     basis=item.get("basis", ""),
                     confidence=float(item.get("confidence", 0.8)),
+                    depends_on=CATEGORY_DEPENDS_MAP.get(cat, []),
                 )
     except Exception:
         pass

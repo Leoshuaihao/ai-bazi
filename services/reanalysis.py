@@ -11,6 +11,8 @@ from services.rag_retriever import (
     retrieve_relevant_texts,
     extract_keywords_from_chart,
     retrieve_by_keywords,
+    retrieve_all_stages,
+    merge_stage_results,
 )
 from services.classical_judge import mock_classical_judge
 
@@ -271,10 +273,16 @@ def reanalyze_chart(chart_data: dict) -> dict:
     # 2. 重新计算旺衰
     new_strength = calculate_strength_detail(day_master, four_pillars_raw, all_hidden)
 
-    # 3. RAG 检索相关典籍原文
+    # 3. RAG 检索相关典籍原文（按阶段加权）
     analysis_chart_data = _build_classical_chart_data(chart_data, new_strength)
     keywords = extract_keywords_from_chart(analysis_chart_data)
-    rag_results = retrieve_by_keywords(keywords, top_k=10)
+    stage_results = retrieve_all_stages(
+        keywords,
+        ri_zhu_wuxing=analysis_chart_data.get("ri_zhu_wuxing", ""),
+        month_branch=analysis_chart_data.get("month_branch", ""),
+        per_stage_k=4,
+    )
+    rag_results = merge_stage_results(stage_results, top_k=10)
 
     if not rag_results:
         rag_results = retrieve_relevant_texts(new_strength, top_k=10)

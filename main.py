@@ -16,7 +16,11 @@ from bazi_engine import calculate_bazi
 from models import BirthInfo, FeedbackItem, TrueSolarInfo
 from rules.yongshen import calculate_strength_detail
 from services.deepseek_client import call_deepseek
-from services.rag_retriever import retrieve_relevant_texts, extract_keywords_from_chart, retrieve_by_keywords
+from services.rag_retriever import (
+    retrieve_relevant_texts, extract_keywords_from_chart, retrieve_by_keywords,
+    retrieve_all_stages, merge_stage_results, _extract_keywords,
+)
+from services.feedback_weights import review_feedback, get_user_weights, reset_weights
 from services.ai_explainer import generate_strength_explanation
 from services.classical_judge import judge_from_classics, mock_classical_judge, judge_wangshuai_from_classics
 from services.predictions import (
@@ -387,9 +391,12 @@ async def analyze_chart(request: dict):
 
 
 @app.post("/api/analysis")
-async def get_analysis(birth: BirthInfo):
+async def get_analysis(birth: BirthInfo, session_id: str = ""):
     """
     完整的八字分析接口（排盘 + 旺衰 + RAG检索 + AI解释）
+
+    可选 query 参数：
+    - session_id: 会话ID，用于应用用户反馈后的活权重（V2.2）
 
     参数：
     - year: 出生年
@@ -437,8 +444,18 @@ async def get_analysis(birth: BirthInfo):
             hidden_stems_list=all_hidden_stems,
         )
 
-        # 4. RAG 检索相关原文
-        relevant_texts = retrieve_relevant_texts(strength_detail, top_k=5)
+        # 4. RAG 检索相关原文（按阶段加权 + 用户活权重）
+        keywords = _extract_keywords(strength_detail)
+        user_weights = get_user_weights(session_id) if session_id else None
+        stage_results = retrieve_all_stages(
+            keywords,
+            ri_zhu_wuxing=WUXING_MAP.get(chart.day_master, ""),
+            month_branch=chart.four_pillars["month"].branch,
+            per_stage_k=3,
+            user_weights=user_weights,
+        )
+        relevant_texts = merge_stage_results(stage_results, top_k=8)
+
 
         # 5. AI 解释（有 API Key 调 DeepSeek，否则用 Mock 模板）
         explanation = await generate_strength_explanation(strength_detail, relevant_texts)
@@ -472,9 +489,12 @@ async def get_analysis(birth: BirthInfo):
 
 
 @app.post("/api/classical-analysis")
-async def classical_analysis(birth: BirthInfo):
+async def classical_analysis(birth: BirthInfo, session_id: str = ""):
     """
     基于典籍原文的八字分析（子平派体系）
+
+    可选 query 参数：
+    - session_id: 会话ID，用于应用用户反馈后的活权重（V2.2）
 
     流程：
     1. 排盘（calculate_bazi）
@@ -558,9 +578,17 @@ async def classical_analysis(birth: BirthInfo):
             "hour_branch": hour_pillar.branch,
         }
 
-        # 5. RAG 检索
+        # 5. RAG 检索（按阶段加权 + 用户活权重）
         keywords = extract_keywords_from_chart(chart_data)
-        rag_results = retrieve_relevant_texts(strength_detail, top_k=10)
+        user_weights = get_user_weights(session_id) if session_id else None
+        stage_results = retrieve_all_stages(
+            keywords,
+            ri_zhu_wuxing=chart_data["ri_zhu_wuxing"],
+            month_branch=chart_data["month_branch"],
+            per_stage_k=4,
+            user_weights=user_weights,
+        )
+        rag_results = merge_stage_results(stage_results, top_k=10)
 
         # 6. AI/模板 典籍判断（旺衰 + 格局 + 用神三角度）
         analysis = await judge_from_classics(chart_data, rag_results)
@@ -1601,6 +1629,77 @@ def calibrate_status_get(session_id: str = ""):
 # ============================================================
 
 
+# ============================================================
+# V2.2: 反馈复盘 — LLM 分析错误来源 + 调整活权重
+# ============================================================
+
+@app.post("/api/feedback/review")
+async def feedback_review(request: FeedbackReviewRequest):
+    """
+    LLM复盘用户反馈，分析错误层面，输出典籍权重调整建议。
+
+    输入：7条预测 + 7条反馈 + 命盘摘要
+    输出：错误分析 + 权重调整 + 调整前后的权重对比
+
+    权重调整会自动应用到该 session 的后续分析。
+    """
+    chart_data = request.chart_data or {}
+
+    chart_summary = {
+        "ri_zhu": chart_data.get("ri_zhu", ""),
+        "ri_zhu_wx": chart_data.get("ri_zhu_wuxing", ""),
+        "month_branch": chart_data.get("month_branch", ""),
+        "strength": chart_data.get("ri_zhu_strength", ""),
+        "pattern": chart_data.get("pattern", ""),
+        "yongshen": str(chart_data.get("yongshen_rule", {})),
+    }
+
+    preds = [p.model_dump() if hasattr(p, "model_dump") else p for p in request.predictions]
+    fbs = [f.model_dump() if hasattr(f, "model_dump") else f for f in request.feedbacks]
+
+    session_id = request.session_id or (
+        fbs[0].get("session_id", "") if fbs else ""
+    )
+
+    result = await review_feedback(
+        predictions=preds,
+        feedbacks=fbs,
+        chart_summary=chart_summary,
+        session_id=session_id,
+    )
+
+    # 如果有权重调整，导出当前用户权重供前端展示
+    current_weights = None
+    if session_id:
+        current_weights = get_user_weights(session_id)
+
+    return {
+        "review": result["review"],
+        "applied": result.get("applied"),
+        "current_weights": current_weights,
+        "method": result.get("method", "mock_rule"),
+    }
+
+
+@app.post("/api/feedback/weights/reset")
+async def reset_feedback_weights(request: dict):
+    """重置用户典籍权重为默认值"""
+    session_id = request.get("session_id", "")
+    if not session_id:
+        raise HTTPException(status_code=400, detail="缺少 session_id")
+    weights = reset_weights(session_id)
+    return {"weights": weights}
+
+
+@app.get("/api/feedback/weights")
+async def get_feedback_weights(session_id: str = ""):
+    """获取用户当前的典籍权重"""
+    if not session_id:
+        raise HTTPException(status_code=400, detail="缺少 session_id")
+    weights = get_user_weights(session_id)
+    return {"session_id": session_id, "weights": weights}
+
+
 @app.post("/api/forecast")
 async def forecast_endpoint(request: dict):
     """
@@ -1902,14 +2001,22 @@ async def generate_dayun_reading(request: dict):
         strength_parts.append(f"  综合得分: {strength_detail.get('total_score', 'N/A')}")
     strength_breakdown = "\n".join(strength_parts) if strength_parts else "无数据"
 
-    # 典籍原文（RAG检索）
+    # 典籍原文（RAG检索 — 按阶段加权 + 用户活权重）
     classical_texts = "无检索数据"
     try:
         keywords = extract_keywords_from_chart(chart_data)
-        rag_results = retrieve_by_keywords(keywords, top_k=5)
+        user_weights = get_user_weights(session_id) if session_id else None
+        stage_results = retrieve_all_stages(
+            keywords,
+            ri_zhu_wuxing=chart_data.get("ri_zhu_wuxing", ""),
+            month_branch=chart_data.get("month_branch", ""),
+            per_stage_k=3,
+            user_weights=user_weights,
+        )
+        rag_results = merge_stage_results(stage_results, top_k=6)
         if rag_results:
             classical_texts = "\n".join([
-                f"《{r.get('source','')}》{r.get('chapter','')}：{r.get('content','')[:200]}"
+                f"《{r.get('source','')}》{r.get('chapter','')}：[权威={r.get('authority','一般')}] {r.get('full_text', '')[:200]}"
                 for r in rag_results[:5]
             ])
     except Exception:

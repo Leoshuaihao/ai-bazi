@@ -123,6 +123,7 @@ class PreEventStatement(BaseModel):
     classical_quote: str = ""   # 典籍引用
     basis: str = ""             # 命理依据
     confidence: float = 0.8     # 0.0-1.0
+    depends_on: list[str] = []  # 溯源："stage:corpus" 如 ["wangshuai:dishui", "pattern:ziping"]
 
 
 class FeedbackItem(BaseModel):
@@ -138,3 +139,11 @@ class FeedbackRound(BaseModel):
     round_number: int
     predictions: list[PreEventStatement]
     feedbacks: list[FeedbackItem]
+
+
+class FeedbackReviewRequest(BaseModel):
+    """V2.2: 反馈复盘请求"""
+    session_id: str = ""
+    chart_data: dict = {}
+    predictions: list[dict]
+    feedbacks: list[dict]
