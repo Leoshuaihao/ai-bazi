@@ -8,6 +8,7 @@
 
 import json
 import os
+import re
 import sqlite3
 import sys
 
@@ -26,6 +27,13 @@ CORPUS_META = {
     "dishui_ren":     {"source": "滴天髓征义",       "author": "任铁樵", "dynasty": "清", "school": "子平派"},
     "ziping_yuanben": {"source": "子平真诠原本",     "author": "沈孝瞻", "dynasty": "清", "school": "子平派"},
 }
+
+_CJK_RE = re.compile(r'([\u4e00-\u9fff\u3040-\u30ff\uac00-\ud7af])')
+
+
+def _space_cjk(text: str) -> str:
+    """在 CJK 字符之间插入空格，用于 FTS5 索引（弥补 unicode61 tokenizer 对中文的不足）"""
+    return _CJK_RE.sub(r' \1 ', text)
 
 
 def parse_existing_index(corpus_id: str, index_path: str) -> list[dict]:
@@ -55,6 +63,7 @@ def parse_existing_index(corpus_id: str, index_path: str) -> list[dict]:
             "keywords": ", ".join(ch.get("keywords", [])),
             "summary": ch.get("summary", full_text[:200] if full_text else ""),
             "full_text": full_text,
+            "full_text_spaced": _space_cjk(full_text),
             "file_path": ch["file"],
         })
     return chapters
@@ -120,6 +129,7 @@ def parse_raw_corpus(corpus_id: str) -> list[dict]:
             "keywords": "",    # 待标注
             "summary": full_text[:200] if full_text else "",
             "full_text": full_text,
+            "full_text_spaced": _space_cjk(full_text),
             "file_path": filename,
         })
     return chapters
@@ -160,17 +170,18 @@ def build_db():
             keywords TEXT,
             summary TEXT,
             full_text TEXT NOT NULL,
+            full_text_spaced TEXT NOT NULL,
             file_path TEXT,
             FOREIGN KEY (corpus_id) REFERENCES corpus_meta(id)
         )
     """)
 
-    # FTS5 全文索引
+    # FTS5 全文索引（使用 space-delimited 中文，解决 CJK 分词问题）
     cursor.execute("""
         CREATE VIRTUAL TABLE chapters_fts USING fts5(
             title,
             summary,
-            full_text,
+            full_text_spaced,
             content='chapters',
             content_rowid='id'
         )
@@ -206,11 +217,11 @@ def build_db():
         for ch in chapters:
             cursor.execute(
                 """INSERT INTO chapters
-                   (corpus_id, chapter_no, title, topic, keywords, summary, full_text, file_path)
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)""",
+                   (corpus_id, chapter_no, title, topic, keywords, summary, full_text, full_text_spaced, file_path)
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (ch["corpus_id"], ch["chapter_no"], ch["title"],
                  ch["topic"], ch["keywords"],
-                 ch["summary"][:500], ch["full_text"], ch["file_path"]),
+                 ch["summary"][:500], ch["full_text"], ch["full_text_spaced"], ch["file_path"]),
             )
             total_chapters += 1
 

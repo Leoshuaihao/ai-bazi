@@ -336,6 +336,19 @@ def search_corpus_fts(
     if not keywords:
         return []
 
+    # CJK 预处理：中文关键词拆字并用引号包裹成短语
+    # 如 "用神" → "\"用 神\""，确保 FTS5 只匹配相邻出现的字符
+    # （因为 FTS5 索引使用 space-delimited 中文）
+    if _has_cjk(query):
+        cjk_kws = []
+        for kw in keywords:
+            if _has_cjk(kw):
+                spaced = _space_cjk_chars(kw)
+                cjk_kws.append(f'"{spaced}"')  # 引号短语匹配
+            else:
+                cjk_kws.append(kw)
+        keywords = cjk_kws
+
     fts_query = " OR ".join(keywords)
 
     conn = sqlite3.connect(_DB_PATH)
@@ -454,6 +467,144 @@ def search_corpus_fts(
 
     # 按分重排
     results.sort(key=lambda x: x["weighted_score"], reverse=True)
+
+    # LIKE-based 补充搜索（FTS5 对中文支持有限，作为安全网）
+    # 仅在 FTS5 结果严重不足时补充（< top_k/2）
+    if len(results) < max(3, top_k // 2) and _has_cjk(query):
+        like_results = _supplement_like_search(
+            keywords=keywords,
+            corpus_ids=corpus_ids,
+            stage=stage,
+            ri_zhu_wuxing=ri_zhu_wuxing,
+            month_branch=month_branch,
+            ri_zhu_stem=ri_zhu_stem,
+            existing_ids={r["id"] for r in results},
+            top_k=top_k,
+        )
+        results.extend(like_results)
+        results.sort(key=lambda x: x["weighted_score"], reverse=True)
+
+    return results
+
+
+def _has_cjk(text: str) -> bool:
+    """检测文本是否包含中文/日文/韩文"""
+    for ch in text:
+        if '\u4e00' <= ch <= '\u9fff' or '\u3040' <= ch <= '\u30ff' or '\uac00' <= ch <= '\ud7af':
+            return True
+    return False
+
+
+def _space_cjk_chars(text: str) -> str:
+    """在 CJK 字符之间插入空格，用于 FTS5 查询匹配 space-delimited 索引"""
+    result = []
+    for ch in text:
+        if '\u4e00' <= ch <= '\u9fff' or '\u3040' <= ch <= '\u30ff' or '\uac00' <= ch <= '\ud7af':
+            result.append(' ' + ch + ' ')
+        else:
+            result.append(ch)
+    return ' '.join(''.join(result).split())  # 合并多余空格
+
+
+def _supplement_like_search(
+    keywords: list[str],
+    corpus_ids: list[str] | None = None,
+    stage: str | None = None,
+    ri_zhu_wuxing: str = "",
+    month_branch: str = "",
+    ri_zhu_stem: str = "",
+    existing_ids: set[str] = None,
+    top_k: int = 5,
+) -> list[dict]:
+    """LIKE-based 补充搜索：弥补 FTS5 对中文的不足
+
+    当 FTS5 返回结果不足时，用 SQL LIKE 搜索 full_text 列作为补充。
+    """
+    import sqlite3 as _sqlite3
+    conn = _sqlite3.connect(_DB_PATH)
+    conn.row_factory = _sqlite3.Row
+
+    # 构建 LIKE 条件：每个关键词一个 LIKE '%kw%'
+    like_conditions = []
+    params = []
+    for kw in keywords:
+        if len(kw) >= 2:
+            like_conditions.append("c.full_text LIKE ?")
+            params.append(f"%{kw}%")
+
+    if not like_conditions:
+        conn.close()
+        return []
+
+    where_sql = " OR ".join(like_conditions)
+
+    if corpus_ids:
+        placeholders = ",".join("?" * len(corpus_ids))
+        where_sql = f"({where_sql}) AND c.corpus_id IN ({placeholders})"
+        params.extend(corpus_ids)
+
+    if stage:
+        where_sql = f"({where_sql}) AND c.analysis_layer = ?"
+        params.append(stage)
+
+    existing = existing_ids or set()
+    sql = f"""
+        SELECT c.*
+        FROM chapters c
+        WHERE {where_sql}
+        ORDER BY c.chapter_no
+        LIMIT ?
+    """
+    params.append(top_k * 3)  # 多取一些用于去重和过滤
+
+    rows = conn.execute(sql, params).fetchall()
+    conn.close()
+
+    # 按关键词匹配数排序（匹配越多越靠前），而非 chapter_no
+    def _kw_match_count(full_text: str) -> int:
+        return sum(1 for kw in keywords if len(kw) >= 2 and kw in full_text)
+
+    scored_rows = [(row, _kw_match_count(dict(row).get("full_text", ""))) for row in rows]
+    scored_rows.sort(key=lambda x: x[1], reverse=True)
+
+    results = []
+    for row, kw_count in scored_rows:
+        r = dict(row)
+        rid = str(r["id"])
+        if rid in existing:
+            continue
+
+        # 穷通宝鉴后过滤
+        qiongtong_quality = 1.0
+        if r["corpus_id"] == "qiongtong" and ri_zhu_wuxing and month_branch:
+            qiongtong_quality = _filter_qiongtong_noise(
+                r["corpus_id"], {"title": r["title"]}, ri_zhu_wuxing, month_branch,
+                ri_zhu_stem=ri_zhu_stem,
+            )
+            if qiongtong_quality == 0.0:
+                continue
+
+        # LIKE 匹配的基础分与 FTS5 持平（多关键词匹配有额外加分）
+        base_score = (20.0 - len(results) * 2) * qiongtong_quality + kw_count * 3.0
+        results.append({
+            "id": rid,
+            "source": CORPUS_META_SOURCE.get(r["corpus_id"], r["corpus_id"]),
+            "chapter": r["title"],
+            "text": r["full_text"],
+            "topic": r["topic"] or "",
+            "context": r.get("summary", "") or "",
+            "score": base_score,
+            "weighted_score": base_score,
+            "authority": "like_supplement",
+            "full_text": r["full_text"],
+            "file": r.get("file_path", ""),
+            "corpus": r["corpus_id"],
+            "keywords_matched": keywords,
+            "fts_rank": 99,  # LIKE 结果 rank 高于 FTS5
+        })
+
+        if len(results) >= top_k:
+            break
 
     return results
 
@@ -655,16 +806,24 @@ def retrieve_by_stage(
                 if user_weights:
                     user_mult = user_weights.get(f"{stage}:{corpus_name}", 1.0)
 
-                r["weighted_score"] = base * stage_mult * user_mult
+                # 标题关键词匹配加分（中文查询时特别重要）
+                title_bonus = 0
+                chapter_title = r.get("chapter", "")
+                for kw in keywords:
+                    kw_no_space = kw.replace(" ", "")
+                    if kw_no_space in chapter_title:
+                        title_bonus += 5.0
+
+                r["weighted_score"] = (base + title_bonus) * stage_mult * user_mult
 
             # 按加权分排序
             fts_results.sort(key=lambda x: x["weighted_score"], reverse=True)
 
-            # 去重
+            # 去重（用 source + chapter 组合，同一章不重复）
             seen = set()
             unique = []
             for r in fts_results:
-                key = (r["source"], r["topic"])
+                key = (r["source"], r["chapter"])
                 if key not in seen:
                     seen.add(key)
                     unique.append(r)
@@ -743,11 +902,11 @@ def retrieve_by_stage(
     # 按加权分数排序，同分时优先权威度高的
     scored.sort(key=lambda x: (x["weighted_score"], x["authority"] == "primary"), reverse=True)
 
-    # 去重：同一来源+主题只保留最高分
+    # 去重：同一来源+章节只保留最高分
     seen = set()
     unique = []
     for entry in scored:
-        key = (entry["source"], entry["topic"])
+        key = (entry["source"], entry["chapter"])
         if key not in seen:
             seen.add(key)
             unique.append(entry)
