@@ -742,7 +742,7 @@ def _get_classical_reference(session, stage: str = "pattern") -> str:
             for r in results[:4]:
                 src = r.get("source", "?")
                 ch = r.get("chapter", "?")
-                txt = r.get("text", r.get("excerpt", ""))[:300]
+                txt = r.get("text", r.get("excerpt", ""))
                 lines.append(f"《{src}·{ch}》：{txt}")
             return "\n".join(lines)
     except Exception:
