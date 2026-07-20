@@ -133,7 +133,7 @@ def _generate_l2_question(chart_data: dict) -> dict:
 
 
 # L3+: 关键流年验证
-def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict]) -> dict:
+def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict], round_num: int = 3) -> dict:
     """生成第三层验证问题（关键流年），选取能区分当前假设的年份"""
     dayun = chart_data.get("dayun", [])
     if not dayun:
@@ -145,12 +145,20 @@ def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict]) -> d
         sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
         ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
         if sy <= current_year <= ey:
-            # 在这个大运中选一个关键流年
-            key_year = sy + 2  # 大运第二年通常是变化明显的年份
+            # 根据 round_num 选择不同年份偏移，避免 L3/L4 重复
+            offset = 2 if round_num <= 3 else 5
+            key_year = sy + offset
+            if key_year > current_year:
+                key_year = current_year - 1
+            # 根据 round_num 使用不同的问题模板
+            if round_num <= 3:
+                question = f"大约在{key_year}年前后，你是否经历了一次比较明显的转折——比如工作变动、搬家、或重要的人生决定？"
+            else:
+                question = f"大约在{key_year}年前后，你的事业或工作方向是否发生过明显变化？"
             return {
                 "type": "liunian",
                 "year": key_year,
-                "question": f"大约在{key_year}年前后，你是否经历了一次比较明显的转折——比如工作变动、搬家、或重要的人生决定？",
+                "question": question,
                 "hint": f"该年处于{sy}-{ey}年大运区间，是运势变化的关键节点",
             }
 
@@ -225,7 +233,8 @@ async def _ai_generate_question(chart_data: dict, hypotheses: list[dict], round_
 
     # 三层策略
     if round_num <= 4:
-        prompt, system_prompt = _build_l34_prompt(dm, top, dayun_info)
+        confirmed, disproved = _format_history_for_prompt(history)
+        prompt, system_prompt = _build_l34_prompt(dm, top, dayun_info, confirmed, disproved)
     elif round_num <= 7:
         confirmed, disproved = _format_history_for_prompt(history)
         dim = _get_dimension_name(round_num)
@@ -250,14 +259,20 @@ async def _ai_generate_question(chart_data: dict, hypotheses: list[dict], round_
     return None
 
 
-def _build_l34_prompt(dm: str, top: dict, dayun_info: str) -> tuple[str, str]:
+def _build_l34_prompt(dm: str, top: dict, dayun_info: str, confirmed: str = "", disproved: str = "") -> tuple[str, str]:
     """L3-L4: 关键流年验证 prompt"""
+    history_context = ""
+    if confirmed:
+        history_context += f"\n已确认的特征:\n{confirmed}"
+    if disproved:
+        history_context += f"\n已否定的特征:\n{disproved}"
+
     prompt = f"""你是子平格局派命理师。正在通过逐步验证确认命盘的格局。
 
 命盘信息：
 - 日主: {dm}
 - 当前优先格局假设: {top['pattern']}，用神 {top['yong_shen']}({top['five_element']})，做功方式={top['gong_way']}
-{dayun_info}
+{dayun_info}{history_context}
 
 请设计一个关键流年验证问题——根据当前大运的运势特征和该格局的命理规律，问一个用户在该大运期间大概率经历过的、能直接回忆的具体事件。
 
@@ -265,9 +280,10 @@ def _build_l34_prompt(dm: str, top: dict, dayun_info: str) -> tuple[str, str]:
 1. 具体到某个年龄段或时间范围
 2. 与该格局的典型人生轨迹相关
 3. 用户能用「是的/不是/不太确定」直接回答
-4. 只输出问题本身，不要JSON不要解释"""
-    
-    system_prompt = "你是子平格局派命理师。输出简洁具体的问题，用户能直接回答。"
+4. 不要重复已问过的问题，不要验证已经确认过的特征
+5. 只输出问题本身，不要JSON不要解释"""
+
+    system_prompt = "你是子平格局派命理师。输出简洁具体的问题，用户能直接回答。不要重复已问过的问题。"
     return prompt, system_prompt
 
 
@@ -331,21 +347,27 @@ def _get_dimension_name(round_num: int) -> str:
 
 
 def _format_history_for_prompt(history: list[dict]) -> tuple[str, str]:
-    """从验证历史中提取已确认和已否定的事实"""
+    """从验证历史中提取已确认和已否定的事实，包含问题文本用于去重"""
     if not history:
         return "", ""
     confirmed, disproved = [], []
     for idx, h in enumerate(history):
-        if h.get("role") == "user":
-            answer = h.get("answer", "")
-            note = h.get("note", "")
-            line = f"第{h.get('round', idx+1)}轮回答: {answer}"
-            if note:
-                line += f"（补充: {note}）"
-            if answer == "accurate":
-                confirmed.append(line)
-            elif answer == "inaccurate":
-                disproved.append(line)
+        role = h.get("role", "user")
+        if role != "user":
+            continue
+        question = h.get("question", "")
+        answer = h.get("answer", "")
+        note = h.get("note", "")
+        line = f"第{h.get('round', idx+1)}轮"
+        if question:
+            line += f"问:「{question}」"
+        line += f"答: {answer}"
+        if note:
+            line += f"（补充: {note}）"
+        if answer == "accurate":
+            confirmed.append(line)
+        elif answer == "inaccurate":
+            disproved.append(line)
     return "\n".join(confirmed), "\n".join(disproved)
 
 
@@ -480,6 +502,7 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
     # 2. 记录历史
     session["history"].append({
         "round": session["round"],
+        "question": current_question.get("question", ""),
         "answer": answer,
         "note": note,
     })
@@ -562,7 +585,7 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
         else:
             # 降级到规则引擎
             if round_num <= 4:
-                next_q = _generate_l3_question(chart_data, sorted_h)
+                next_q = _generate_l3_question(chart_data, sorted_h, round_num)
             elif round_num <= 7:
                 next_q = _generate_deep_question(chart_data, sorted_h, round_num)
             else:

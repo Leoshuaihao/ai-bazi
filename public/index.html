@@ -580,14 +580,8 @@ function bindControls(){
   // Input trigger toggle
   const trig=$('#input-trigger');
   if(trig) trig.addEventListener('click',toggleInputPanel);
-  const silb=$('#start-inline-calibration-btn');if(silb)silb.addEventListener('click',openCalibrationDock);
   $('#invite-start-btn').addEventListener('click',openCalibrationDock);
   $('#invite-later-btn').addEventListener('click',dismissCalibrationInvite);
-  const cdb=$('#close-dock-btn');if(cdb)cdb.addEventListener('click',closePredictionDialog);
-  const pqb=$('#prev-question-btn');if(pqb)pqb.addEventListener('click',prevQ);
-  const nqb=$('#next-question-btn');if(nqb)nqb.addEventListener('click',nextQ);
-  const scb=$('#submit-calibration-btn');if(scb)scb.addEventListener('click',submitCalibration);
-  // 注意：close-dock-btn 现在属于旧 DOM，新对话框使用 closePredictionDialog()
   $('#time-accurate-btn').addEventListener('click',()=>confirmBirthTime(true));
   $('#time-uncertain-btn').addEventListener('click',()=>confirmBirthTime(false));
   $('#matched-back-btn').addEventListener('click',()=>{$('#matched-time-dialog').hidden=true;$('#time-dialog').hidden=false});
@@ -651,7 +645,7 @@ function updateBirthDateTimeLabel(){const dv=$('#birth-date').value,tv=$('#birth
 
 function fillSample(){$('#birth-date').value='1990-06-15';$('#birth-time').value='12:20';updateBirthDateTimeLabel();setSeg('calendar','solar');setSeg('gender','male');$('#birth-city').value='广州';$('#time-approx').checked=false;S.timeApprox=false;$('#setup-panel').hidden=false;$('#input-trigger').classList.add('open');showToast('已填入示例 ✦')}
 function resetForm(){$('#birth-form').reset();setSeg('calendar','solar');setSeg('gender','male');updateBirthDateTimeLabel();S.timeApprox=false;S.subjectName='';resetReportOnly()}
-function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payload=null;S.chart=null;S.initialChart=null;S.subjectName='';S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;resetPredictionFlow();$('.hero').classList.remove('collapsed');$('#hero-badge-text').textContent='✦ AI 驱动的八字命盘分析';$('#setup-panel').hidden=true;$('#result-shell').classList.remove('visible');$('#calibration-invite').hidden=true;$('#calibration-dock').hidden=true;$('#prediction-overlay').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=true;const trig=$('#input-trigger');if(trig){trig.classList.remove('open','done');trig.querySelector('.input-trigger-hint').textContent='点击填写出生资料'};setStep('input')}
+function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payload=null;S.chart=null;S.initialChart=null;S.subjectName='';S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;resetPredictionFlow();$('.hero').classList.remove('collapsed');$('#hero-badge-text').textContent='✦ AI 驱动的八字命盘分析';$('#setup-panel').hidden=true;$('#result-shell').classList.remove('visible');$('#calibration-invite').hidden=true;$('#prediction-overlay').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=true;const trig=$('#input-trigger');if(trig){trig.classList.remove('open','done');trig.querySelector('.input-trigger-hint').textContent='点击填写出生资料'};setStep('input')}
 
 // ============================================================
 // API
@@ -2005,9 +1999,20 @@ function renderPredFoot(){
 function renderHypoBar(){
   const bar=$('#pred-hypo-bar');if(!bar)return;
   const hyps=S.predHypotheses||[];if(!hyps.length){bar.innerHTML='';return}
-  const maxConf=Math.max(...hyps.map(h=>h.confidence||0),50);
-  const rows=hyps.map(h=>{const pct=h.confidence||0;const isLead=pct===Math.max(...hyps.map(x=>x.confidence||0));return`<div class="pred-hypo-row${isLead?' lead':''}"><span class="pred-hypo-name">${escHtml(h.pattern||'?')}</span><div class="pred-hypo-track"><div class="pred-hypo-fill${isLead?' lead':''}" style="width:${Math.max(pct,3)}%"></div></div><span class="pred-hypo-pct">${pct}%</span></div>`}).join('');
-  bar.innerHTML=rows;
+  const maxPct=Math.max(...hyps.map(h=>h.confidence||0),1);
+  const groups={};
+  hyps.forEach(h=>{const p=h.pattern||'?';if(!groups[p])groups[p]=[];groups[p].push(h)});
+  const rows=[];
+  Object.entries(groups).forEach(([pname,items])=>{
+    const isMulti=items.length>1;
+    if(isMulti)rows.push(`<div class="pred-hypo-group">${escHtml(pname)}</div>`);
+    items.forEach(h=>{
+      const pct=h.confidence||0;const isLead=pct===maxPct;
+      const name=isMulti?(h.gong_way||(pname+'用'+(h.yong_shen||''))):pname;
+      rows.push(`<div class="pred-hypo-row${isLead?' lead':''}">${isMulti?'<span class="pred-hypo-bullet">·</span>':''}<span class="pred-hypo-name"${isMulti?` title="${escAttr(pname+' · '+(h.yong_shen||''))}"`:''}>${escHtml(name)}</span><div class="pred-hypo-track"><div class="pred-hypo-fill${isLead?' lead':''}" style="width:${Math.max(pct,3)}%"></div></div><span class="pred-hypo-pct">${pct}%</span></div>`);
+    });
+  });
+  bar.innerHTML=rows.join('');
 }
 function scrollToBottom(){const b=$('#pred-body');if(b)setTimeout(()=>{b.scrollTop=b.scrollHeight},50)}
 function toggleHistory(){S.predHistoryCollapsed=!S.predHistoryCollapsed;renderPredBody();scrollToBottom()}
@@ -2030,6 +2035,7 @@ function openPredictionDialog(){
 // ---- 锁定后衔接旧流程 ----
 async function applyLockedResult(){
   const result=S.predLockedResult;if(!result)return;
+  S.sessionId=S.predSessionId;
   S.calibrationResult={pattern:result.pattern,yong_shen:result.yong_shen,five_element:result.five_element,confidence:result.confidence,pattern_type:result.pattern_type,gong_way:result.gong_way,rounds:S.predHistory.filter(h=>h.role==='user').length,verdict:{verdict:'passed'},result_message:`经过 ${S.predHistory.filter(h=>h.role==='user').length} 轮验证，格局确认为${result.pattern}`};
   if(S.chart){S.chart.yongshen={...(S.chart.yongshen||{}),primary:result.yong_shen,pattern:result.pattern};renderYongshen(S.chart.yongshen);updateCalGate();renderDayun(S.chart.dayun||[])}
   S.reportPublished=true;S.predictionsReady=true;
@@ -2054,28 +2060,9 @@ function resetPredictionFlow(){
   S.predSessionId='';S.predCurrentQuestion=null;S.predHypotheses=[];S.predHistory=[];S.predLocked=false;S.predLockedResult=null;S.predSelectedAnswer='';S.predNote='';S.predLoading=false;S.predError=null;S.predHistoryCollapsed=false;
 }
 
-// ---- 旧函数兼容（降级兜底） ----
+// ---- 桥接到新验证流程 ----
 function openCalibrationDock(){
-  if(S.predUsingNewFlow||S.predSessionId||S.predLocked){
-    openPredictionDialog();return;
-  }
-  if(!S.predictionsReady||!S.predictions.length){showToast('断前事题目还在生成');return}
-  if(S.inviteTimer)clearTimeout(S.inviteTimer);
-  $('#calibration-invite').hidden=true;$('#prediction-overlay').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=false;$('#calibration-dock').hidden=false;setStep('calibration');renderDock();
-}
-function renderDock(){/*旧dock渲染逻辑保留*/const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;const cur=S.predictions[S.currentPredictionIndex];if(!total){const b=$('#dock-body');if(b)b.innerHTML='<div class="empty-inline">暂无断前事题目。</div>';return}if(!cur){const b=$('#dock-body');if(b)b.innerHTML='<div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">反馈完成</span><h4>可以提交校正</h4><p style="margin-top:6px;">系统会结合你的反馈，判断是保持原时辰、换角度重析，还是在偏差过大时询问出生时间是否精准。</p></div>'}else{const draft=S.feedbackDrafts[S.currentPredictionIndex]||{};const b=$('#dock-body');if(b)b.innerHTML=`<div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.76rem;margin-bottom:10px;"><span>第 ${S.currentPredictionIndex+1}/${total} 题</span><span>${escHtml(cur.category||'断前事')}${cur.is_core?' · 核心关':''}</span></div><div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">${escHtml(cur.category||'断前事')}</span><h4>${escHtml(cur.title||'请验证')}</h4><p style="margin-top:4px;">${escHtml(cur.content||'')}</p><div class="answer-opts">${STATUS_OPTS.map(([s,l])=>`<button class="answer-opt" data-status="${escAttr(s)}" aria-pressed="${String(draft.status===s)}">${escHtml(l)}</button>`).join('')}</div><textarea id="feedback-note" style="width:100%;min-height:60px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:rgba(14,9,28,0.4);color:var(--ink);padding:8px;font:inherit;resize:vertical;font-size:0.85rem;" placeholder="可选：补充你的具体情况">${escHtml(draft.note||'')}</textarea></div>`;setTimeout(()=>{$$('#dock-body [data-status]').forEach(btn=>btn.addEventListener('click',()=>setDraftStatus(btn.dataset.status)));const fn=$('#feedback-note');if(fn)fn.addEventListener('input',e=>{ensureDraft(S.currentPredictionIndex).note=e.target.value.trim()})},0)}}function ensureDraft(i){if(!S.feedbackDrafts[i]){const p=S.predictions[i]||{};S.feedbackDrafts[i]={prediction_id:p.id||'',status:'',note:''}}return S.feedbackDrafts[i]}function setDraftStatus(s){ensureDraft(S.currentPredictionIndex).status=s;renderDock()}function prevQ(){if(S.currentPredictionIndex>0){S.currentPredictionIndex--;renderDock()}}function nextQ(){const d=ensureDraft(S.currentPredictionIndex);if(!d.status){showToast('请先选择反馈');return}if(S.currentPredictionIndex<S.predictions.length-1){S.currentPredictionIndex++;renderDock()}}
-
-async function submitCalibration(){
-  const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;
-  if(done<total){showToast(`还有 ${total-done} 题未选择`);return}
-  $('#submit-calibration-btn').disabled=true;$('#submit-calibration-btn').innerHTML='<span class="loader"></span> 正在提交';
-  S.calibrating=true;renderYongshen(S.chart&&S.chart.yongshen?S.chart.yongshen:{});
-  try{
-    if(!S.feedbacksSubmitted){for(const fb of S.feedbackDrafts){await apiFetch('/api/predictions/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...fb,session_id:S.sessionId})})}S.feedbacksSubmitted=true}
-    const cal=await apiFetch('/api/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId})});
-    const v=getVerdictKey(cal);if(v==='hour_fix'){S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;$('#prediction-overlay').hidden=true;$('#time-dialog').hidden=false;return}
-    S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;$('#prediction-overlay').hidden=true;await confirmBirthTime(true);
-  }catch(err){S.calibrating=false;showToast(friendlyError(err,'校正提交失败'));S.feedbacksSubmitted=false;renderDock()}
+  openPredictionDialog();
 }
 
 async function loadAIYongshen(payload){
@@ -2126,16 +2113,7 @@ function hidePredictionSkeleton(){
 }
 function maybeScheduleInvite(){if(!S.classicsReady||!S.predictionsReady||S.inviteShown||S.inviteDismissed)return;S.inviteShown=true;if(S.inviteTimer)clearTimeout(S.inviteTimer);S.inviteTimer=setTimeout(()=>{$('#calibration-invite').hidden=false;$('#top-calibration-btn').hidden=false},4000)}
 function dismissCalibrationInvite(){S.inviteDismissed=true;$('#calibration-invite').hidden=true;$('#top-calibration-btn').hidden=false}
-function openCalibrationDock(){if(!S.predictionsReady||!S.predictions.length){showToast('断前事题目还在生成');return}if(S.inviteTimer)clearTimeout(S.inviteTimer);$('#calibration-invite').hidden=true;$('#calibration-dock').hidden=false;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=false;setStep('calibration');renderDock()}
-function renderDock(){const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;const cur=S.predictions[S.currentPredictionIndex];if(!total){$('#dock-body').innerHTML='<div class="empty-inline">暂无断前事题目。</div>';return}if(!cur){$('#dock-body').innerHTML=`<div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">反馈完成</span><h4>可以提交校正</h4><p style="margin-top:6px;">系统会结合你的反馈，判断是保持原时辰、换角度重析，还是在偏差过大时询问出生时间是否精准。</p></div>`}else{const draft=S.feedbackDrafts[S.currentPredictionIndex]||{};$('#dock-body').innerHTML=`<div style="display:flex;justify-content:space-between;color:var(--muted);font-size:0.76rem;margin-bottom:10px;"><span>第 ${S.currentPredictionIndex+1}/${total} 题</span><span>${escHtml(cur.category||'断前事')}${cur.is_core?' · 核心关':''}</span></div><div class="prediction-card"><span class="kicker" style="display:inline-block;margin-bottom:6px;">${escHtml(cur.category||'断前事')}</span><h4>${escHtml(cur.title||'请验证')}</h4><p style="margin-top:4px;">${escHtml(cur.content||'')}</p><div class="answer-opts">${STATUS_OPTS.map(([s,l])=>`<button class="answer-opt" data-status="${escAttr(s)}" aria-pressed="${String(draft.status===s)}">${escHtml(l)}</button>`).join('')}</div><textarea id="feedback-note" style="width:100%;min-height:60px;margin-top:8px;border:1px solid var(--line);border-radius:6px;background:rgba(14,9,28,0.4);color:var(--ink);padding:8px;font:inherit;resize:vertical;font-size:0.85rem;" placeholder="可选：补充你的具体情况">${escHtml(draft.note||'')}</textarea></div>`;setTimeout(()=>{$$('#dock-body [data-status]').forEach(b=>b.addEventListener('click',()=>setDraftStatus(b.dataset.status)));const fn=$('#feedback-note');if(fn)fn.addEventListener('input',e=>{ensureDraft(S.currentPredictionIndex).note=e.target.value.trim()})},0)}$('#prev-question-btn').disabled=S.currentPredictionIndex<=0||S.feedbacksSubmitted;$('#next-question-btn').disabled=S.currentPredictionIndex>=total-1||S.feedbacksSubmitted;$('#submit-calibration-btn').disabled=done<total||S.feedbacksSubmitted;$('#submit-calibration-btn').textContent=S.feedbacksSubmitted?'已提交':`提交校正（${done}/${total}）`;$('#dock-save-state').textContent=`${done}/${total} 已选择`}
-function ensureDraft(i){if(!S.feedbackDrafts[i]){const p=S.predictions[i]||{};S.feedbackDrafts[i]={prediction_id:p.id||'',status:'',note:''}}return S.feedbackDrafts[i]}
-function setDraftStatus(s){ensureDraft(S.currentPredictionIndex).status=s;renderDock()}
-function prevQ(){if(S.currentPredictionIndex>0){S.currentPredictionIndex--;renderDock()}}
-function nextQ(){const d=ensureDraft(S.currentPredictionIndex);if(!d.status){showToast('请先选择反馈');return}if(S.currentPredictionIndex<S.predictions.length-1){S.currentPredictionIndex++;renderDock()}}
-
-async function submitCalibration(){const total=S.predictions.length;const done=S.feedbackDrafts.filter(d=>d.status).length;if(done<total){showToast(`还有 ${total-done} 题未选择`);return}$('#submit-calibration-btn').disabled=true;$('#submit-calibration-btn').innerHTML='<span class="loader"></span> 正在提交';S.calibrating=true;renderYongshen(S.chart&&S.chart.yongshen?S.chart.yongshen:{});try{if(!S.feedbacksSubmitted){for(const fb of S.feedbackDrafts){await apiFetch('/api/predictions/feedback',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...fb,session_id:S.sessionId})})}S.feedbacksSubmitted=true}const cal=await apiFetch('/api/calibrate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId})});const v=getVerdictKey(cal);if(v==='hour_fix'){S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;$('#time-dialog').hidden=false;return}S.calibrationResult=cal;S.calibrating=false;$('#calibration-dock').hidden=true;await confirmBirthTime(true)}catch(err){S.calibrating=false;showToast(friendlyError(err,'校正提交失败'));S.feedbacksSubmitted=false;renderDock()}}
-
-async function confirmBirthTime(accurate){$('#time-dialog').hidden=true;$('#calibration-dock').hidden=true;$('#prediction-overlay').hidden=true;try{const data=await apiFetch('/api/calibrate/confirm-time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,time_accurate:accurate})});if(!accurate&&data.correction_type==='hour_fix'&&data.recommended_hour!==undefined){S.matchedTime=data;$('#matched-time-copy').textContent=`已匹配出出生时段：${data.recommended_shichen||''}（${formatSRange(data.recommended_hour)}）。`;$('#matched-time-dialog').hidden=false;return}S.calibrationResult=data;if(data.updated_analysis){S.reportPublished=true;applyUA(data.updated_analysis,data);S.classicsDraft={classical_analysis:data.updated_analysis.classical_analysis,sources:data.updated_analysis.sources||[]};renderClassics(S.classicsDraft)}else{publishFormalReport()}renderCorrectionResult(data,{mode:accurate?'ai':'unchanged-hour'});await loadForecast(data)}catch(err){showToast(friendlyError(err,'校正失败'));$('#time-dialog').hidden=false}}
+async function confirmBirthTime(accurate){$('#time-dialog').hidden=true;$('#prediction-overlay').hidden=true;try{const data=await apiFetch('/api/calibrate/confirm-time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,time_accurate:accurate})});if(!accurate&&data.correction_type==='hour_fix'&&data.recommended_hour!==undefined){S.matchedTime=data;$('#matched-time-copy').textContent=`已匹配出出生时段：${data.recommended_shichen||''}（${formatSRange(data.recommended_hour)}）。`;$('#matched-time-dialog').hidden=false;return}S.calibrationResult=data;if(data.updated_analysis){S.reportPublished=true;applyUA(data.updated_analysis,data);S.classicsDraft={classical_analysis:data.updated_analysis.classical_analysis,sources:data.updated_analysis.sources||[]};renderClassics(S.classicsDraft)}else{publishFormalReport()}renderCorrectionResult(data,{mode:accurate?'ai':'unchanged-hour'});await loadForecast(data)}catch(err){showToast(friendlyError(err,'校正失败'));$('#time-dialog').hidden=false}}
 
 async function applyMatchedTime(){if(!S.matchedTime)return;$('#matched-time-dialog').hidden=true;try{const data=await apiFetch('/api/calibrate/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,correction_type:'hour_fix',new_hour:S.matchedTime.recommended_hour,fix_stage:3,force_correction:true})});const applied=data.correction_result&&data.correction_result.applied_result;S.calibrationResult={...S.matchedTime,applied_result:applied,apply_result:data};S.reportPublished=true;if(applied&&applied.chart){S.chart=normalizeAC(applied.chart,applied.strength_detail);renderChart(S.chart)}renderCorrectionResult(S.calibrationResult,{mode:'hour',applied});await refreshClassics();await loadForecast(S.calibrationResult)}catch(err){showToast(friendlyError(err,'刷新失败'));$('#matched-time-dialog').hidden=false}}
 

@@ -681,6 +681,15 @@ body {
   font-size: 0.7rem; color: var(--muted);
 }
 .pred-hypo-row.lead .pred-hypo-pct { color: var(--accent); }
+.pred-hypo-group {
+  font-size: 0.68rem; font-weight: 700; color: var(--accent);
+  padding: 2px 0 1px; margin-top: 2px;
+  border-bottom: 1px solid rgba(139,92,246,0.15);
+}
+.pred-hypo-bullet {
+  color: var(--muted); font-weight: 400; flex-shrink: 0;
+}
+.pred-hypo-group ~ .pred-hypo-row .pred-hypo-name { width: 72px; }
 
 /* ---------- 消息区 ---------- */
 .pred-body {
