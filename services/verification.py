@@ -568,11 +568,17 @@ async def _llm_interpret(session, answer, note):
 
     ys_info = f"用神={yongshen.get('ten_god','')}({yongshen.get('five_element','')}), 模式={yongshen.get('mode','')}" if yongshen else ""
 
+    # 动态典籍检索（与 _llm_enhance_question 共享同一逻辑）
+    classical = _get_classical_reference(session, sub)
+
     candidates_line = f"当前相神候选:\n{candidates_info}" if candidates_info else ""
     prompt = f"""用户八字: {pattern}格, 旺衰={wangshuai.get('level','?')}
 {f"用神: {ys_info}" if ys_info else ""}
 当前阶段: {sub}
 {candidates_line}
+
+典籍参考:
+{classical}
 
 对话历史:
 {history}
@@ -583,7 +589,7 @@ async def _llm_interpret(session, answer, note):
 
 已知事实: {', '.join(facts) if facts else '无'}
 
-请解读用户回答，输出JSON(不要markdown标记):
+请基于典籍理论解读用户回答，输出JSON(不要markdown标记):
 {{"mapped_answer":"accurate|partial|inaccurate","delta":-25到25的整数,"extracted_facts":[""],"internal":"你的命理分析"}}
 
 delta含义:
@@ -736,7 +742,7 @@ def _get_classical_reference(session, stage: str = "pattern") -> str:
             for r in results[:4]:
                 src = r.get("source", "?")
                 ch = r.get("chapter", "?")
-                txt = r.get("text", r.get("excerpt", ""))[:120]
+                txt = r.get("text", r.get("excerpt", ""))[:300]
                 lines.append(f"《{src}·{ch}》：{txt}")
             return "\n".join(lines)
     except Exception:
