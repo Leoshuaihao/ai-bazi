@@ -1,12 +1,10 @@
-"""逐步验证收敛模块 V3 — 子平派典籍诊断树
+"""逐步验证收敛模块 V4 — LLM 100% 介入
 
-流程:
-Step1: 月令定格局 → Step2: 透干会支检查 → Step3: 旺衰五等
-L1: 格局特征验证 → 纯杂检查 → Phase2: 品质判断(有情×有力)
-→ 锁定 / 诊断链(D1-D5) / Phase3: 用神验证(四法)
+V4核心: LLM驱动全流程对话, 不可用时降级到V3静态模式
 """
 
 import os
+import json
 import uuid
 import asyncio
 from datetime import datetime
@@ -26,10 +24,48 @@ from rules.pattern import (
     _resolve_five_element,
     _calc_ten_god,
     _get_gong_way,
+    WUXING_MAP,
 )
 from services.deepseek_client import call_deepseek
 from services.user_data import save_verification_session as _save_db_session
 from services.user_data import load_verification_session as _load_db_session
+
+# ============================================================
+# LLM 系统提示词
+# ============================================================
+
+SYSTEM_PROMPT = """你是一位严格遵循《子平真诠》《滴天髓》《穷通宝鉴》体系的子平派命理师。
+
+核心原则:
+- "八字用神，专求月令" — 格局由月令地支藏干本气决定
+- "财官印食顺用，杀伤枭刃逆用" — 用神选择遵循顺用/逆用规则
+- "透干会支，乃为真用" — 天干透出和地支三合三会可以改变用神
+- "有情无情，有力无力" — 格局品质由用神是否有生扶保护和通根得地决定
+- "救应两字，乃命学精华所在" — 格局被克时看是否有制忌护用
+
+规则:
+1. 每条问题基于命盘数据和典籍理论
+2. 用户可能不理解命理术语，用生活化语言
+3. 用户有复杂真实情况，不要强迫选不合适选项
+4. 用户持续否定时重新审视月令是否被冲/合/压制
+5. 保持自然对话感"""
+
+
+def _has_llm():
+    return bool(os.getenv("DEEPSEEK_API_KEY"))
+
+
+async def _llm_ask(system: str, prompt: str, max_tokens: int = 300) -> str | None:
+    """调用 LLM，失败返回 None"""
+    try:
+        content = await call_deepseek(prompt=prompt, system_prompt=system,
+                                       timeout=12, temperature=0.5, max_tokens=max_tokens)
+        if content and not content.startswith("[API_"):
+            return content
+    except Exception:
+        pass
+    return None
+
 
 # ============================================================
 # L1 格局特征问题（V3升级：区分旺衰两版）
@@ -207,6 +243,7 @@ _ANSWER_NORMALIZE = {
     "不太好说": "partial", "务实重结果": "accurate", "重学习修养": "inaccurate",
     "有道理，让我补充": "accurate", "不对，换个方向": "inaccurate",
     "准确": "accurate", "不准": "inaccurate",
+    "说说具体的": "custom",   # V4: 自由文本入口
 }
 
 
@@ -364,8 +401,132 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
         "note": note,
     })
 
-    sub = session.get("sub_stage", "L1")
+    # V4: LLM 100% 介入 — 有 API Key 时优先用 LLM 驱动
+    if _has_llm() and note:
+        # 用户写了自由文本 → LLM 解读
+        llm_result = await _llm_interpret(session, answer, note)
+        if llm_result:
+            answer = llm_result.get("mapped_answer", answer)
+            if llm_result.get("extracted_facts"):
+                session.setdefault("_llm_facts", []).extend(llm_result["extracted_facts"])
 
+    sub = session.get("sub_stage", "L1")
+    result = None
+
+    # V4: 尝试 LLM 生成下一个问题
+    if _has_llm():
+        result = await _llm_next(session, sub, answer)
+    if result is None:
+        # LLM 不可用或失败 → 降级到 V3 静态 handler
+        result = await _dispatch_static(session, sub, answer)
+
+    return result
+
+
+async def _llm_interpret(session, answer, note):
+    """LLM 解读用户自由文本回答"""
+    facts = session.get("_llm_facts", [])
+    history = _format_chat_history(session)
+    pattern = session.get("pattern", "")
+    wangshuai = session.get("step_results", {}).get("wangshuai", {})
+
+    prompt = f"""用户八字: {session.get('pattern', '?')}格, 旺衰={wangshuai.get('level','?')}
+对话历史:
+{history}
+
+你刚才问的问题: {session.get('current_question',{}).get('question','')}
+用户回答: {answer}
+用户补充说明: {note}
+
+已知事实: {', '.join(facts) if facts else '无'}
+
+请解读用户回答，输出JSON(不要markdown标记):
+{{"mapped_answer":"accurate|partial|inaccurate","extracted_facts":[""],"internal":"你的分析"}}"""
+    content = await _llm_ask(SYSTEM_PROMPT, prompt, 200)
+    if not content:
+        return None
+    try:
+        return json.loads(content)
+    except:
+        return {"mapped_answer": answer, "extracted_facts": [note]}
+
+
+async def _llm_next(session, sub, prev_answer):
+    """LLM 生成当前阶段的下一个问题或判定"""
+    if sub.endswith("_L3") or sub in ("ys_3", "ys_2"):
+        return None  # 阶段末尾交给状态机
+
+    history = _format_chat_history(session)
+    sr = session.get("step_results", {})
+    wangshuai = sr.get("wangshuai", {})
+    pattern = session.get("pattern", "")
+
+    prompt = f"""你正在验证一个八字命盘。
+
+命盘: {pattern}格, 日主{session['chart_data'].get('day_master','')}, 旺衰={wangshuai.get('level','?')}(方向={wangshuai.get('yongshen_direction','')})
+透干: {sr.get('gan_touchu',{})}
+
+对话历史:
+{history}
+
+当前阶段: {sub}
+
+请生成你的下一步行动。输出JSON(不要markdown标记):
+{{"action":"ask_question|advance_stage|confirm|backtrack","question":"你的问题(如果是ask_question)","options":["选项1","选项2","选项3","说说具体的"],"internal":"你的分析","confidence":0-100,"reasoning":"判断依据"}}"""
+    content = await _llm_ask(SYSTEM_PROMPT, prompt, 300)
+    if not content:
+        return None
+    try:
+        llm = json.loads(content)
+    except:
+        return None
+
+    action = llm.get("action", "ask_question")
+    session["round"] += 1
+
+    if action in ("confirm", "advance_stage") and sub in ("L1", "phase2_L2", "phase2_L3"):
+        # LLM 认为可以流转 → 调用静态 handler 获取下一个阶段
+        if sub == "L1":
+            session["l1_answer"] = "High"
+            session["confidence"] = llm.get("confidence", 65)
+            return await _enter_phase2(session)
+        elif sub == "phase2_L2":
+            return await _handle_phase2_L2(session, "accurate")
+        elif sub == "phase2_L3":
+            return await _handle_phase2_L3(session, "accurate")
+    elif action == "backtrack":
+        return await _enter_diagnosis(session)
+    elif action == "ask_question":
+        q = {
+            "round": session["round"], "layer": f"L{session['round']}",
+            "question": llm["question"],
+            "explanation": llm.get("internal", ""),
+            "options": llm.get("options", ["很像", "有点出入", "完全不像", "说说具体的"]),
+            "llm_generated": True,
+        }
+        session["current_question"] = q
+        return {"locked": False, "stage": session.get("stage", "pattern"),
+                "sub_stage": session.get("sub_stage", sub), "question": q}
+
+    return None
+
+
+def _format_chat_history(session):
+    lines = []
+    for h in session.get("history", [])[-6:]:
+        role = "命理师" if h.get("role") == "ai" else "用户"
+        q = h.get("question", "")[:60]
+        a = h.get("answer", "")
+        note = h.get("note", "")
+        line = f"{role}: {q} → {a}"
+        if note:
+            line += f" (补充: {note})"
+        lines.append(line)
+    return "\n".join(lines)
+
+
+async def _dispatch_static(session, sub, answer):
+    """V3 静态 handler — 当 LLM 不可用时降级到此"""
     if sub == "L1":
         return await _handle_L1(session, answer)
     elif sub == "purity":
