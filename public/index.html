@@ -650,8 +650,8 @@ function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payloa
 // ============================================================
 // API
 // ============================================================
-async function apiFetch(url,opts={}){const res=await fetch(url,opts);const data=await res.json().catch(()=>null);if(!res.ok)throw new Error((data&&data.detail)||`请求失败:${res.status}`);return data}
-function friendlyError(e,fb){const m=e&&e.message?e.message:fb;if(m.includes('Failed to fetch'))return'无法连接后端服务';return m||fb}
+function apiFetch(url,opts={}){const timeout=opts.timeout||120000;delete opts.timeout;const controller=new AbortController();const signal=controller.signal;const timer=setTimeout(()=>controller.abort(),timeout);return fetch(url,{...opts,signal}).then(async res=>{clearTimeout(timer);const data=await res.json().catch(()=>null);if(!res.ok)throw new Error((data&&data.detail)||`请求失败:${res.status}`);return data}).catch(err=>{clearTimeout(timer);if(err.name==='AbortError')throw new Error('请求超时，服务器可能正在启动中，请稍后重试');throw err})}
+function friendlyError(e,fb){const m=e&&e.message?e.message:fb;if(m.includes('Failed to fetch'))return'无法连接后端服务，请检查网络';if(m.includes('请求超时'))return m;return m||fb}
 
 // ============================================================
 // STEP INDICATOR
@@ -1913,7 +1913,7 @@ async function startPredictionFlow(){
     // 降级到旧流程
     console.warn('新API不可用，降级到旧流程',err);
     S.predUsingNewFlow=false;
-    try{await apiFetchAndFillOld(payload)}catch(e2){showToast(friendlyError(e2,'断前事生成失败'))}
+    try{await apiFetchAndFillOld(S.payload)}catch(e2){showToast(friendlyError(e2,'断前事生成失败'))}
   }
 }
 // 旧流程降级兜底
