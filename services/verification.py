@@ -692,6 +692,20 @@ async def _llm_enhance_question(session, result):
         return None
 
 
+def _clean_classical_text(text: str) -> str:
+    """清理典籍文本中的噪音：DB元数据、现代摘要、多余空行"""
+    import re
+    # 去掉 "## 核心要点" 及之后的所有内容（现代摘要，非古籍原文，AI会误引）
+    text = re.sub(r'\n## 核心要点.*', '', text, flags=re.DOTALL)
+    # 去掉 DB 元数据尾注
+    text = re.sub(r'\n---\n版本：.*', '', text, flags=re.DOTALL)
+    text = re.sub(r'\n录入日期：.*', '', text)
+    text = re.sub(r'\n用途：RAG检索.*', '', text)
+    # 压缩连续空行
+    text = re.sub(r'\n{3,}', '\n\n', text)
+    return text.strip()
+
+
 def _get_classical_reference(session, stage: str = "pattern") -> str:
     """使用项目 RAG 检索器（FTS5 全文检索 281 章典籍）"""
     from services.rag_retriever import retrieve_by_stage
@@ -743,6 +757,7 @@ def _get_classical_reference(session, stage: str = "pattern") -> str:
                 src = r.get("source", "?")
                 ch = r.get("chapter", "?")
                 txt = r.get("text", r.get("excerpt", ""))
+                txt = _clean_classical_text(txt)
                 lines.append(f"《{src}·{ch}》：{txt}")
             return "\n".join(lines)
     except Exception:
