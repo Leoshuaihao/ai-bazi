@@ -688,6 +688,17 @@ async def _handle_L1(session, answer):
             return await _enter_diagnosis(session)
 
     # 进 Phase 2
+    # Fix: L1 B(有点出入) → 先静默检查是否有混杂或待确认合局
+    if session["l1_answer"] == "Medium":
+        purity = check_purity(session["pattern"], session["chart_data"])
+        heju = session.get("step_results", {}).get("zhi_heju", {})
+        session["purity_result"] = purity
+        if purity["is_mixed"] or heju.get("pending"):
+            session["purity"] = "杂" if purity["is_mixed"] else "纯"
+            session["diagnosis_path"].append({"step": "L1", "action": "有点出入-检测混杂/合局",
+                                               "mixed": purity["is_mixed"], "heju_pending": heju.get("pending")})
+        else:
+            session["diagnosis_path"].append({"step": "L1", "action": "有点出入-无特殊检测"})
     return await _enter_phase2(session)
 
 
@@ -922,6 +933,8 @@ async def _handle_diagnosis(session, answer):
                 return await _enter_phase2(session)
             else:
                 session["round"] += 1
+                # 冲散→中气, 但之后也要静默检查救应
+                session["_from_chong_san"] = True
                 return await _run_diagnosis_step(session, 3)  # 冲散→中气
         elif sub == "diag_D2":
             session["round"] += 1
@@ -936,6 +949,14 @@ async def _handle_diagnosis(session, answer):
                 session["confidence"] = 25
                 session["purity"] = None
                 session["quality"] = None
+                # 冲散路径: 静默注入救应数据
+                if session.get("_from_chong_san"):
+                    tg = PATTERN_YONGSHEN.get(alt, [("食神","火")])[0][0]
+                    jiuying = check_jiuying(session["chart_data"], tg)
+                    session["_jiuying_data"] = jiuying
+                    session["_from_chong_san"] = False
+                    session["diagnosis_path"].append({"step": "D4_silent", "action": "救应静默检测",
+                                                       "result": jiuying})
                 return await _enter_phase2(session)
         elif sub == "diag_D4":
             return await _enter_phase2(session)
