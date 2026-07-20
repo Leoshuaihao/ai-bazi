@@ -416,11 +416,50 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
     # V4: 尝试 LLM 生成下一个问题
     if _has_llm():
         result = await _llm_next(session, sub, answer)
+
     if result is None:
         # LLM 不可用或失败 → 降级到 V3 静态 handler
         result = await _dispatch_static(session, sub, answer)
+    else:
+        # LLM 返回了 action → 处理 advance_stage / backtrack
+        action = result.get("action")
+        if action == "advance_stage":
+            return await _advance_to_next_stage(session)
+        elif action == "backtrack":
+            return await _enter_diagnosis(session)
 
     return result
+
+
+async def _advance_to_next_stage(session):
+    """统一阶段流转 — LLM 判定可以跳时调用"""
+    sub = session.get("sub_stage", "L1")
+    session["round"] += 1
+
+    transitions = {
+        "L1": lambda: _enter_phase2_with_purity(session),
+        "purity": lambda: _enter_phase2(session),
+        "phase2_L2": lambda: _advance_static(session, "phase2_L2", "accurate"),
+        "phase2_L3": lambda: _advance_static(session, "phase2_L3", "accurate"),
+    }
+    if sub in transitions:
+        return await transitions[sub]()
+    if sub.startswith("diag_"):
+        return await _enter_phase2(session)
+    if sub.startswith("ys_"):
+        return await _handle_yongshen(session, "accurate")
+    return await _enter_phase2(session)
+
+
+async def _enter_phase2_with_purity(session):
+    """L1→Phase2: 先静默执行纯杂检测再进Phase2"""
+    purity = check_purity(session["pattern"], session["chart_data"])
+    session["purity_result"] = purity
+    if not session.get("purity"):
+        session["purity"] = "杂" if purity["is_mixed"] else "纯"
+    session["l1_answer"] = session.get("l1_answer", "Medium")
+    session["diagnosis_path"].append({"step": "L1", "action": "格局特征验证-LLM跳过"})
+    return await _enter_phase2(session)
 
 
 async def _llm_interpret(session, answer, note):
@@ -460,11 +499,15 @@ async def _llm_next(session, sub, prev_answer):
     sr = session.get("step_results", {})
     wangshuai = sr.get("wangshuai", {})
     pattern = session.get("pattern", "")
+    classical = _get_classical_reference(pattern, sub)
 
     prompt = f"""你正在验证一个八字命盘。
 
 命盘: {pattern}格, 日主{session['chart_data'].get('day_master','')}, 旺衰={wangshuai.get('level','?')}(方向={wangshuai.get('yongshen_direction','')})
 透干: {sr.get('gan_touchu',{})}
+
+典籍参考:
+{classical}
 
 对话历史:
 {history}
@@ -472,8 +515,14 @@ async def _llm_next(session, sub, prev_answer):
 当前阶段: {sub}
 
 请生成你的下一步行动。输出JSON(不要markdown标记):
-{{"action":"ask_question|advance_stage|confirm|backtrack","question":"你的问题(如果是ask_question)","options":["选项1","选项2","选项3","说说具体的"],"internal":"你的分析","confidence":0-100,"reasoning":"判断依据"}}"""
-    content = await _llm_ask(SYSTEM_PROMPT, prompt, 300)
+{{"action":"ask_question|advance_stage|backtrack","interaction_mode":"confirm|followup","question":"你的问题","options":["选项1","选项2","选项3"],"internal_analysis":"命理师内部判断","confidence":0-100}}
+
+规则:
+- 问题必须用生活化语言，不含命理术语
+- internal_analysis 是你后台的命理判断，不是给用户看的
+- 如果当前格局特征已足够确认，action="advance_stage"
+- 如果用户持续否定，可以 action="backtrack" 回到诊断链"""
+    content = await _llm_ask(SYSTEM_PROMPT, prompt, 350)
     if not content:
         return None
     try:
@@ -484,31 +533,57 @@ async def _llm_next(session, sub, prev_answer):
     action = llm.get("action", "ask_question")
     session["round"] += 1
 
-    if action in ("confirm", "advance_stage") and sub in ("L1", "phase2_L2", "phase2_L3"):
-        # LLM 认为可以流转 → 调用静态 handler 获取下一个阶段
-        if sub == "L1":
-            session["l1_answer"] = "High"
-            session["confidence"] = llm.get("confidence", 65)
-            return await _enter_phase2(session)
-        elif sub == "phase2_L2":
-            return await _handle_phase2_L2(session, "accurate")
-        elif sub == "phase2_L3":
-            return await _handle_phase2_L3(session, "accurate")
-    elif action == "backtrack":
-        return await _enter_diagnosis(session)
+    # advance_stage / backtrack → 返回 action 让状态机处理
+    if action in ("advance_stage", "backtrack"):
+        session["_llm_last_quality"] = llm.get("internal_analysis", "")
+        return {"action": action, "confidence": llm.get("confidence", 50)}
+
     elif action == "ask_question":
         q = {
             "round": session["round"], "layer": f"L{session['round']}",
             "question": llm["question"],
-            "explanation": llm.get("internal", ""),
-            "options": llm.get("options", ["很像", "有点出入", "完全不像", "说说具体的"]),
+            "explanation": "",
+            "options": llm.get("options", ["很像", "有点出入", "完全不像"]),
+            "interaction_mode": llm.get("interaction_mode", "confirm"),
             "llm_generated": True,
         }
         session["current_question"] = q
+        # 存内部分析供后续参考
+        if llm.get("internal_analysis"):
+            session.setdefault("_llm_analyses", []).append(llm["internal_analysis"])
         return {"locked": False, "stage": session.get("stage", "pattern"),
                 "sub_stage": session.get("sub_stage", sub), "question": q}
 
     return None
+
+
+async def _advance_static(session, sub, answer):
+    """辅助：用静态handler获取下一阶段结果"""
+    return await _dispatch_static(session, sub, answer)
+
+
+def _get_classical_reference(pattern: str, stage: str = "pattern") -> str:
+    """检索典籍原文供LLM参考"""
+    try:
+        with open("data/classical_texts.json", "r", encoding="utf-8") as f:
+            texts = json.load(f)
+    except:
+        return "（典籍数据不可用）"
+
+    refs = []
+    kw = pattern.replace("格", "")
+
+    stage_kw = {"phase2_L2": "有情", "phase2_L3": "有力", "yongshen": "用神"}
+    extra = stage_kw.get(stage[:10].replace("ys_", "yongshen"), kw)
+
+    for item in texts:
+        text = item.get("text", "")
+        keywords = str(item.get("keywords", ""))
+        if kw in text or kw in keywords or extra in text or extra in keywords:
+            refs.append(f"《{item.get('source','?')}·{item.get('chapter','?')}》：{text[:100]}")
+        if len(refs) >= 2:
+            break
+    return "\n".join(refs) if refs else "（未找到匹配典籍）"
 
 
 def _format_chat_history(session):
@@ -670,13 +745,11 @@ async def _handle_phase2_L3(session, answer):
 
     l1 = session.get("l1_answer", "Medium")
 
-    if session["quality"] == "下格":
+    if "下格" in str(session["quality"]):
         if l1 == "High":
-            # L1是A但品质是下格: 格局对但用神全错
             session["yongshen_regeneration"] = 1
             return await _enter_yongshen(session)
         else:
-            # 检查五行通关问题
             clash = find_wuxing_clash(session["chart_data"])
             if clash and not session.get("_tongguan_checked"):
                 session["_tongguan_checked"] = True
@@ -685,13 +758,10 @@ async def _handle_phase2_L3(session, answer):
                 session["round"] += 1
                 wx_a, wx_b = clash
                 q = {"round": session["round"], "layer": f"L{session['round']}",
-                     "question": f"你是否感觉自己性格或处事方式中有某种内在的矛盾——好像有两种不同的力量在互相拉扯，让你难以完全发挥？",
-                     "explanation": f"检测到五行对峙({wx_a}vs{wx_b})，可能格局正确但五行不通导致特征不显",
-                     "options": ["是", "不太确定", "不是"],
+                     "question": "你是否感觉自己性格中有内在的矛盾——两种不同的力量互相拉扯，让你难以完全发挥？",
+                     "explanation": f"检测五行对峙({wx_a}vs{wx_b})", "options": ["是", "不太确定", "不是"],
                      "tongguan_clash": clash}
                 session["current_question"] = q
-                session["diagnosis_path"].append({"step": "tongguan", "action": "通关检查",
-                                                   "clash": f"{wx_a}vs{wx_b}"})
                 return {"locked": False, "stage": "pattern", "sub_stage": "tongguan",
                         "question": q, "tongguan_check": True}
             return await _enter_diagnosis(session)

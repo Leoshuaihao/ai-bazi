@@ -1997,10 +1997,16 @@ function renderPredFoot(){
   foot.classList.remove('waiting');
   if(S.predError){foot.innerHTML='';return}
   const q=S.predCurrentQuestion;if(!q)return;
+  const mode=q.interaction_mode||'confirm';
+  if(mode==='followup'){
+    foot.innerHTML=`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说你的情况..." style="width:100%;min-height:80px;font-size:0.82rem;margin-bottom:8px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>发送</button></div>`;
+    return
+  }
   const options=q.options||[];
-  const optsHtml=options.map(opt=>{const sel=S.predSelectedAnswer===opt||(opt==='说说具体的'&&S.predSelectedAnswer==='custom')?' selected':'';const cls=opt==='说说具体的'||opt==='说点具体的'?' pred-opt-custom':'';return`<button class="pred-opt-btn${sel}${cls}" onclick="onPredOptionClick('${escAttr(opt)}')">${escHtml(opt)}</button>`}).join('');
-  const customInput=S.predSelectedAnswer==='custom'?`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说你的情况，比如哪里像、哪里不像、或者相关的人生经历..." style="width:100%;min-height:80px;font-size:0.82rem;margin-top:6px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea></div>`:'';
-  const noteRow=S.predSelectedAnswer==='custom'?`<button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>提交补充说明</button>`:`<div class="pred-note-row"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明（帮助 AI 更精准判断）" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()"${S.predSelectedAnswer?'':' disabled'}>确认</button></div>`;
+  const optsHtml=options.map(opt=>{const sel=S.predSelectedAnswer===opt?' selected':'';return`<button class="pred-opt-btn${sel}" onclick="onPredOptionClick('${escAttr(opt)}')">${escHtml(opt)}</button>`}).join('');
+  optsHtml+=' <button class="pred-opt-btn expand-note" onclick="onPredOptionClick(\'说说具体的\')">说说具体的</button>';
+  const customInput=S.predSelectedAnswer==='custom'?`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说..." style="width:100%;min-height:80px;font-size:0.82rem;margin-top:6px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea></div>`:'';
+  const noteRow=S.predSelectedAnswer==='custom'?`<button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>发送</button>`:`<div class="pred-note-row"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()"${S.predSelectedAnswer?'':' disabled'}>确认</button></div>`;
   foot.innerHTML=`<div class="pred-options">${optsHtml}</div>${customInput}<div class="pred-note-row">${noteRow}</div>`;
 }
 function onPredCustomInput(e){S.predCustomText=e.target.value||'';renderPredFoot()}
