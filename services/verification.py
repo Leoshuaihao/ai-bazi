@@ -378,6 +378,9 @@ async def _handle_L1(session, answer):
             session["current_question"] = q
             return {"locked": False, "stage": "pattern", "sub_stage": "purity",
                     "question": q, "purity_check": purity}
+        else:
+            # 不混杂 → 直接进诊断链
+            return await _enter_diagnosis(session)
 
     # 进 Phase 2
     return await _enter_phase2(session)
@@ -387,12 +390,10 @@ async def _handle_purity(session, answer):
     if answer == "accurate":
         session["purity"] = "杂"
         session["confidence"] = max(1, session["confidence"] * 0.7)
+        return await _enter_phase2(session)
     else:
         session["purity"] = "纯"
-
-    session["diagnosis_path"].append({"step": "purity", "action": "纯杂检查",
-                                       "result": session["purity"]})
-    return await _enter_phase2(session)
+        return await _enter_diagnosis(session)
 
 
 # ============================================================
@@ -513,6 +514,9 @@ async def _run_diagnosis_step(session, step_num):
             session["sub_stage"] = "diag_D1"
             return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D1",
                     "question": q, "diagnosis_step": "D1"}
+        else:
+            session["round"] += 1
+            return await _run_diagnosis_step(session, step_num + 1)
 
     elif step_num == 2:
         d2 = _check_month_branch_he(fp, month_branch)
@@ -526,6 +530,9 @@ async def _run_diagnosis_step(session, step_num):
             session["sub_stage"] = "diag_D2"
             return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D2",
                     "question": q, "diagnosis_step": "D2"}
+        else:
+            session["round"] += 1
+            return await _run_diagnosis_step(session, step_num + 1)
 
     elif step_num == 3:
         stems = _get_month_hidden_stems(month_branch)
@@ -544,6 +551,8 @@ async def _run_diagnosis_step(session, step_num):
                 session["sub_stage"] = "diag_D3"
                 return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D3",
                         "question": q, "diagnosis_step": "D3"}
+        session["round"] += 1
+        return await _run_diagnosis_step(session, step_num + 1)
 
     elif step_num == 4:
         q = {"round": session["round"], "layer": f"L{session['round']}",
