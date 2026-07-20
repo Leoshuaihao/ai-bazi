@@ -152,6 +152,43 @@ def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict]) -> d
     return _generate_fallback_question()
 
 
+def _generate_deep_question(chart_data: dict, current_hypotheses: list[dict], round_num: int) -> dict:
+    """生成深度验证问题（L4-L7），针对事业/健康/婚姻/财运轮流验证"""
+    dayun = chart_data.get("dayun", [])
+    if not dayun:
+        return _generate_fallback_question()
+
+    top_hyp = current_hypotheses[0] if current_hypotheses else {}
+    current_year = 2026
+
+    # 根据轮次选择不同维度的验证
+    dimensions = [
+        {"type": "career", "label": "事业变动"},
+        {"type": "health", "label": "健康/伤病"},
+        {"type": "marriage", "label": "婚恋感情"},
+        {"type": "wealth", "label": "财运起伏"},
+    ]
+    dim = dimensions[(round_num - 5) % len(dimensions)]
+
+    # 找一个对应维度特征明显的流年
+    for du in dayun:
+        sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
+        ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
+        if sy <= current_year <= ey:
+            # 在大运中选不同偏移的年份
+            offset_map = {5: 3, 6: 5, 7: 7}  # round→偏移年
+            offset = offset_map.get(round_num, round_num)
+            key_year = min(sy + offset, ey)
+            return {
+                "type": f"deep_{dim['type']}",
+                "year": key_year,
+                "question": f"大约在{key_year}年前后，你在{dim['label']}方面是否经历过比较明显的变化？",
+                "hint": f"该年份在大运{sy}-{ey}年区间内，对应{dim['label']}的流年引动",
+            }
+
+    return _generate_fallback_question()
+
+
 def _generate_fallback_question() -> dict:
     return {
         "type": "general",
@@ -284,16 +321,19 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
     # 3. 检查是否收敛
     sorted_h = sorted(updated, key=lambda x: x["confidence"], reverse=True)
 
-    # 收敛条件：
+    # 收敛条件（最少5轮后才允许锁定）：
     # a) 置信度 ≥ 70% 且领先第二 ≥ 20%
     # b) 连续2轮首名不变且 ≥ 60%
+    MIN_ROUNDS = 5
+    MAX_ROUNDS = 10
+
     locked_result = None
-    if sorted_h[0]["confidence"] >= 70:
+    if session["round"] >= MIN_ROUNDS and sorted_h[0]["confidence"] >= 70:
         second = sorted_h[1]["confidence"] if len(sorted_h) > 1 else 0
         if sorted_h[0]["confidence"] - second >= 20:
             locked_result = sorted_h[0]
 
-    if not locked_result and session["round"] >= 3 and sorted_h[0]["confidence"] >= 60:
+    if not locked_result and session["round"] >= MIN_ROUNDS and sorted_h[0]["confidence"] >= 60:
         # 检查连续首名
         recent_tops = [
             session["hypotheses"][0].get("_top_pattern", "")
@@ -301,9 +341,9 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
         if len(recent_tops) >= 2 and all(t == sorted_h[0]["pattern"] for t in recent_tops[-2:]):
             locked_result = sorted_h[0]
 
-    # 4. 强制锁定条件
-    if session["round"] >= 5 and not locked_result:
-        locked_result = sorted_h[0]  # 第5轮强制以最高置信度锁定
+    # 4. 强制锁定条件（最大10轮）
+    if session["round"] >= MAX_ROUNDS and not locked_result:
+        locked_result = sorted_h[0]  # 第10轮强制以最高置信度锁定
 
     # 5. 记录首名（用于下次收敛判断）
     sorted_h[0]["_top_count"] = sorted_h[0].get("_top_count", 0) + 1
@@ -330,19 +370,28 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
     # 6. 生成下一条问题
     round_num = session["round"]
     if round_num <= 2:
+        # L2: 六亲验证
         next_q = _generate_l2_question(chart_data)
         next_q["round"] = round_num
         next_q["layer"] = "L2"
         next_q["options"] = ["很像", "有点出入", "完全不像"]
         next_q["target_pattern"] = sorted_h[0]["pattern"]
     elif round_num <= 4:
+        # L3: 关键流年验证
         next_q = _generate_l3_question(chart_data, sorted_h)
         next_q["round"] = round_num
         next_q["layer"] = f"L{round_num}"
         next_q["options"] = ["是的", "不太确定", "不是"]
         next_q["target_pattern"] = sorted_h[0]["pattern"]
+    elif round_num <= 7:
+        # L4-L7: 深度流年+事业健康验证
+        next_q = _generate_deep_question(chart_data, sorted_h, round_num)
+        next_q["round"] = round_num
+        next_q["layer"] = f"L{round_num}"
+        next_q["options"] = ["是的", "不太确定", "不是"]
+        next_q["target_pattern"] = sorted_h[0]["pattern"]
     else:
-        # AI增强鉴别性问题
+        # L8-L10: AI增强鉴别性问题（命局疑难收敛）
         ai_q = await _ai_generate_question(chart_data, sorted_h, round_num)
         if ai_q:
             next_q = ai_q
