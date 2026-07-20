@@ -21,15 +21,17 @@ async def init_db():
 
 
 def _migrate(conn):
-    """Add missing columns to users table."""
+    """Add missing columns to users table via try/catch ALTER."""
     try:
         sqlite_conn = conn.connection.connection
-        cursor = sqlite_conn.execute("PRAGMA table_info(users)")
-        columns = {row[1] for row in cursor.fetchall()}
-        if "username" not in columns:
+        try:
             sqlite_conn.execute('ALTER TABLE users ADD COLUMN username VARCHAR(50) NOT NULL DEFAULT ""')
-        if "password_hash" not in columns:
+        except Exception:
+            pass  # column already exists
+        try:
             sqlite_conn.execute('ALTER TABLE users ADD COLUMN password_hash VARCHAR(128) NOT NULL DEFAULT ""')
+        except Exception:
+            pass
     except Exception as e:
         print(f"[migration] skip: {e}")
 
