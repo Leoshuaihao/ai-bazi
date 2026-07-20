@@ -583,10 +583,10 @@ function bindControls(){
   const silb=$('#start-inline-calibration-btn');if(silb)silb.addEventListener('click',openCalibrationDock);
   $('#invite-start-btn').addEventListener('click',openCalibrationDock);
   $('#invite-later-btn').addEventListener('click',dismissCalibrationInvite);
-  $('#close-dock-btn').addEventListener('click',closePredictionDialog);
-  $('#prev-question-btn').addEventListener('click',prevQ);
-  $('#next-question-btn').addEventListener('click',nextQ);
-  $('#submit-calibration-btn').addEventListener('click',submitCalibration);
+  const cdb=$('#close-dock-btn');if(cdb)cdb.addEventListener('click',closePredictionDialog);
+  const pqb=$('#prev-question-btn');if(pqb)pqb.addEventListener('click',prevQ);
+  const nqb=$('#next-question-btn');if(nqb)nqb.addEventListener('click',nextQ);
+  const scb=$('#submit-calibration-btn');if(scb)scb.addEventListener('click',submitCalibration);
   // 注意：close-dock-btn 现在属于旧 DOM，新对话框使用 closePredictionDialog()
   $('#time-accurate-btn').addEventListener('click',()=>confirmBirthTime(true));
   $('#time-uncertain-btn').addEventListener('click',()=>confirmBirthTime(false));
@@ -621,12 +621,13 @@ function showToast(m){const t=$('#toast');t.textContent=m;t.classList.add('visib
 // ============================================================
 function range(s,e){return Array.from({length:e-s+1},(_,i)=>s+i)}
 function initDatePicker(){
+  const dtrig=$('#birth-datetime-trigger');if(!dtrig)return;
   populateSel($('#date-year-select'),range(1900,2100),'2000');
   populateSel($('#date-month-select'),range(1,12).map(pad2),'01');
   populateSel($('#date-hour-select'),range(0,23).map(pad2),'08');
   populateSel($('#date-minute-select'),range(0,59).map(pad2),'00');
   syncDays(1);
-  $('#birth-datetime-trigger').addEventListener('click',openDP);
+  dtrig.addEventListener('click',openDP);
   $('#date-close-btn').addEventListener('click',closeDP);
   $('#date-cancel-btn').addEventListener('click',closeDP);
   $('#date-confirm-btn').addEventListener('click',applyDP);
