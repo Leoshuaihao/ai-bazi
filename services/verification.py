@@ -262,7 +262,7 @@ def init_verification(chart_data: dict, user_id: str = None) -> dict:
                           wangshuai["level"] == "中和" and 20 or
                           wangshuai["level"] == "身弱" and 25 or 20),
         "quality": None,
-        "purity": None,
+        "purity": "纯",  # 默认纯，仅在纯杂检查后可能改为"杂"
         "phase2_youqing": None,
         "phase2_youli": None,
         "diagnosis_count": 0,
