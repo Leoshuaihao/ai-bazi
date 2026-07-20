@@ -492,7 +492,7 @@ async def _llm_interpret(session, answer, note):
 
 async def _llm_next(session, sub, prev_answer):
     """LLM 生成当前阶段的下一个问题或判定"""
-    if sub.endswith("_L3") or sub in ("ys_3", "ys_2"):
+    if sub in ("ys_3", "ys_2"):
         return None  # 阶段末尾交给状态机
 
     history = _format_chat_history(session)
