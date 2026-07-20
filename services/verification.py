@@ -499,7 +499,7 @@ async def _llm_next(session, sub, prev_answer):
     sr = session.get("step_results", {})
     wangshuai = sr.get("wangshuai", {})
     pattern = session.get("pattern", "")
-    classical = _get_classical_reference(pattern, sub)
+    classical = _get_classical_reference(session, sub)
 
     prompt = f"""你正在验证一个八字命盘。
 
@@ -562,28 +562,58 @@ async def _advance_static(session, sub, answer):
     return await _dispatch_static(session, sub, answer)
 
 
-def _get_classical_reference(pattern: str, stage: str = "pattern") -> str:
-    """检索典籍原文供LLM参考"""
+def _get_classical_reference(session, stage: str = "pattern") -> str:
+    """使用项目 RAG 检索器（FTS5 全文检索 281 章典籍）"""
+    from services.rag_retriever import retrieve_by_stage
+
+    pattern = session.get("pattern", "")
+    chart = session.get("chart_data", {})
+    sr = session.get("step_results", {})
+
+    # 将验证阶段映射到 RAG 阶段
+    rag_stage = "pattern"
+    if stage.startswith("ys_") or "yongshen" in stage:
+        rag_stage = "yongshen"
+    elif "phase2_L2" in stage or "phase2_L3" in stage:
+        rag_stage = "pattern"
+
+    dm = chart.get("day_master", "")
+    dm_wx = _get_wuxing(dm)
+    month_branch = sr.get("wangshuai", {}).get("level", "") or \
+                   chart.get("four_pillars", {}).get("month", {}).get("branch", "")
+
     try:
-        with open("data/classical_texts.json", "r", encoding="utf-8") as f:
-            texts = json.load(f)
-    except:
-        return "（典籍数据不可用）"
+        keywords = [pattern.replace("格", "")]
+        if rag_stage == "yongshen":
+            keywords.extend(["用神", "顺用", "逆用"])
+        elif "phase2" in stage:
+            keywords.extend(["有情", "有力", "生扶", "通根"])
 
-    refs = []
-    kw = pattern.replace("格", "")
+        results = retrieve_by_stage(
+            stage=rag_stage,
+            keywords=keywords,
+            ri_zhu_wuxing=dm_wx,
+            month_branch=month_branch,
+            top_k=5,
+        )
+        if results:
+            lines = []
+            for r in results[:4]:
+                src = r.get("source", "?")
+                ch = r.get("chapter", "?")
+                txt = r.get("text", r.get("excerpt", ""))[:120]
+                lines.append(f"《{src}·{ch}》：{txt}")
+            return "\n".join(lines)
+    except Exception:
+        pass
 
-    stage_kw = {"phase2_L2": "有情", "phase2_L3": "有力", "yongshen": "用神"}
-    extra = stage_kw.get(stage[:10].replace("ys_", "yongshen"), kw)
+    return "（典籍数据不可用）"
 
-    for item in texts:
-        text = item.get("text", "")
-        keywords = str(item.get("keywords", ""))
-        if kw in text or kw in keywords or extra in text or extra in keywords:
-            refs.append(f"《{item.get('source','?')}·{item.get('chapter','?')}》：{text[:100]}")
-        if len(refs) >= 2:
-            break
-    return "\n".join(refs) if refs else "（未找到匹配典籍）"
+
+def _get_wuxing(dm):
+    mapping = {"甲": "木", "乙": "木", "丙": "火", "丁": "火", "戊": "土",
+               "己": "土", "庚": "金", "辛": "金", "壬": "水", "癸": "水"}
+    return mapping.get(dm[-1] if dm else "", "")
 
 
 def _format_chat_history(session):
