@@ -1,392 +1,37 @@
-"""逐步验证收敛模块 — 子平格局派
+"""逐步验证收敛模块 — 子平格局派 V2
 
-新流程核心：
-1. 排盘 → 格局分类 → 生成格局假设向量
-2. L1: 格局定向问题（静态字典）→ 用户反馈 → 置信度更新
-3. L2: 六亲验证（规则引擎）→ 用户反馈
-4. L3-L10: AI 生成针对性问题 → 逐轮收敛 → 锁定
-   - L3-L4: 关键流年验证
-   - L5-L7: 深度维度验证（事业/健康/婚姻/财运）
-   - L8-L10: 鉴别性提问
-   - AI 不可用时降级到规则引擎
+V2 核心变化：
+1. 格局/用神分离验证：先锁定格局（Phase 1），再锁定用神（Phase 2）
+2. 完全分类：14种格局全部进假设空间，用神覆盖十神全集的合法子集
+3. 拒绝检测 + 空间扩展：持续否定时自动扩展搜索空间
+4. L1 改为2条广义分类问题，可批量排除4-6种格局
 
-替代旧的固定7题+反馈翻转流程。
+流程：
+- L1: 2条广义分类问题（authority + pragmatism）
+- L2-L5: 格局区分验证（AI生成）
+- L6-L8: 用神验证（格局锁后独立收敛）
+- 格局/用神任何阶段触发拒绝检测 → 空间扩展
 """
 
 import os
 import re
+import uuid
+import asyncio
 from datetime import datetime
 from typing import Optional
 
 from rules.pattern import (
-    generate_pattern_hypotheses,
-    determine_pattern_type,
+    generate_full_pattern_space,
+    generate_yongshen_candidates,
     update_confidence,
-    is_locked,
-    get_month_main_ten_god,
+    update_confidence_broad,
+    L1_BROAD_QUESTIONS,
+    ALL_STANDARD_PATTERNS,
+    ALL_SPECIAL_PATTERNS,
 )
-from rules.wuxing import WUXING_MAP, get_sheng, get_ke, get_i_sheng, get_i_ke
 from services.deepseek_client import call_deepseek
 from services.user_data import save_verification_session as _save_db_session
 from services.user_data import load_verification_session as _load_db_session
-
-
-# ============================================================
-# 验证问题生成
-# ============================================================
-
-# L1: 格局定向问题 — 根据月令格局，问最关键的格局特征
-PATTERN_L1_QUESTIONS = {
-    "正官格": {
-        "question": "你工作中是否更倾向于在规则和秩序下发挥，不太喜欢冒险和自由发挥？",
-        "explanation": "正官格的人通常对规则和秩序有天然的尊重，做事习惯先想清楚再行动，追求稳定而非冒险。",
-        "pattern_feature": "官星当令，为人正直守法，重名节讲信用",
-    },
-    "七杀格": {
-        "question": "你人生中是否经历过较大的压力或挑战，但事后回头看，那些压力反而促成了你的成长？",
-        "explanation": "七杀格的人往往早年在竞争和压力中成长，有不服输的韧性。",
-        "pattern_feature": "七杀当令，有魄力敢担当，经历磨难后成长",
-    },
-    "正财格": {
-        "question": "你对机会（特别是赚钱机会）的嗅觉是否比身边人敏锐，而且做事更务实注重结果？",
-        "explanation": "正财格的人务实稳健，对实际利益敏感，做事脚踏实地。",
-        "pattern_feature": "财星当令，务实稳重，善于理财和把握机会",
-    },
-    "偏财格": {
-        "question": "你是否属于那种直觉很强、做事不拘一格、善于抓住机会的类型？",
-        "explanation": "偏财格的人思维灵活，善于抓住稍纵即逝的机会，做事不拘泥于常规。",
-        "pattern_feature": "偏财当令，灵活变通，善抓机会",
-    },
-    "正印格": {
-        "question": "你是否从小就比较受长辈或老师的喜爱，学习能力较强，也愿意花时间深入钻研一件事？",
-        "explanation": "正印格的人天生有贵人缘和求学之心，喜欢知识的积累和沉淀。",
-        "pattern_feature": "印星当令，爱学习有贵人，性格温和良善",
-    },
-    "偏印格": {
-        "question": "你是否对某些特定领域有超乎常人的钻研精神，但又容易沉浸在自己的世界里？",
-        "explanation": "偏印格的人思维独特，偏才突出，但不一定合群。",
-        "pattern_feature": "偏印当令，思维独特，偏才突出",
-    },
-    "食神格": {
-        "question": "你的才华或创意是否在你的生活或工作中占据了重要位置？是否常有人夸你有才华？",
-        "explanation": "食神格的人天生有艺术气质和创造力，性格温和乐观。",
-        "pattern_feature": "食神当令，有才华创造力，性格温和乐观",
-    },
-    "伤官格": {
-        "question": "你是否属于那种想法很多、不太喜欢被约束、常有出人意料的好点子的人？",
-        "explanation": "伤官格的人思维敏捷、创造力强，但有时锋芒毕露。",
-        "pattern_feature": "伤官当令，聪明敏捷，创造力强但有时锋芒太露",
-    },
-    "从弱格": {
-        "question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
-        "explanation": "从弱格的人不宜独立抗衡，顺势而为反而能有不错的成就。",
-        "pattern_feature": "日主极弱，顺势从格",
-    },
-    "专旺格": {
-        "question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
-        "explanation": "专旺格的人气势强盛，有领导力和主导欲。",
-        "pattern_feature": "日主极旺，气势强盛",
-    },
-}
-
-# L2: 六亲验证 — 根据排盘初判的格局选择验证方向
-def _generate_l2_question(chart_data: dict) -> dict:
-    """生成第二层验证问题（六亲方向）"""
-    four_pillars = chart_data.get("four_pillars", {})
-    day_master = chart_data.get("day_master", "")
-    dm_stem = day_master[-1] if day_master else ""
-
-    # 年柱信息
-    year_pillar = four_pillars.get("year", {})
-    year_stem = year_pillar.get("stem", "")
-    year_gods = year_pillar.get("ten_gods", [])
-
-    # 比劫数量（从四柱十神统计）
-    bijie_count = 0
-    for pillar_name in ["year", "month", "day", "hour"]:
-        pillar = four_pillars.get(pillar_name, {})
-        gods = pillar.get("ten_gods", [])
-        for g in gods:
-            tg = g.get("ten_god", "") if isinstance(g, dict) else str(g)
-            if tg in ("比肩", "劫财"):
-                bijie_count += 1
-
-    if bijie_count >= 3:
-        return {
-            "type": "siblings",
-            "question": "你的命局中比肩和劫财较多，是否兄弟姐妹不少，或者你在成长过程中有较多的同龄伙伴协助？",
-            "hint": "比劫多通常意味着人际关系网较广",
-        }
-    elif bijie_count <= 1:
-        return {
-            "type": "siblings",
-            "question": "从命局来看，你的比肩劫财较少，是否兄弟姐妹不多，或者你更习惯独立处理事情？",
-            "hint": "比劫少的人通常独立性较强",
-        }
-    else:
-        # 问父母方向
-        return {
-            "type": "parents",
-            "question": "从年柱来看，你早期家庭环境是否对你后来的发展形成了明显影响——无论是助力还是压力？",
-            "hint": "年柱反映家庭背景和早年的影响",
-        }
-
-
-# L3+: 关键流年验证
-def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict], round_num: int = 3) -> dict:
-    """生成第三层验证问题（关键流年），选取能区分当前假设的年份"""
-    dayun = chart_data.get("dayun", [])
-    if not dayun:
-        return _generate_fallback_question()
-
-    # 选取最近的一个大运交接年或冲合年
-    current_year = datetime.now().year
-    for du in dayun:
-        sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
-        ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
-        if sy <= current_year <= ey:
-            # 根据 round_num 选择不同年份偏移，避免 L3/L4 重复
-            offset = 2 if round_num <= 3 else 5
-            key_year = sy + offset
-            if key_year > current_year:
-                key_year = current_year - 1
-            # 根据 round_num 使用不同的问题模板
-            if round_num <= 3:
-                question = f"大约在{key_year}年前后，你是否经历了一次比较明显的转折——比如工作变动、搬家、或重要的人生决定？"
-            else:
-                question = f"大约在{key_year}年前后，你的事业或工作方向是否发生过明显变化？"
-            return {
-                "type": "liunian",
-                "year": key_year,
-                "question": question,
-                "hint": f"该年处于{sy}-{ey}年大运区间，是运势变化的关键节点",
-            }
-
-    return _generate_fallback_question()
-
-
-def _generate_deep_question(chart_data: dict, current_hypotheses: list[dict], round_num: int) -> dict:
-    """生成深度验证问题（L4-L7），针对事业/健康/婚姻/财运轮流验证"""
-    dayun = chart_data.get("dayun", [])
-    if not dayun:
-        return _generate_fallback_question()
-
-    current_year = datetime.now().year
-
-    # 根据轮次选择不同维度的验证
-    dimensions = [
-        {"type": "career", "label": "事业变动"},
-        {"type": "health", "label": "健康/伤病"},
-        {"type": "marriage", "label": "婚恋感情"},
-        {"type": "wealth", "label": "财运起伏"},
-    ]
-    dim = dimensions[(round_num - 5) % len(dimensions)]
-
-    # 找一个对应维度特征明显的流年
-    for du in dayun:
-        sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
-        ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
-        if sy <= current_year <= ey:
-            # 在大运中选不同偏移的年份
-            offset_map = {5: 3, 6: 5, 7: 7}  # round→偏移年
-            offset = offset_map.get(round_num, round_num)
-            key_year = min(sy + offset, ey)
-            return {
-                "type": f"deep_{dim['type']}",
-                "year": key_year,
-                "question": f"大约在{key_year}年前后，你在{dim['label']}方面是否经历过比较明显的变化？",
-                "hint": f"该年份在大运{sy}-{ey}年区间内，对应{dim['label']}的流年引动",
-            }
-
-    return _generate_fallback_question()
-
-
-def _generate_fallback_question() -> dict:
-    return {
-        "type": "general",
-        "question": "回顾你的人生经历，是否有某个明显的时间点让你感觉自己的人生态度或方向发生了改变？",
-        "hint": "人生转折点往往与运势变化相关",
-    }
-
-
-# ============================================================
-# AI增强问题生成（L3-L10）
-# ============================================================
-
-async def _ai_generate_question(chart_data: dict, hypotheses: list[dict], round_num: int, history: list[dict] = None) -> dict | None:
-    """用 AI 生成针对性验证问题。L3-L10 统一入口，按层分策略。
-
-    L3-L4: 关键流年验证 — 基于大运流年 + 格局特征
-    L5-L7: 深度维度验证 — 事业/健康/婚姻/财运轮流
-    L8-L10: 鉴别性提问 — 区分前两名假设
-    """
-    if not os.getenv("DEEPSEEK_API_KEY"):
-        return None
-
-    top_2 = sorted(hypotheses, key=lambda x: x["confidence"], reverse=True)[:2]
-    if not top_2:
-        return None
-
-    dm = chart_data.get("day_master", "")
-    top = top_2[0]
-    dayun_info = _format_dayun_for_prompt(chart_data)
-
-    # 三层策略
-    if round_num <= 4:
-        confirmed, disproved = _format_history_for_prompt(history)
-        prompt, system_prompt = _build_l34_prompt(dm, top, dayun_info, confirmed, disproved)
-    elif round_num <= 7:
-        confirmed, disproved = _format_history_for_prompt(history)
-        dim = _get_dimension_name(round_num)
-        prompt, system_prompt = _build_l57_prompt(dm, top, dim, dayun_info, confirmed, disproved)
-    else:
-        confirmed, disproved = _format_history_for_prompt(history)
-        prompt, system_prompt = _build_l810_prompt(dm, top_2, confirmed, disproved)
-
-    try:
-        content = await call_deepseek(
-            prompt=prompt,
-            system_prompt=system_prompt,
-            timeout=15,
-            temperature=0.3,
-            max_tokens=200,
-        )
-        if content and not content.startswith("[API_"):
-            return {"type": "ai_diff", "question": content.strip()}
-    except Exception:
-        pass
-
-    return None
-
-
-def _build_l34_prompt(dm: str, top: dict, dayun_info: str, confirmed: str = "", disproved: str = "") -> tuple[str, str]:
-    """L3-L4: 关键流年验证 prompt"""
-    history_context = ""
-    if confirmed:
-        history_context += f"\n已确认的特征:\n{confirmed}"
-    if disproved:
-        history_context += f"\n已否定的特征:\n{disproved}"
-
-    prompt = f"""你是子平格局派命理师。正在通过逐步验证确认命盘的格局。
-
-命盘信息：
-- 日主: {dm}
-- 当前优先格局假设: {top['pattern']}，用神 {top['yong_shen']}({top['five_element']})，做功方式={top['gong_way']}
-{dayun_info}{history_context}
-
-请设计一个关键流年验证问题——根据当前大运的运势特征和该格局的命理规律，问一个用户在该大运期间大概率经历过的、能直接回忆的具体事件。
-
-问题要求：
-1. 具体到某个年龄段或时间范围
-2. 与该格局的典型人生轨迹相关
-3. 用户能用「是的/不是/不太确定」直接回答
-4. 不要重复已问过的问题，不要验证已经确认过的特征
-5. 只输出问题本身，不要JSON不要解释"""
-
-    system_prompt = "你是子平格局派命理师。输出简洁具体的问题，用户能直接回答。不要重复已问过的问题。"
-    return prompt, system_prompt
-
-
-def _build_l57_prompt(dm: str, top: dict, dim: str, dayun_info: str, confirmed: str, disproved: str) -> tuple[str, str]:
-    """L5-L7: 深度维度验证 prompt"""
-    history_context = ""
-    if confirmed:
-        history_context += f"\n用户已确认:\n{confirmed}"
-    if disproved:
-        history_context += f"\n用户已否定:\n{disproved}"
-
-    prompt = f"""你是子平格局派命理师。正在通过逐步验证确认命盘的格局。
-
-命盘信息：
-- 日主: {dm}
-- 格局: {top['pattern']}，用神 {top['yong_shen']}({top['five_element']})，做功方式={top['gong_way']}
-- 当前验证维度: {dim}
-{dayun_info}{history_context}
-
-请设计一个 {dim} 维度的深度验证问题。基于该格局和用神在{dim}方面的命理特征，问一个能验证格局是否准确的问题。
-
-问题要求：
-1. 必须结合该格局在{dim}维度的典型特征
-2. 不能太泛（如"你事业顺利吗"），要具体
-3. 用户能用「是的/不是/不太确定」直接回答
-4. 只输出问题本身，不要JSON不要解释"""
-    
-    system_prompt = "你是子平格局派命理师。结合格局特征问具体的维度验证问题。"
-    return prompt, system_prompt
-
-
-def _build_l810_prompt(dm: str, top_2: list[dict], confirmed: str, disproved: str) -> tuple[str, str]:
-    """L8-L10: 鉴别性提问 prompt"""
-    history_context = ""
-    if confirmed:
-        history_context += f"\n用户已确认:\n{confirmed}"
-    if disproved:
-        history_context += f"\n用户已否定:\n{disproved}"
-
-    prompt = f"""你是子平格局派命理师。正在验证一个命盘，当前有两个主要格局假设：
-
-假设A: {top_2[0]['pattern']}，用神{top_2[0]['yong_shen']}({top_2[0]['five_element']})，做功方式={top_2[0]['gong_way']}，置信度={top_2[0]['confidence']}%
-假设B: {top_2[1]['pattern']}，用神{top_2[1]['yong_shen']}({top_2[1]['five_element']})，做功方式={top_2[1]['gong_way']}，置信度={top_2[1]['confidence']}%
-
-日主: {dm}{history_context}
-
-请设计一个能区分这两种假设的鉴别性问题——问一个在假设A下成立但在假设B下不成立的命理特征。
-必须结合用户已确认和已否定的信息，问出有区分力的关键问题。
-只输出问题本身，不要JSON不要解释。"""
-    
-    system_prompt = "你是子平格局派命理师。输出简洁的问题，能有效区分两种格局假设。"
-    return prompt, system_prompt
-
-
-# ---- 辅助函数 ----
-
-def _get_dimension_name(round_num: int) -> str:
-    """L5→事业, L6→健康, L7→婚姻"""
-    dims = {5: "事业变动", 6: "健康伤病", 7: "婚恋感情"}
-    return dims.get(round_num, "财运起伏")
-
-
-def _format_history_for_prompt(history: list[dict]) -> tuple[str, str]:
-    """从验证历史中提取已确认和已否定的事实，包含问题文本用于去重"""
-    if not history:
-        return "", ""
-    confirmed, disproved = [], []
-    for idx, h in enumerate(history):
-        role = h.get("role", "user")
-        if role != "user":
-            continue
-        question = h.get("question", "")
-        answer = h.get("answer", "")
-        note = h.get("note", "")
-        line = f"第{h.get('round', idx+1)}轮"
-        if question:
-            line += f"问:「{question}」"
-        line += f"答: {answer}"
-        if note:
-            line += f"（补充: {note}）"
-        if answer == "accurate":
-            confirmed.append(line)
-        elif answer == "inaccurate":
-            disproved.append(line)
-    return "\n".join(confirmed), "\n".join(disproved)
-
-
-def _format_dayun_for_prompt(chart_data: dict) -> str:
-    """格式化当前大运信息为 prompt 可用文本"""
-    dayun = chart_data.get("dayun", [])
-    if not dayun:
-        return ""
-    current_year = datetime.now().year
-    for du in dayun:
-        sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
-        ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
-        if sy <= current_year <= ey:
-            stem = du.get("stem", "?") if isinstance(du, dict) else getattr(du, "stem", "?")
-            branch = du.get("branch", "?") if isinstance(du, dict) else getattr(du, "branch", "?")
-            tg = du.get("ten_god", "") if isinstance(du, dict) else getattr(du, "ten_god", "")
-            tg_str = f"，十神={tg}" if tg else ""
-            return f"- 当前大运: {stem}{branch}（{sy}-{ey}年{tg_str}）\n- 当前年份: {current_year}"
-    return ""
 
 
 # ============================================================
@@ -394,11 +39,10 @@ def _format_dayun_for_prompt(chart_data: dict) -> str:
 # ============================================================
 
 _verification_sessions = {}
-_SESSION_TTL_SECONDS = 1800  # 30分钟过期
+_SESSION_TTL_SECONDS = 1800
 
 
 def _cleanup_expired_sessions():
-    """清理过期的验证会话，防止内存泄漏"""
     now = datetime.now().timestamp()
     expired = [
         sid for sid, s in _verification_sessions.items()
@@ -408,39 +52,32 @@ def _cleanup_expired_sessions():
         del _verification_sessions[sid]
 
 
+# ============================================================
+# 初始化（V2完全分类）
+# ============================================================
+
 def init_verification(chart_data: dict, user_id: str = None) -> dict:
-    """初始化验证会话
-
-    Args:
-        chart_data: 完整排盘数据
-        user_id: 可选，登录用户的 ID
-
-    Returns:
-        { "session_id": str, "hypotheses": [...], "round": 0, "question": {...} }
-    """
-    import uuid
-    import asyncio
-
     _cleanup_expired_sessions()
-
     session_id = str(uuid.uuid4())
+
     dm_stem = _extract_day_master_stem(chart_data)
     month_branch = _extract_month_branch(chart_data)
     strength_detail = chart_data.get("strength_detail", {})
+    four_pillars = chart_data.get("four_pillars", {})
 
-    hypotheses = generate_pattern_hypotheses(dm_stem, month_branch, strength_detail)
-    primary_pattern = determine_pattern_type(dm_stem, month_branch)
+    hypotheses = generate_full_pattern_space(
+        dm_stem, month_branch, strength_detail, four_pillars
+    )
 
-    # 生成第一条问题
-    l1 = PATTERN_L1_QUESTIONS.get(primary_pattern, PATTERN_L1_QUESTIONS.get("正官格", {}))
+    l1_q = L1_BROAD_QUESTIONS[0]
     first_question = {
         "round": 1,
         "layer": "L1",
-        "question": l1.get("question", "请描述一下你的性格特点？"),
-        "explanation": l1.get("explanation", ""),
-        "pattern_feature": l1.get("pattern_feature", ""),
-        "target_pattern": primary_pattern,
-        "options": ["很像", "有点出入", "完全不像"],
+        "question": l1_q["question"],
+        "explanation": l1_q["explanation"],
+        "options": l1_q["options"],
+        "_l1_id": l1_q["id"],
+        "_l1_index": 0,
     }
 
     session = {
@@ -449,16 +86,24 @@ def init_verification(chart_data: dict, user_id: str = None) -> dict:
         "chart_data": chart_data,
         "hypotheses": hypotheses,
         "round": 1,
-        "primary_pattern": primary_pattern,
-        "locked": False,
+        "stage": "pattern",
+        "locked_pattern": None,
+        "locked_yongshen": None,
+        "yongshen_candidates": None,
+        "expansion_count": 0,
+        "max_expansions": 2,
+        "l1_answered": 0,
         "history": [],
         "current_question": first_question,
         "_created_at": datetime.now().timestamp(),
+        "_prev_top_pattern": "",
+        "_prev_top_yongshen": "",
+        "_pattern_consecutive": 0,
+        "_yongshen_consecutive": 0,
     }
 
     _verification_sessions[session_id] = session
 
-    # 异步持久化到 DB（fire-and-forget，不阻塞返回）
     if user_id:
         try:
             asyncio.ensure_future(_save_db_session(session))
@@ -467,23 +112,25 @@ def init_verification(chart_data: dict, user_id: str = None) -> dict:
 
     return {
         "session_id": session_id,
+        "stage": "pattern",
         "hypotheses": hypotheses,
         "question": first_question,
     }
 
 
-async def process_verification(session_id: str, answer: str, note: str = "") -> dict:
-    """处理用户反馈，返回下一步
+# ============================================================
+# 反馈处理（V2核心分发）
+# ============================================================
 
-    Returns:
-        若未锁定: { "locked": False, "question": {...}, "hypotheses": [...] }
-        若已锁定: { "locked": True, "result": {...}, "hypotheses": [...] }
-    """
-    # 标准化中文答案到英文枚举（防御性，main.py 已做第一层映射）
-    _ANSWER_NORMALIZE = {
-        "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
-        "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
-    }
+_ANSWER_NORMALIZE = {
+    "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
+    "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
+    "带头推动": "accurate", "偏向创作": "inaccurate", "不太好说": "partial",
+    "务实重结果": "accurate", "重学习修养": "inaccurate",
+}
+
+
+async def process_verification(session_id: str, answer: str, note: str = "") -> dict:
     answer = _ANSWER_NORMALIZE.get(answer, answer)
 
     _cleanup_expired_sessions()
@@ -491,117 +138,565 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
     if not session:
         return {"error": "会话不存在或已过期"}
 
-    chart_data = session.get("chart_data", {})
-    hypotheses = session.get("hypotheses", [])
     current_question = session.get("current_question", {})
+    stage = session.get("stage", "pattern")
 
-    # 1. 更新置信度
-    q_context = {"pattern": current_question.get("target_pattern", session.get("primary_pattern", ""))}
-    updated = update_confidence(hypotheses, answer, q_context)
-
-    # 2. 记录历史
     session["history"].append({
         "round": session["round"],
+        "stage": stage,
         "question": current_question.get("question", ""),
         "answer": answer,
         "note": note,
     })
 
-    # 3. 检查是否收敛
-    sorted_h = sorted(updated, key=lambda x: x["confidence"], reverse=True)
+    if stage == "pattern":
+        return await _handle_pattern_stage(session, answer)
+    elif stage == "yongshen":
+        return await _handle_yongshen_stage(session, answer)
+    else:
+        return {"error": "无效的会话阶段"}
 
-    # 收敛条件（最少5轮后才允许锁定）：
-    # a) 置信度 ≥ 70% 且领先第二 ≥ 20%
-    # b) 连续2轮首名不变且 ≥ 60%
-    MIN_ROUNDS = 5
-    MAX_ROUNDS = 10
 
-    locked_result = None
-    if session["round"] >= MIN_ROUNDS and sorted_h[0]["confidence"] >= 70:
-        second = sorted_h[1]["confidence"] if len(sorted_h) > 1 else 0
-        if sorted_h[0]["confidence"] - second >= 20:
-            locked_result = sorted_h[0]
+# ============================================================
+# Phase 1: 格局验证
+# ============================================================
 
-    if not locked_result and session["round"] >= MIN_ROUNDS and sorted_h[0]["confidence"] >= 60:
-        # 检查连续2轮首名不变
-        prev_top = session.get("_prev_top_pattern", "")
-        if prev_top and prev_top == sorted_h[0]["pattern"]:
-            locked_result = sorted_h[0]
+async def _handle_pattern_stage(session: dict, answer: str) -> dict:
+    l1_index = session.get("l1_answered", 0)
+    hypotheses = session["hypotheses"]
 
-    # 4. 强制锁定条件（最大10轮）
-    if session["round"] >= MAX_ROUNDS and not locked_result:
-        locked_result = sorted_h[0]  # 第10轮强制以最高置信度锁定
+    # L1: 广义分类问题（最多2条）
+    if l1_index < len(L1_BROAD_QUESTIONS):
+        l1_q = L1_BROAD_QUESTIONS[l1_index]
+        mapping = l1_q["mapping"].get(answer, {})
+        if mapping:
+            hypotheses = update_confidence_broad(hypotheses, answer, mapping)
+        session["l1_answered"] = l1_index + 1
 
-    # 5. 记录本轮首名，供下轮收敛判断
-    session["_prev_top_pattern"] = sorted_h[0]["pattern"]
+        if session["l1_answered"] < len(L1_BROAD_QUESTIONS):
+            next_l1 = L1_BROAD_QUESTIONS[session["l1_answered"]]
+            next_q = {
+                "round": session["round"] + 1,
+                "layer": "L1",
+                "question": next_l1["question"],
+                "explanation": next_l1["explanation"],
+                "options": next_l1["options"],
+                "_l1_id": next_l1["id"],
+                "_l1_index": session["l1_answered"],
+            }
+            session["round"] += 1
+            session["hypotheses"] = hypotheses
+            session["current_question"] = next_q
+            return {
+                "locked": False, "stage": "pattern",
+                "question": next_q,
+                "hypotheses": sorted(hypotheses, key=lambda x: x["confidence"], reverse=True),
+            }
 
+    # L2+: 格局区分验证
+    # 先更新置信度（针对上一题的目标格局）
+    prev_q = session.get("current_question", {})
+    target = prev_q.get("target_pattern", "")
+    if target:
+        hypotheses = update_confidence(hypotheses, answer, {"pattern": target})
+
+    sorted_h = sorted(hypotheses, key=lambda x: x["confidence"], reverse=True)
     session["hypotheses"] = sorted_h
     session["round"] += 1
 
-    # 持久化到 DB（fire-and-forget）
-    if session.get("user_id"):
-        import asyncio
-        try:
-            asyncio.ensure_future(_save_db_session(session))
-        except Exception:
-            pass
+    locked = _check_pattern_lock(session, sorted_h)
+    if locked:
+        return await _enter_yongshen_stage(session, sorted_h)
 
-    if locked_result:
-        session["locked"] = True
-        return {
-            "locked": True,
-            "rounds": session["round"] - 1,
-            "result": {
-                "pattern": locked_result["pattern"],
-                "yong_shen": locked_result["yong_shen"],
-                "five_element": locked_result["five_element"],
-                "gong_way": locked_result["gong_way"],
-                "confidence": locked_result["confidence"],
-                "pattern_type": locked_result.get("pattern_type", "正格"),
-            },
-            "hypotheses": sorted_h,
-        }
+    rejection = check_rejection(session)
+    if rejection:
+        session["hypotheses"] = await _expand_pattern_space(session)
+        sorted_h = session["hypotheses"]
 
-    # 6. 生成下一条问题（L3起优先AI，降级规则引擎）
-    round_num = session["round"]
-    history = session.get("history", [])
-    
-    if round_num == 2:
-        # L2: 六亲验证（规则引擎）
-        next_q = _generate_l2_question(chart_data)
-        next_q["round"] = round_num
-        next_q["layer"] = "L2"
-        next_q["options"] = ["很像", "有点出入", "完全不像"]
-        next_q["target_pattern"] = sorted_h[0]["pattern"]
-    elif round_num >= 3:
-        # L3-L10: 优先AI生成
-        ai_q = await _ai_generate_question(chart_data, sorted_h, round_num, history)
-        if ai_q:
-            next_q = ai_q
-            next_q["round"] = round_num
-            next_q["layer"] = f"L{round_num}"
-            next_q["options"] = ["是的", "不太确定", "不是"] if round_num >= 3 else ["很像", "有点出入", "完全不像"]
-            next_q["target_pattern"] = sorted_h[0]["pattern"]
-        else:
-            # 降级到规则引擎
-            if round_num <= 4:
-                next_q = _generate_l3_question(chart_data, sorted_h, round_num)
-            elif round_num <= 7:
-                next_q = _generate_deep_question(chart_data, sorted_h, round_num)
-            else:
-                next_q = _generate_fallback_question()
-            next_q["round"] = round_num
-            next_q["layer"] = f"L{round_num}"
-            next_q["options"] = ["是的", "不太确定", "不是"]
-            next_q["target_pattern"] = sorted_h[0]["pattern"]
-
+    next_q = await _generate_pattern_diff_question(session)
     session["current_question"] = next_q
 
     return {
-        "locked": False,
+        "locked": False, "stage": "pattern",
         "question": next_q,
         "hypotheses": sorted_h,
     }
+
+
+def _check_pattern_lock(session: dict, sorted_h: list) -> dict | None:
+    if not sorted_h:
+        return None
+    top = sorted_h[0]
+    second = sorted_h[1] if len(sorted_h) > 1 else None
+
+    # L1的2条 + 至少1条L2 → 最少第3轮
+    if session["round"] < 3:
+        return None
+
+    if top["confidence"] >= 60:
+        if second is None or top["confidence"] - second["confidence"] >= 25:
+            return top
+
+    prev_top = session.get("_prev_top_pattern", "")
+    if prev_top == top["pattern"] and top["confidence"] >= 50:
+        consecutive = session.get("_pattern_consecutive", 0) + 1
+        session["_pattern_consecutive"] = consecutive
+        if consecutive >= 3:
+            return top
+    else:
+        session["_pattern_consecutive"] = 1
+
+    if session["round"] >= 7:
+        return top
+
+    session["_prev_top_pattern"] = top["pattern"]
+    return None
+
+
+# ============================================================
+# Phase 2: 用神验证
+# ============================================================
+
+async def _enter_yongshen_stage(session: dict, sorted_patterns: list) -> dict:
+    locked_pattern = sorted_patterns[0]
+
+    chart_data = session["chart_data"]
+    dm_stem = _extract_day_master_stem(chart_data)
+    month_branch = _extract_month_branch(chart_data)
+    strength_detail = chart_data.get("strength_detail", {})
+    history = session.get("history", [])
+
+    session["stage"] = "yongshen"
+    session["locked_pattern"] = {
+        "pattern": locked_pattern["pattern"],
+        "pattern_type": locked_pattern.get("pattern_type", "正格"),
+        "confidence": locked_pattern["confidence"],
+    }
+
+    yongshen_candidates = generate_yongshen_candidates(
+        locked_pattern["pattern"], dm_stem, strength_detail, month_branch, history
+    )
+    session["yongshen_candidates"] = yongshen_candidates
+    session["_yongshen_consecutive"] = 0
+
+    if not yongshen_candidates:
+        return await _rollback_pattern(session)
+
+    top_ys = yongshen_candidates[0]
+    first_q = {
+        "round": session["round"],
+        "layer": f"L{session['round']}",
+        "stage": "yongshen",
+        "question": top_ys.get("dim_question", f"请描述与{top_ys['yong_shen']}相关的经历"),
+        "explanation": f"验证用神 {top_ys['yong_shen']}({top_ys['five_element']})",
+        "options": ["是的", "不太确定", "不是"],
+        "target_yongshen": top_ys["yong_shen"],
+    }
+    session["current_question"] = first_q
+
+    return {
+        "locked": False, "stage": "yongshen",
+        "question": first_q,
+        "yongshen_candidates": yongshen_candidates,
+        "locked_pattern": session["locked_pattern"],
+    }
+
+
+async def _handle_yongshen_stage(session: dict, answer: str) -> dict:
+    candidates = session.get("yongshen_candidates", [])
+    current_q = session.get("current_question", {})
+    target_ys = current_q.get("target_yongshen", "")
+
+    for c in candidates:
+        is_target = c["yong_shen"] == target_ys
+        if is_target:
+            if answer == "accurate":
+                c["confidence"] = min(99, c["confidence"] + 15)
+            elif answer == "partial":
+                c["confidence"] = min(99, c["confidence"] + 3)
+            else:
+                c["confidence"] = max(1, c["confidence"] - 20)
+        else:
+            if answer == "accurate":
+                c["confidence"] = max(1, c["confidence"] - 5)
+            elif answer == "inaccurate":
+                c["confidence"] = min(99, c["confidence"] + 3)
+
+    for c in candidates:
+        c["confidence"] = max(1.0, min(99.0, c["confidence"]))
+
+    candidates.sort(key=lambda x: x["confidence"], reverse=True)
+    session["yongshen_candidates"] = candidates
+    session["round"] += 1
+
+    locked = _check_yongshen_lock(session, candidates)
+    if locked:
+        return _finalize(session, candidates)
+
+    rejection = check_rejection(session)
+    if rejection:
+        if session.get("expansion_count", 0) >= session.get("max_expansions", 2):
+            return await _rollback_pattern(session)
+        session["yongshen_candidates"] = await _expand_yongshen_space(session)
+        candidates = session["yongshen_candidates"]
+
+    next_q = _generate_next_yongshen_question(session, candidates)
+    session["current_question"] = next_q
+
+    return {
+        "locked": False, "stage": "yongshen",
+        "question": next_q,
+        "yongshen_candidates": candidates,
+        "locked_pattern": session["locked_pattern"],
+    }
+
+
+def _check_yongshen_lock(session: dict, candidates: list) -> dict | None:
+    if not candidates:
+        return None
+    top = candidates[0]
+    second = candidates[1] if len(candidates) > 1 else None
+
+    yongshen_rounds = sum(1 for h in session["history"] if h.get("stage") == "yongshen")
+    if yongshen_rounds < 2:
+        return None
+
+    if top["confidence"] >= 65:
+        if second is None or top["confidence"] - second["confidence"] >= 20:
+            return top
+
+    prev_top = session.get("_prev_top_yongshen", "")
+    if prev_top == top["yong_shen"] and top["confidence"] >= 55:
+        consecutive = session.get("_yongshen_consecutive", 0) + 1
+        session["_yongshen_consecutive"] = consecutive
+        if consecutive >= 2:
+            return top
+    else:
+        session["_yongshen_consecutive"] = 1
+
+    if yongshen_rounds >= 7:
+        return top
+
+    session["_prev_top_yongshen"] = top["yong_shen"]
+    return None
+
+
+def _finalize(session: dict, candidates: list) -> dict:
+    locked = session["locked_pattern"]
+    top_ys = candidates[0]
+    session["stage"] = "locked"
+    session["locked_yongshen"] = top_ys
+
+    return {
+        "locked": True, "stage": "done",
+        "rounds": session["round"],
+        "result": {
+            "pattern": locked["pattern"],
+            "pattern_confidence": locked["confidence"],
+            "yong_shen": top_ys["yong_shen"],
+            "yongshen_confidence": top_ys["confidence"],
+            "five_element": top_ys["five_element"],
+            "gong_way": top_ys["gong_way"],
+            "pattern_type": locked.get("pattern_type", "正格"),
+        },
+        "hypotheses": candidates,
+        "expansion_attempted": session.get("expansion_count", 0) > 0,
+        "total_rounds": session["round"],
+    }
+
+
+# ============================================================
+# 拒绝检测与空间扩展
+# ============================================================
+
+def check_rejection(session: dict) -> str | None:
+    history = session["history"]
+    if len(history) < 3:
+        return None
+
+    recent = history[-3:]
+    if all(h["answer"] == "inaccurate" for h in recent):
+        return "consecutive_rejection"
+
+    stage_specific = [h for h in history if h.get("stage") == session.get("stage")]
+    if len(stage_specific) >= 3:
+        accurate_rate = sum(1 for h in stage_specific if h["answer"] == "accurate") / len(stage_specific)
+        if accurate_rate < 0.3:
+            return "low_accuracy"
+
+    hypotheses = session.get("hypotheses") or session.get("yongshen_candidates") or []
+    if hypotheses and max(h["confidence"] for h in hypotheses) < 30:
+        return "all_low_confidence"
+
+    return None
+
+
+async def _expand_pattern_space(session: dict) -> list:
+    count = session.get("expansion_count", 0)
+    if count >= session.get("max_expansions", 2):
+        return session["hypotheses"]
+
+    session["expansion_count"] = count + 1
+    chart_data = session["chart_data"]
+    existing = {h["pattern"] for h in session["hypotheses"]}
+    history = session.get("history", [])
+
+    # 尝试 AI 推荐新格局
+    if os.getenv("DEEPSEEK_API_KEY"):
+        try:
+            suggested = await _ai_suggest_patterns(chart_data, history, existing)
+            if suggested:
+                for s in suggested:
+                    if s.get("pattern") not in existing:
+                        session["hypotheses"].append({
+                            "pattern": s["pattern"],
+                            "pattern_type": s.get("pattern_type", "正格"),
+                            "confidence": s.get("confidence", 15),
+                        })
+        except Exception:
+            pass
+
+    # 提升已有的低分格局权重
+    for h in session["hypotheses"]:
+        if h["confidence"] < 10:
+            h["confidence"] = min(h["confidence"] + 8, 15)
+
+    return session["hypotheses"]
+
+
+async def _expand_yongshen_space(session: dict) -> list:
+    count = session.get("expansion_count", 0)
+    if count >= session.get("max_expansions", 2):
+        return session.get("yongshen_candidates", [])
+
+    session["expansion_count"] = count + 1
+
+    locked_pattern = session["locked_pattern"]["pattern"]
+    chart_data = session["chart_data"]
+    dm_stem = _extract_day_master_stem(chart_data)
+    month_branch = _extract_month_branch(chart_data)
+    strength_detail = chart_data.get("strength_detail", {})
+
+    new_candidates = generate_yongshen_candidates(
+        locked_pattern, dm_stem, strength_detail, month_branch,
+        session.get("history", [])
+    )
+    # 给新增候选额外加分
+    for c in new_candidates:
+        c["confidence"] = min(c["confidence"] + 10, 40)
+
+    session["yongshen_candidates"] = new_candidates
+    return new_candidates
+
+
+async def _rollback_pattern(session: dict) -> dict:
+    """用神验证持续失败 → 怀疑格局错了 → 回退"""
+    chart_data = session["chart_data"]
+    dm_stem = _extract_day_master_stem(chart_data)
+    month_branch = _extract_month_branch(chart_data)
+    strength_detail = chart_data.get("strength_detail", {})
+    four_pillars = chart_data.get("four_pillars", {})
+    history = session.get("history", [])
+
+    session["stage"] = "pattern"
+    session["expansion_count"] = session.get("expansion_count", 0) + 1
+
+    hypotheses = generate_full_pattern_space(
+        dm_stem, month_branch, strength_detail, four_pillars
+    )
+    # 提升非月令格局权重（因为月令格局可能错了）
+    for h in hypotheses:
+        if not h.get("_month_main"):
+            h["confidence"] = min(h["confidence"] + 10, 25)
+
+    if os.getenv("DEEPSEEK_API_KEY"):
+        existing = {h["pattern"] for h in hypotheses}
+        try:
+            suggested = await _ai_suggest_patterns(chart_data, history, existing)
+            if suggested:
+                for s in suggested:
+                    if s.get("pattern") not in existing:
+                        hypotheses.append({
+                            "pattern": s["pattern"],
+                            "pattern_type": s.get("pattern_type", "正格"),
+                            "confidence": s.get("confidence", 20),
+                        })
+        except Exception:
+            pass
+
+    session["hypotheses"] = hypotheses
+    session["round"] += 1
+
+    next_q = {
+        "round": session["round"],
+        "layer": f"L{session['round']}",
+        "question": "之前的问题似乎都不太符合你的情况。让我们换个角度——能否用一句话描述你的做事风格或人生中最突出的特点？",
+        "explanation": "格局回退，需要重新探索",
+        "options": ["有道理，让我补充", "不对，换个方向"],
+    }
+    session["current_question"] = next_q
+
+    return {
+        "locked": False, "stage": "pattern",
+        "question": next_q,
+        "hypotheses": sorted(hypotheses, key=lambda x: x["confidence"], reverse=True),
+        "rollback": True,
+    }
+
+
+# ============================================================
+# 问题生成
+# ============================================================
+
+async def _generate_pattern_diff_question(session: dict) -> dict:
+    """生成格局区分验证问题"""
+    sorted_h = session["hypotheses"]
+    chart_data = session["chart_data"]
+    dm = chart_data.get("day_master", "")
+    history = session.get("history", [])
+
+    top_2 = sorted_h[:2]
+    if len(top_2) < 2:
+        return _make_fallback_q(session["round"])
+
+    # 尝试AI生成
+    if os.getenv("DEEPSEEK_API_KEY"):
+        try:
+            confirmed, disproved = _format_history_for_prompt(history)
+            prompt = f"""你是子平格局派命理师。正在验证命盘的格局。
+
+日主: {dm}
+当前最高格局假设:
+A: {top_2[0]['pattern']}（置信度{top_2[0]['confidence']}%）
+B: {top_2[1]['pattern']}（置信度{top_2[1]['confidence']}%）
+{confirmed}
+{disproved}
+
+请设计一个能有效区分格局A和格局B的问题。问一个在格局A命主身上成立、但在格局B命主身上不成立的特征。
+只输出问题本身，不要JSON不要解释。用户能用「是的/不太确定/不是」回答。"""
+            content = await call_deepseek(prompt=prompt, system_prompt="你是子平格局派命理师", timeout=12, temperature=0.3, max_tokens=150)
+            if content and not content.startswith("[API_"):
+                return {
+                    "round": session["round"], "layer": f"L{session['round']}",
+                    "stage": "pattern", "question": content.strip(),
+                    "options": ["是的", "不太确定", "不是"],
+                    "target_pattern": sorted_h[0]["pattern"],
+                }
+        except Exception:
+            pass
+
+    # 无AI时用规则生成区分问题
+    return _make_pattern_diff_rule_q(session["round"], top_2)
+
+
+def _make_pattern_diff_rule_q(round_num: int, top_2: list) -> dict:
+    """规则引擎生成格局区分问题（无AI兜底）"""
+    a, b = top_2[0]["pattern"], top_2[1]["pattern"]
+
+    # 格局区分模板：一问能排除一半
+    diff_pairs = {
+        ("正官格", "七杀格"): "你是否在压力和挑战下反而能激发潜能，而不是更倾向按规则稳步前进？",
+        ("七杀格", "正官格"): "你是否在压力和挑战下反而能激发潜能，而不是更倾向按规则稳步前进？",
+        ("正印格", "偏印格"): "你是否更喜欢广泛学习而非深入一个领域钻研？",
+        ("偏印格", "正印格"): "你是否更喜欢广泛学习而非深入一个领域钻研？",
+        ("正财格", "偏财格"): "你理财是偏向稳健积蓄还是敢于投资博取更大回报？",
+        ("偏财格", "正财格"): "你理财是偏向稳健积蓄还是敢于投资博取更大回报？",
+        ("食神格", "伤官格"): "你的创造力是温和输出还是锋芒毕露？",
+        ("伤官格", "食神格"): "你的创造力是温和输出还是锋芒毕露？",
+    }
+    key = (a, b)
+    if key in diff_pairs:
+        q = diff_pairs[key]
+    else:
+        q = f"下面两种描述，哪个更符合你——A: 更注重结果和实际利益  B: 更注重过程和自我提升？"
+
+    return {
+        "round": round_num, "layer": f"L{round_num}",
+        "stage": "pattern",
+        "question": q,
+        "options": ["是的(A)", "更偏(B)", "不太好说"],
+        "target_pattern": a,
+    }
+
+
+def _generate_next_yongshen_question(session: dict, candidates: list) -> dict:
+    """生成用神验证问题"""
+    chart_data = session["chart_data"]
+    dm = chart_data.get("day_master", "")
+
+    # 找下一个未问过的用神
+    asked = set()
+    for h in session.get("history", []):
+        q = h.get("question", "")
+        for c in candidates:
+            if c["yong_shen"] in q:
+                asked.add(c["yong_shen"])
+
+    for c in candidates:
+        if c["yong_shen"] not in asked:
+            return {
+                "round": session["round"], "layer": f"L{session['round']}",
+                "stage": "yongshen",
+                "question": c.get("dim_question", f"{c['yong_shen']}作为用神在哪些方面体现？"),
+                "explanation": f"验证用神 {c['yong_shen']}({c['five_element']}) — {c.get('dimension', '综合')}",
+                "options": ["是的", "不太确定", "不是"],
+                "target_yongshen": c["yong_shen"],
+            }
+
+    # 所有用神都问过一遍了，返回兜底
+    top = candidates[0]
+    return {
+        "round": session["round"], "layer": f"L{session['round']}",
+        "stage": "yongshen",
+        "question": f"综合来看，{top['yong_shen']}({top['five_element']})作为用神是否最贴合你的实际经历？",
+        "explanation": "最后一轮综合确认",
+        "options": ["是的", "不太确定", "不是"],
+        "target_yongshen": top["yong_shen"],
+    }
+
+
+def _make_fallback_q(round_num: int) -> dict:
+    fallbacks = [
+        "请简单描述你的性格特征或处事风格。",
+        "在团队中你通常扮演什么角色？",
+        "面对压力时你通常如何应对？",
+        "你觉得自己最大的优势是什么？",
+        "工作中你喜欢独当一面还是配合他人？",
+        "回头看过去几年，哪个决定对你影响最大？",
+    ]
+    idx = (round_num - 3) % len(fallbacks)  # L3 起用
+    return {
+        "round": round_num, "layer": f"L{round_num}",
+        "stage": "pattern",
+        "question": fallbacks[max(0, min(idx, len(fallbacks) - 1))],
+        "explanation": "格局待确认",
+        "options": ["是的", "不太确定", "不是"],
+        "target_pattern": "",
+    }
+
+
+async def _ai_suggest_patterns(chart_data, history, existing) -> list:
+    """AI推荐被遗漏的格局候补"""
+    dm = chart_data.get("day_master", "")
+    confirmed, disproved = _format_history_for_prompt(history)
+    prompt = f"""用户在格局验证中持续否定当前假设。请根据以下信息推荐可能的格局候补。
+
+日主: {dm}
+当前已排除/否定:
+{disproved}
+用户确认:
+{confirmed}
+
+请推荐2-3个可能的格局（从标准八格或特殊格局中选择），每个给出置信度和理由。
+输出JSON: [{{"pattern": "格局名", "pattern_type": "正格/从格/专旺", "confidence": 20}}]"""
+    try:
+        content = await call_deepseek(prompt=prompt, system_prompt="你是子平格局派命理师，输出JSON数组", timeout=12, temperature=0.3, max_tokens=300)
+        if content and not content.startswith("[API_"):
+            import json
+            return json.loads(content) if isinstance(content, str) else content
+    except Exception:
+        pass
+    return []
 
 
 # ============================================================
@@ -610,40 +705,39 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
 
 def _extract_day_master_stem(chart_data: dict) -> str:
     dm = chart_data.get("day_master", "")
-    # day_master format: "丁火" → extract "丁"
-    return dm[0] if dm else "甲"
+    return dm[-1] if dm else "甲"
 
 def _extract_month_branch(chart_data: dict) -> str:
     fp = chart_data.get("four_pillars", {})
     month = fp.get("month", {})
     return month.get("branch", "子")
 
+def _format_history_for_prompt(history: list) -> tuple:
+    if not history:
+        return "", ""
+    confirmed, disproved = [], []
+    for idx, h in enumerate(history):
+        role = h.get("answer", "")
+        q = h.get("question", "")
+        n = h.get("note", "")
+        stage = h.get("stage", "")
+        line = f"第{h.get('round', idx + 1)}轮[{stage}]"
+        if q:
+            line += f": {q[:60]}"
+        line += f" → {'✅命中' if role == 'accurate' else '⚠️部分' if role == 'partial' else '❌否定'}"
+        if n:
+            line += f" (补充: {n})"
+        if role == "accurate":
+            confirmed.append(line)
+        elif role == "inaccurate":
+            disproved.append(line)
+    return "\n".join(confirmed), "\n".join(disproved)
+
 def get_session(session_id: str) -> dict | None:
     _cleanup_expired_sessions()
-    s = _verification_sessions.get(session_id)
-    if s:
-        return s
-    # 内存中没找到，尝试从 DB 恢复
-    import asyncio
-    try:
-        loop = asyncio.get_event_loop()
-        if loop.is_running():
-            # 在 async 上下文中，创建 task 异步查询
-            future = asyncio.ensure_future(_load_db_session(session_id))
-            # 不能 await，也不能阻塞 — 仅作标识：调用方应为 async
-            return None  # 调用方需自行处理
-        else:
-            s = loop.run_until_complete(_load_db_session(session_id))
-            if s:
-                _verification_sessions[session_id] = s
-            return s
-    except Exception:
-        pass
-    return None
-
+    return _verification_sessions.get(session_id)
 
 async def get_session_async(session_id: str) -> dict | None:
-    """异步版 get_session，支持 DB 恢复"""
     _cleanup_expired_sessions()
     s = _verification_sessions.get(session_id)
     if s:
