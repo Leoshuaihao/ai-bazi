@@ -2084,14 +2084,17 @@ async function loadAIYongshen(payload){
         auxiliary:data.auxiliary||'',pattern:data.pattern||S.chart.yongshen?.pattern||'',
         ri_zhu_strength:data.ri_zhu_strength||S.chart.yongshen?.ri_zhu_strength||''
       };
-      S.aiYongshenLoaded=true;
-      if(S.chart)renderYongshen(S.chart.yongshen);
-      if(S.chart)updateCalGate();
     }
+    // 无论AI是否可用，都标记为已加载（规则引擎已提供基础数据）
+    S.aiYongshenLoaded=true;
+    if(S.chart)renderYongshen(S.chart.yongshen);
+    if(S.chart)updateCalGate();
     // 纲要出完后才调题目生成
     showPredictionSkeleton();
     await startPredictionFlow();
-  }catch(err){console.warn('AI yongshen load failed',err);showPredictionSkeleton();await startPredictionFlow()}
+    // P1修复：预测题目就绪后刷新 yongshen 区域状态
+    if(S.chart)renderYongshen(S.chart.yongshen);
+  }catch(err){console.warn('AI yongshen load failed',err);S.aiYongshenLoaded=true;if(S.chart)renderYongshen(S.chart.yongshen);showPredictionSkeleton();await startPredictionFlow();if(S.chart)renderYongshen(S.chart.yongshen)}
 }
 function showPredictionSkeleton(){
   const existing=$('#prediction-skeleton');
