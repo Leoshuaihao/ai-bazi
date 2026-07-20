@@ -32,61 +32,99 @@ from services.user_data import save_verification_session as _save_db_session
 from services.user_data import load_verification_session as _load_db_session
 
 # ============================================================
-# L1 格局特征问题（来自典籍原文，不变）
+# L1 格局特征问题（V3升级：区分旺衰两版）
 # ============================================================
-
 PATTERN_L1_QUESTIONS = {
     "正官格": {
-        "question": "你工作中是否更倾向于在规则和秩序下发挥，不太喜欢冒险和自由发挥？",
-        "explanation": "正官格的人通常对规则和秩序有天然的尊重，做事习惯先想清楚再行动，追求稳定而非冒险。",
-        "pattern_feature": "官星当令，为人正直守法，重名节讲信用",
+        "strong": {"question": "你工作中是否更倾向于在规则和秩序下发挥，不太喜欢冒险和自由发挥？",
+                   "explanation": "正官格身旺者重视规则带来的安全感和成就。",
+                   "pattern_feature": "官星当令，为人正直守法，重名节讲信用"},
+        "weak": {"question": "你是否在工作中感到规则和制度对你有较大的约束，想突破又常常被拉回来？",
+                 "explanation": "正官格身弱者容易被外界制度压制，需要身旺方能承载官贵。",
+                 "pattern_feature": "官星当令但日主偏弱，制度感强但承载吃力"},
     },
     "七杀格": {
-        "question": "你人生中是否经历过较大的压力或挑战，但事后回头看，那些压力反而促成了你的成长？",
-        "explanation": "七杀格的人往往早年在竞争和压力中成长，有不服输的韧性。",
-        "pattern_feature": "七杀当令，有魄力敢担当，经历磨难后成长",
+        "strong": {"question": "你人生中是否经历过较大的压力或挑战，但事后回头看，那些压力反而促成了你的成长？",
+                   "explanation": "七杀格身旺者把压力当跳板，愈挫愈勇。",
+                   "pattern_feature": "七杀当令身旺，有魄力敢担当，经历磨难后成长"},
+        "weak": {"question": "你是否长期承受比较大的压力或制约，感觉自己被压得比较紧，很多事想做但力不从心？",
+                 "explanation": "七杀格身弱者杀星攻身，需要印星化杀或食神制杀来缓解。",
+                 "pattern_feature": "七杀当令但日主偏弱，杀旺攻身，需制化方显其功"},
     },
     "正财格": {
-        "question": "你对机会（特别是赚钱机会）的嗅觉是否比身边人敏锐，而且做事更务实注重结果？",
-        "explanation": "正财格的人务实稳健，对实际利益敏感，做事脚踏实地。",
-        "pattern_feature": "财星当令，务实稳重，善于理财和把握机会",
+        "strong": {"question": "你对机会特别是赚钱机会的嗅觉是否敏锐，做事务实注重结果？",
+                   "explanation": "正财格身旺者能驾驭财富，务实稳重。",
+                   "pattern_feature": "财星当令身旺，务实稳重，善于理财和把握机会"},
+        "weak": {"question": "你是否对赚钱机会很在意，但常常感觉自己抓不住、或者机会来了又错过了？",
+                 "explanation": "正财格身弱者财多身弱，能看见但难抓住。",
+                 "pattern_feature": "财星当令但日主偏弱，财多身弱，需比劫分财或印星扶持"},
     },
     "偏财格": {
-        "question": "你是否属于那种直觉很强、做事不拘一格、善于抓住机会的类型？",
-        "explanation": "偏财格的人思维灵活，善于抓住稍纵即逝的机会，做事不拘泥于常规。",
-        "pattern_feature": "偏财当令，灵活变通，善抓机会",
+        "strong": {"question": "你是否属于那种直觉很强、做事不拘一格、善于抓住稍纵即逝机会的类型？",
+                   "explanation": "偏财格身旺者灵活善变，善于抓住商业机会。",
+                   "pattern_feature": "偏财当令身旺，灵活变通，善抓机会"},
+        "weak": {"question": "你是否经常有一些好想法或看到好机会，但落地执行的时候却总是差一口气？",
+                 "explanation": "偏财格身弱者想法多变但执行力跟不上。",
+                 "pattern_feature": "偏财当令但日主偏弱，机会多而承载难"},
     },
     "正印格": {
-        "question": "你是否从小就比较受长辈或老师的喜爱，学习能力较强，也愿意花时间深入钻研一件事？",
-        "explanation": "正印格的人天生有贵人缘和求学之心，喜欢知识的积累和沉淀。",
-        "pattern_feature": "印星当令，爱学习有贵人，性格温和良善",
+        "strong": {"question": "你是否从小就受长辈喜爱，学习能力较强，愿意花时间深入钻研一件事？",
+                   "explanation": "正印格身旺者贵人运好，学有所成。",
+                   "pattern_feature": "印星当令身旺，爱学习有贵人，性格温和良善"},
+        "weak": {"question": "你是否渴望有好的引路人来指点自己，但总觉得遇到的人帮助力度不够、或者一直没有遇到对的人？",
+                 "explanation": "正印格身弱者需要印生扶但印星无力，求学之路多波折。",
+                 "pattern_feature": "印星当令但日主偏弱，贵人助力有但不够"},
     },
     "偏印格": {
-        "question": "你是否对某些特定领域有超乎常人的钻研精神，但又容易沉浸在自己的世界里？",
-        "explanation": "偏印格的人思维独特，偏才突出，但不一定合群。",
-        "pattern_feature": "偏印当令，思维独特，偏才突出",
+        "strong": {"question": "你是否对某些特定领域有超乎常人的钻研精神，但容易沉浸在自己的世界里？",
+                   "explanation": "偏印格身旺者偏才突出，思维独特。",
+                   "pattern_feature": "偏印当令身旺，思维独特，偏才突出"},
+        "weak": {"question": "你是否对某个领域有深入兴趣，但感觉外界不太理解你、或者你的想法很难得到认可？",
+                 "explanation": "偏印格身弱者才华有但被埋没的感觉较强。",
+                 "pattern_feature": "偏印当令但日主偏弱，独特才华难被认可"},
     },
     "食神格": {
-        "question": "你的才华或创意是否在你的生活或工作中占据了重要位置？是否常有人夸你有才华？",
-        "explanation": "食神格的人天生有艺术气质和创造力，性格温和乐观。",
-        "pattern_feature": "食神当令，有才华创造力，性格温和乐观",
+        "strong": {"question": "你的才华创意在生活或工作中是否占据了重要位置，常有人夸你有才华？",
+                   "explanation": "食神格身旺者创造力和艺术感自然流露。",
+                   "pattern_feature": "食神当令身旺，有才华创造力，性格温和乐观"},
+        "weak": {"question": "你是否内心其实有很多才华和想法，但总觉得表达出来或者把它们变成实际的东西比较困难？",
+                 "explanation": "食神格身弱者才华内秀但输出困难。",
+                 "pattern_feature": "食神当令但日主偏弱，才华内秀而输出不足"},
     },
     "伤官格": {
-        "question": "你是否属于那种想法很多、不太喜欢被约束、常有出人意料的好点子的人？",
-        "explanation": "伤官格的人思维敏捷、创造力强，但有时锋芒毕露。",
-        "pattern_feature": "伤官当令，聪明敏捷，创造力强但有时锋芒太露",
+        "strong": {"question": "你是否属于想法很多、不喜被约束、常有出人意料的好点子的人？",
+                   "explanation": "伤官格身旺者思维敏捷，锋芒毕露。",
+                   "pattern_feature": "伤官当令身旺，聪明敏捷，创造力强但有时锋芒太露"},
+        "weak": {"question": "你是否有很多想法但常常被人否定或环境不允许你做出来，导致内心比较压抑？",
+                 "explanation": "伤官格身弱者才华被压，容易愤世嫉俗。",
+                 "pattern_feature": "伤官当令但日主偏弱，想法多而施展难"},
     },
     "从弱格": {
-        "question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
-        "explanation": "从弱格的人不宜独立抗衡，顺势而为反而能有不错的成就。",
-        "pattern_feature": "日主极弱，顺势从格",
+        "strong": {"question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
+                   "explanation": "从弱格的人不宜独立抗衡，顺势而为反而能有不错的成就。",
+                   "pattern_feature": "日主极弱，顺势从格"},
+        "weak": {"question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
+                 "explanation": "从弱格本身为极弱，只有一个版本。",
+                 "pattern_feature": "日主极弱，顺势从格"},
     },
     "专旺格": {
-        "question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
-        "explanation": "专旺格的人气势强盛，有领导力和主导欲。",
-        "pattern_feature": "日主极旺，气势强盛",
+        "strong": {"question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
+                   "explanation": "专旺格的人气势强盛，有领导力和主导欲。",
+                   "pattern_feature": "日主极旺，气势强盛"},
+        "weak": {"question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
+                 "explanation": "专旺格本身为极旺，只有一个版本。",
+                 "pattern_feature": "日主极旺，气势强盛"},
     },
 }
+
+
+def _get_l1_question(pattern: str, wangshuai_level: str) -> dict:
+    """根据旺衰选择L1问题版本"""
+    entry = PATTERN_L1_QUESTIONS.get(pattern, PATTERN_L1_QUESTIONS.get("正官格", {}))
+    is_strong = wangshuai_level in ("极旺", "身旺", "中和")
+    if isinstance(entry, dict) and "strong" in entry:
+        return entry["strong"] if is_strong else entry["weak"]
+    return entry  # 兼容旧格式
 
 # 诊断问题模板
 DIAGNOSIS_QUESTIONS = {
@@ -233,10 +271,9 @@ def init_verification(chart_data: dict, user_id: str = None) -> dict:
     if step_results["pending_change"]["is_pending"]:
         step_results = resolve_pending_heju(step_results, wangshuai["level"])
 
-    # L1 question
+    # L1 question (旺衰自适应)
     final_pattern = step_results["pattern"]
-    l1 = PATTERN_L1_QUESTIONS.get(final_pattern,
-          {"question": "请描述一下你的性格特点？", "explanation": "", "pattern_feature": ""})
+    l1 = _get_l1_question(final_pattern, wangshuai["level"])
 
     first_question = {
         "round": 1, "layer": "L1",
@@ -337,6 +374,8 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
         return await _handle_phase2_L2(session, answer)
     elif sub == "phase2_L3":
         return await _handle_phase2_L3(session, answer)
+    elif sub == "tongguan":
+        return await _handle_tongguan(session, answer)
     elif sub.startswith("diag_"):
         return await _handle_diagnosis(session, answer)
     elif sub.startswith("ys_"):
@@ -476,9 +515,38 @@ async def _handle_phase2_L3(session, answer):
             session["yongshen_regeneration"] = 1
             return await _enter_yongshen(session)
         else:
+            # 检查五行通关问题
+            clash = find_wuxing_clash(session["chart_data"])
+            if clash and not session.get("_tongguan_checked"):
+                session["_tongguan_checked"] = True
+                session["stage"] = "pattern"
+                session["sub_stage"] = "tongguan"
+                session["round"] += 1
+                wx_a, wx_b = clash
+                q = {"round": session["round"], "layer": f"L{session['round']}",
+                     "question": f"你是否感觉自己性格或处事方式中有某种内在的矛盾——好像有两种不同的力量在互相拉扯，让你难以完全发挥？",
+                     "explanation": f"检测到五行对峙({wx_a}vs{wx_b})，可能格局正确但五行不通导致特征不显",
+                     "options": ["是", "不太确定", "不是"],
+                     "tongguan_clash": clash}
+                session["current_question"] = q
+                session["diagnosis_path"].append({"step": "tongguan", "action": "通关检查",
+                                                   "clash": f"{wx_a}vs{wx_b}"})
+                return {"locked": False, "stage": "pattern", "sub_stage": "tongguan",
+                        "question": q, "tongguan_check": True}
             return await _enter_diagnosis(session)
     else:
         return await _enter_yongshen(session)
+
+
+async def _handle_tongguan(session, answer):
+    """处理通关检查问题"""
+    session["diagnosis_path"].append({"step": "tongguan", "answer": answer})
+    if answer == "accurate":
+        session["quality"] = "中格"
+        session["_tongguan_confirmed"] = True
+        return await _enter_yongshen(session)
+    else:
+        return await _enter_diagnosis(session)
 
 
 # ============================================================
