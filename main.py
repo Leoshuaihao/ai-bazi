@@ -940,7 +940,6 @@ async def predictions_start(birth: BirthInfo, authorization: str = Header(None))
     return {
         "session_id": session_id,
         "chart_data": chart_data,
-        "stage": result.get("stage", "pattern"),
         "hypotheses": result["hypotheses"],
         "question": result["question"],
     }
@@ -961,19 +960,15 @@ async def predictions_verify(request: dict):
     if not prediction_session_id:
         raise HTTPException(status_code=400, detail="缺少 session_id")
 
-    # 将中文选项标准化为英文枚举（兼容前端直接返回中文选项文本 + L1自定义选项）
+    # 将中文选项标准化为英文枚举（兼容前端直接返回中文选项文本）
     _ANSWER_NORMALIZE = {
         "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
         "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
-        "带头推动": "accurate", "偏向创作": "inaccurate", "不太好说": "partial",
-        "务实重结果": "accurate", "重学习修养": "inaccurate",
-        "有道理，让我补充": "accurate", "不对，换个方向": "inaccurate",
     }
     answer = _ANSWER_NORMALIZE.get(answer, answer)
 
-    # 放宽校验：V2支持更多选项文本
     if answer not in ("accurate", "partial", "inaccurate"):
-        raise HTTPException(status_code=400, detail="answer 无法识别")
+        raise HTTPException(status_code=400, detail="answer 必须是 accurate/partial/inaccurate")
 
     # 从 prediction session 中获取 verification session
     pred_session = _prediction_sessions.get(prediction_session_id)
@@ -992,7 +987,7 @@ async def predictions_verify(request: dict):
     if result.get("locked"):
         # 锁定后，将结果写入 prediction session 供后续校准使用
         pred_session["locked_result"] = result["result"]
-        pred_session["hypotheses"] = result.get("hypotheses") or result.get("yongshen_candidates") or []
+        pred_session["hypotheses"] = result["hypotheses"]
 
     return result
 
