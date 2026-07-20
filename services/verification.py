@@ -411,21 +411,22 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
                 session.setdefault("_llm_facts", []).extend(llm_result["extracted_facts"])
 
     sub = session.get("sub_stage", "L1")
+    result = None
 
-    # V4: LLM 生成问题文本 → 状态机照常推进（LLM 只改问题不改流转）  
-    llm_question = None
+    # V4: 尝试 LLM 生成下一个问题
     if _has_llm():
-        llm_question = await _llm_next(session, sub, answer)
+        result = await _llm_next(session, sub, answer)
 
-    # 状态机照常走
-    result = await _dispatch_static(session, sub, answer)
-
-    # 如果 LLM 生成了问题，替换静态问题的文本和选项
-    if llm_question and result.get("question"):
-        llm_q = llm_question.get("question")
-        if llm_q and llm_q.get("question"):
-            result["question"] = llm_q
-            result["_llm_enhanced"] = True
+    if result is None:
+        # LLM 不可用或失败 → 降级到 V3 静态 handler
+        result = await _dispatch_static(session, sub, answer)
+    else:
+        # LLM 返回了 action → 处理 advance_stage / backtrack
+        action = result.get("action")
+        if action == "advance_stage":
+            return await _advance_to_next_stage(session)
+        elif action == "backtrack":
+            return await _enter_diagnosis(session)
 
     return result
 
