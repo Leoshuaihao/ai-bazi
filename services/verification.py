@@ -11,6 +11,7 @@
 
 import os
 import re
+from datetime import datetime
 from typing import Optional
 
 from rules.pattern import (
@@ -132,10 +133,8 @@ def _generate_l3_question(chart_data: dict, current_hypotheses: list[dict]) -> d
     if not dayun:
         return _generate_fallback_question()
 
-    top_hyp = current_hypotheses[0] if current_hypotheses else {}
-
     # 选取最近的一个大运交接年或冲合年
-    current_year = 2026
+    current_year = datetime.now().year
     for du in dayun:
         sy = du.get("start_year", 0) if isinstance(du, dict) else getattr(du, "start_year", 0)
         ey = du.get("end_year", 0) if isinstance(du, dict) else getattr(du, "end_year", 0)
@@ -158,8 +157,7 @@ def _generate_deep_question(chart_data: dict, current_hypotheses: list[dict], ro
     if not dayun:
         return _generate_fallback_question()
 
-    top_hyp = current_hypotheses[0] if current_hypotheses else {}
-    current_year = 2026
+    current_year = datetime.now().year
 
     # 根据轮次选择不同维度的验证
     dimensions = [
@@ -242,6 +240,18 @@ async def _ai_generate_question(chart_data: dict, hypotheses: list[dict], round_
 # ============================================================
 
 _verification_sessions = {}
+_SESSION_TTL_SECONDS = 1800  # 30分钟过期
+
+
+def _cleanup_expired_sessions():
+    """清理过期的验证会话，防止内存泄漏"""
+    now = datetime.now().timestamp()
+    expired = [
+        sid for sid, s in _verification_sessions.items()
+        if now - s.get("_created_at", 0) > _SESSION_TTL_SECONDS
+    ]
+    for sid in expired:
+        del _verification_sessions[sid]
 
 
 def init_verification(chart_data: dict) -> dict:
@@ -251,6 +261,8 @@ def init_verification(chart_data: dict) -> dict:
         { "session_id": str, "hypotheses": [...], "round": 0, "question": {...} }
     """
     import uuid
+
+    _cleanup_expired_sessions()
 
     session_id = str(uuid.uuid4())
     dm_stem = _extract_day_master_stem(chart_data)
@@ -281,6 +293,7 @@ def init_verification(chart_data: dict) -> dict:
         "locked": False,
         "history": [],
         "current_question": first_question,
+        "_created_at": datetime.now().timestamp(),
     }
 
     _verification_sessions[session_id] = session
@@ -299,6 +312,14 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
         若未锁定: { "locked": False, "question": {...}, "hypotheses": [...] }
         若已锁定: { "locked": True, "result": {...}, "hypotheses": [...] }
     """
+    # 标准化中文答案到英文枚举（防御性，main.py 已做第一层映射）
+    _ANSWER_NORMALIZE = {
+        "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
+        "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
+    }
+    answer = _ANSWER_NORMALIZE.get(answer, answer)
+
+    _cleanup_expired_sessions()
     session = _verification_sessions.get(session_id)
     if not session:
         return {"error": "会话不存在或已过期"}
@@ -334,19 +355,17 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
             locked_result = sorted_h[0]
 
     if not locked_result and session["round"] >= MIN_ROUNDS and sorted_h[0]["confidence"] >= 60:
-        # 检查连续首名
-        recent_tops = [
-            session["hypotheses"][0].get("_top_pattern", "")
-        ]
-        if len(recent_tops) >= 2 and all(t == sorted_h[0]["pattern"] for t in recent_tops[-2:]):
+        # 检查连续2轮首名不变
+        prev_top = session.get("_prev_top_pattern", "")
+        if prev_top and prev_top == sorted_h[0]["pattern"]:
             locked_result = sorted_h[0]
 
     # 4. 强制锁定条件（最大10轮）
     if session["round"] >= MAX_ROUNDS and not locked_result:
         locked_result = sorted_h[0]  # 第10轮强制以最高置信度锁定
 
-    # 5. 记录首名（用于下次收敛判断）
-    sorted_h[0]["_top_count"] = sorted_h[0].get("_top_count", 0) + 1
+    # 5. 记录本轮首名，供下轮收敛判断
+    session["_prev_top_pattern"] = sorted_h[0]["pattern"]
 
     session["hypotheses"] = sorted_h
     session["round"] += 1
@@ -430,4 +449,5 @@ def _extract_month_branch(chart_data: dict) -> str:
     return month.get("branch", "子")
 
 def get_session(session_id: str) -> dict | None:
+    _cleanup_expired_sessions()
     return _verification_sessions.get(session_id)

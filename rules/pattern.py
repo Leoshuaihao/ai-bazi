@@ -148,6 +148,7 @@ def generate_pattern_hypotheses(day_master_stem: str, month_branch: str,
                 "five_element": actual_wx,
                 "gong_way": _get_gong_way(primary_pattern, tg),
                 "confidence": max(conf, 5),
+                "_month_lord": True,  # 标记为月令主格局，置信度更新时受硬约束保护
             })
 
     # 3. 次格局（月令中气/余气）

@@ -941,6 +941,13 @@ async def predictions_verify(request: dict):
     if not prediction_session_id:
         raise HTTPException(status_code=400, detail="缺少 session_id")
 
+    # 将中文选项标准化为英文枚举（兼容前端直接返回中文选项文本）
+    _ANSWER_NORMALIZE = {
+        "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
+        "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
+    }
+    answer = _ANSWER_NORMALIZE.get(answer, answer)
+
     if answer not in ("accurate", "partial", "inaccurate"):
         raise HTTPException(status_code=400, detail="answer 必须是 accurate/partial/inaccurate")
 
