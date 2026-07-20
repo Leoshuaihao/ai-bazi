@@ -1951,7 +1951,12 @@ async function retryVerify(){
   await verifyAnswer();
 }
 
-function onPredOptionClick(opt){S.predSelectedAnswer=opt;S.predError=null;renderPredFoot()}
+function onPredOptionClick(opt){
+  if(opt==='说说具体的'||opt==='说点具体的'){
+    S.predSelectedAnswer='custom';S.predCustomInput=true;S.predError=null;renderPredFoot();return
+  }
+  S.predSelectedAnswer=opt;S.predCustomInput=false;S.predError=null;renderPredFoot()
+}
 function onPredNoteInput(e){S.predNote=e.target.value||''}
 function onPredSubmit(){if(!S.predSelectedAnswer){showToast('请先选择一个答案');return};if(S.predLoading)return;verifyAnswer()}
 
@@ -1993,9 +1998,13 @@ function renderPredFoot(){
   if(S.predError){foot.innerHTML='';return}
   const q=S.predCurrentQuestion;if(!q)return;
   const options=q.options||[];
-  const optsHtml=options.map(opt=>{const sel=S.predSelectedAnswer===opt?' selected':'';return`<button class="pred-opt-btn${sel}" onclick="onPredOptionClick('${escAttr(opt)}')">${escHtml(opt)}</button>`}).join('');
-  foot.innerHTML=`<div class="pred-options">${optsHtml}</div><div class="pred-note-row"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明（帮助 AI 更精准判断）" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()"${S.predSelectedAnswer?'':' disabled'}>确认</button></div>`;
+  const optsHtml=options.map(opt=>{const sel=S.predSelectedAnswer===opt||(opt==='说说具体的'&&S.predSelectedAnswer==='custom')?' selected':'';const cls=opt==='说说具体的'||opt==='说点具体的'?' pred-opt-custom':'';return`<button class="pred-opt-btn${sel}${cls}" onclick="onPredOptionClick('${escAttr(opt)}')">${escHtml(opt)}</button>`}).join('');
+  const customInput=S.predSelectedAnswer==='custom'?`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说你的情况，比如哪里像、哪里不像、或者相关的人生经历..." style="width:100%;min-height:80px;font-size:0.82rem;margin-top:6px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea></div>`:'';
+  const noteRow=S.predSelectedAnswer==='custom'?`<button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>提交补充说明</button>`:`<div class="pred-note-row"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明（帮助 AI 更精准判断）" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()"${S.predSelectedAnswer?'':' disabled'}>确认</button></div>`;
+  foot.innerHTML=`<div class="pred-options">${optsHtml}</div>${customInput}<div class="pred-note-row">${noteRow}</div>`;
 }
+function onPredCustomInput(e){S.predCustomText=e.target.value||'';renderPredFoot()}
+function onPredSubmitCustom(){S.predNote=S.predCustomText||'';S.predCustomInput=false;S.predCustomText='';verifyAnswer()}
 function renderHypoBar(){
   const bar=$('#pred-hypo-bar');if(!bar)return;
   const hyps=S.predHypotheses||[];if(!hyps.length){bar.innerHTML='';return}
