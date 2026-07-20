@@ -990,7 +990,7 @@ async def predictions_verify(request: dict):
     if result.get("locked"):
         # 锁定后，将结果写入 prediction session 供后续校准使用
         pred_session["locked_result"] = result["result"]
-        pred_session["hypotheses"] = result.get("hypotheses") or result.get("yongshen_candidates") or []
+        pred_session["hypotheses"] = result.get("hypotheses") or result.get("xiangshen_candidates") or []
         pred_session["locked_quality"] = result.get("quality")
         pred_session["locked_purity"] = result.get("purity")
         pred_session["locked_source"] = result.get("pattern_source")

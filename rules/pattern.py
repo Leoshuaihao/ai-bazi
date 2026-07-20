@@ -89,6 +89,9 @@ _TG_TO_PATTERN = {
     "偏印": "偏印格",
     "食神": "食神格",
     "伤官": "伤官格",
+    # 月令为比劫，月令本身不可取用，另寻四柱透干
+    "比肩": "建禄格",
+    "劫财": "月刃格",
 }
 
 # ============================================================
@@ -110,6 +113,16 @@ PATTERN_YONGSHEN = {
     "伤官格": [("正印", "木"), ("偏财", "土"), ("偏印", "木")],
     "偏印格": [("偏财", "土"), ("比肩", "同"), ("正财", "火")],
     "偏财格": [("正官", "金"), ("食神", "火"), ("七杀", "金")],
+    # 月令无用神（比劫当令），另取四柱透干
+    # 建禄格：日主乘旺，喜克泄耗（官杀制、食伤泄、财星耗）
+    "建禄格": [("正官", "金"), ("食神", "火"), ("正财", "土")],
+    # 月刃格：刃为凶神，必须官杀制刃或食伤泄刃
+    "月刃格": [("七杀", "金"), ("正官", "金"), ("食神", "火")],
+    # 特殊格局
+    # 从弱格：顺势用官杀/财/食伤（忌印比生扶）
+    "从弱格": [("七杀", "金"), ("正财", "土"), ("食神", "火")],
+    # 专旺格：食伤泄秀为主，次取印比顺势（忌官杀犯旺）
+    "专旺格": [("食神", "火"), ("正印", "木"), ("比肩", "同")],
 }
 
 def generate_pattern_hypotheses(day_master_stem: str, month_branch: str,
@@ -251,6 +264,21 @@ def _get_gong_way(pattern: str, yong_shen: str) -> str:
         ("伤官格", "正印"): "印制伤官",
         ("偏印格", "偏财"): "财制偏印",
         ("偏财格", "正官"): "财生官",
+        # 建禄格
+        ("建禄格", "正官"): "官制禄",
+        ("建禄格", "食神"): "食神泄秀",
+        ("建禄格", "正财"): "财耗禄",
+        # 月刃格
+        ("月刃格", "七杀"): "杀制刃",
+        ("月刃格", "正官"): "官制刃",
+        ("月刃格", "食神"): "食神泄刃",
+        # 特殊格局
+        ("从弱格", "七杀"): "从弱杀顺势",
+        ("从弱格", "正财"): "从弱财顺势",
+        ("从弱格", "食神"): "从弱食伤顺势",
+        ("专旺格", "食神"): "食神泄秀",
+        ("专旺格", "正印"): "印生旺",
+        ("专旺格", "比肩"): "比劫助旺",
     }
     return ways.get((pattern, yong_shen), f"{pattern}用{yong_shen}")
 
@@ -597,3 +625,1213 @@ def find_wuxing_clash(chart_data: dict) -> tuple | None:
 def get_tongguan_wuxing(pair: tuple) -> str:
     """T6b: 获取通关五行"""
     return _TONGGUAN_MAP.get(pair, "")
+
+
+# ============================================================
+# 格局派重构：相神规则表 + 救应表 + 新函数
+# 基于《子平真诠》格局派体系
+# ============================================================
+
+# 相神维度映射（用于问题生成）
+XIANGSHEN_DIMENSIONS = {
+    "正印": "贵人学历", "偏印": "偏门专长",
+    "比肩": "朋辈协作", "劫财": "竞争人脉",
+    "食神": "才华创作", "伤官": "聪明表达",
+    "正财": "理财务实", "偏财": "商业直觉",
+    "正官": "规则纪律", "七杀": "决断魄力",
+}
+
+# 相神问题模板
+_XIANGSHEN_QUESTIONS = {
+    "正印": "你在学业上是否容易得到老师或长辈的欣赏和帮助？",
+    "偏印": "你是否对某个特殊领域有超越常人的钻研天赋？",
+    "比肩": "你是否常能得到朋友或同事的实质性帮助？",
+    "劫财": "你是否在人际网络中获益较多，善于借助他人力量？",
+    "食神": "你的创造才能或手艺是否在生活中给你带来了实质性的收益或认可？",
+    "伤官": "你是否常能靠自己的聪明才智或表达能力脱颖而出？",
+    "正财": "你对金钱和资源的把控是否比身边人更稳更准？",
+    "偏财": "你是否容易抓住别人没注意到的商业或投资机会？",
+    "正官": "你是否在讲规则、有秩序的环境中反而能发挥得更好？",
+    "七杀": "你是否在高压和挑战下反而能做出比平时更好的决策？",
+}
+
+
+# 相神问题模板（按角色区分）
+_XIANGSHEN_QUESTIONS_BY_ROLE = {
+    "正印": {
+        "护用": "你是否感觉有一种无形的力量在背后保护你，让你在困难时总能化险为夷？",
+        "化用": "你是否能把外界的压力转化为成长的动力，就像弹簧一样越压越强？",
+        "生用": "你在学业或专业领域是否容易得到持续的指导和支持？",
+    },
+    "偏印": {
+        "制用": "你是否能用自己的独特见解化解困境，找到别人看不到的出路？",
+        "化用": "你是否能把不寻常的经历或知识转化为自己的优势？",
+        "生用": "你是否对某个特殊领域有超越常人的钻研天赋？",
+    },
+    "比肩": {
+        "护用": "你是否常能得到朋友或同事的实质性帮助，在关键时刻有人站台？",
+        "生用": "你是否在团队合作中自然而然地成为核心，带动身边的人？",
+        "顺势": "你是否发现自己和志同道合的人一起做事时效率最高？",
+    },
+    "劫财": {
+        "制用": "你是否擅长在竞争中制衡对手，让自己处于有利位置？",
+        "生用": "你是否在人际网络中获益较多，善于借助他人力量？",
+        "顺势": "你是否发现在竞争激烈的环境中反而更能激发你的潜力？",
+    },
+    "食神": {
+        "制用": "你是否擅长在混乱或高压的环境中找到秩序，把威胁变成机会？",
+        "泄用": "你的创造力和才华是否有一个稳定的输出渠道，能持续产生成果？",
+        "生用": "你是否自然而然地就能为他人或团队创造价值？",
+    },
+    "伤官": {
+        "制用": "你是否能用自己的聪明才智化解规矩和约束带来的限制？",
+        "泄用": "你是否有一个让你充分释放才华和创意的舞台？",
+        "生用": "你是否常能靠自己的聪明才智或表达能力脱颖而出？",
+    },
+    "正财": {
+        "护用": "你是否有稳定的资源或财富在为你保驾护航？",
+        "泄用": "你是否善于把才华和机会转化为实在的收益？",
+        "生用": "你对金钱和资源的把控是否比身边人更稳更准？",
+    },
+    "偏财": {
+        "护用": "你是否有灵活的资源渠道在关键时刻为你提供支撑？",
+        "泄用": "你是否善于把商业直觉转化为实际收益？",
+        "生用": "你是否容易抓住别人没注意到的商业或投资机会？",
+    },
+    "正官": {
+        "制用": "你是否能在规则和秩序的框架内有效控制局面？",
+        "护用": "你是否有权威人士或制度在背后支持你的发展？",
+        "生用": "你是否在讲规则、有秩序的环境中反而能发挥得更好？",
+    },
+    "七杀": {
+        "制用": "你是否擅长直接面对并控制高压和危机局面？",
+        "化用": "你是否能把外部的压力和威胁转化为前进的动力？",
+        "生用": "你是否在高压和挑战下反而能做出比平时更好的决策？",
+    },
+}
+
+
+def _infer_role(way: str) -> str:
+    """从做功方式推断相神角色"""
+    if "制" in way or "驾" in way:
+        return "制用"
+    elif "化" in way:
+        return "化用"
+    elif "泄" in way or "泄秀" in way:
+        return "泄用"
+    elif "护" in way or "保护" in way:
+        return "护用"
+    elif "生" in way and "泄" not in way:
+        return "生用"
+    elif "顺势" in way or "从" in way:
+        return "顺势"
+    return "生用"  # 默认
+
+
+def _get_xiangshen_question(tg: str, way: str = "") -> str:
+    """获取相神验证问题（按角色区分）"""
+    role = _infer_role(way) if way else ""
+    if role:
+        role_questions = _XIANGSHEN_QUESTIONS_BY_ROLE.get(tg, {})
+        if role in role_questions:
+            return role_questions[role]
+    return _XIANGSHEN_QUESTIONS.get(tg, f"{tg}作为相神在哪些方面体现？")
+
+
+# ------------------------------------------------------------
+# PATTERN_XIANGSHEN_RULES — 相神规则表（替代 PATTERN_YONGSHEN）
+# 用神=月令定格之物（直接确定），相神=辅佐用神成格之物
+# ------------------------------------------------------------
+
+PATTERN_XIANGSHEN_RULES = {
+    # === 顺用四格（善神） ===
+    "正官格": {
+        "yongshen": "正官",
+        "mode": "顺用",
+        "xiangshen_candidates": [
+            {"ten_god": "正财", "role": "生用", "way": "财生官", "priority": 1},
+            {"ten_god": "正印", "role": "护用", "way": "印护官", "priority": 2},
+            {"ten_god": "偏财", "role": "生用", "way": "财生官", "priority": 3},
+            {"ten_god": "偏印", "role": "护用", "way": "印护官", "priority": 4},
+        ],
+        "jishen": ["伤官", "七杀"],
+        "defeat_causes": ["伤官克官", "官杀混杂", "官星被合"],
+    },
+    "正印格": {
+        "yongshen": "正印",
+        "mode": "顺用",
+        "xiangshen_candidates": [
+            {"ten_god": "正官", "role": "生用", "way": "官生印", "priority": 1},
+            {"ten_god": "七杀", "role": "生用", "way": "杀生印", "priority": 2},
+            {"ten_god": "比肩", "role": "护用", "way": "比劫护印", "priority": 3},
+        ],
+        "jishen": ["正财", "偏财"],
+        "defeat_causes": ["财星破印"],
+    },
+    "食神格": {
+        "yongshen": "食神",
+        "mode": "顺用",
+        "xiangshen_candidates": [
+            {"ten_god": "比肩", "role": "生用", "way": "比劫生食", "priority": 1},
+            {"ten_god": "正财", "role": "泄用", "way": "食神生财", "priority": 2},
+            {"ten_god": "劫财", "role": "生用", "way": "比劫生食", "priority": 3},
+        ],
+        "jishen": ["偏印"],
+        "defeat_causes": ["枭神夺食"],
+    },
+    "正财格": {
+        "yongshen": "正财",
+        "mode": "顺用",
+        "xiangshen_candidates": [
+            {"ten_god": "食神", "role": "生用", "way": "食伤生财", "priority": 1},
+            {"ten_god": "正官", "role": "护用", "way": "官制比劫护财", "priority": 2},
+            {"ten_god": "伤官", "role": "生用", "way": "食伤生财", "priority": 3},
+        ],
+        "jishen": ["比肩", "劫财"],
+        "defeat_causes": ["比劫夺财"],
+    },
+    # === 逆用四格（恶神） ===
+    "七杀格": {
+        "yongshen": "七杀",
+        "mode": "逆用",
+        "xiangshen_candidates": [
+            {"ten_god": "食神", "role": "制用", "way": "食神制杀", "priority": 1},
+            {"ten_god": "正印", "role": "化用", "way": "印化七杀", "priority": 2},
+            {"ten_god": "偏印", "role": "化用", "way": "印化七杀", "priority": 3},
+            {"ten_god": "伤官", "role": "制用", "way": "伤官驾杀", "priority": 4},
+        ],
+        "jishen": ["正财", "偏财"],
+        "defeat_causes": ["杀无制", "财星党杀", "制杀太过"],
+    },
+    "伤官格": {
+        "yongshen": "伤官",
+        "mode": "逆用",
+        "xiangshen_candidates": [
+            {"ten_god": "正印", "role": "制用", "way": "印制伤官", "priority": 1},
+            {"ten_god": "偏印", "role": "制用", "way": "印制伤官", "priority": 2},
+            {"ten_god": "偏财", "role": "泄用", "way": "财泄伤官", "priority": 3},
+            {"ten_god": "正财", "role": "泄用", "way": "财泄伤官", "priority": 4},
+        ],
+        "jishen": ["正官"],
+        "defeat_causes": ["伤官无制", "伤官见官"],
+    },
+    "偏印格": {
+        "yongshen": "偏印",
+        "mode": "逆用",
+        "xiangshen_candidates": [
+            {"ten_god": "偏财", "role": "制用", "way": "财制偏印", "priority": 1},
+            {"ten_god": "正财", "role": "制用", "way": "财制偏印", "priority": 2},
+        ],
+        "jishen": [],
+        "defeat_causes": ["枭神夺食", "偏印无制"],
+    },
+    "偏财格": {
+        "yongshen": "偏财",
+        "mode": "顺用",
+        "xiangshen_candidates": [
+            {"ten_god": "食神", "role": "生用", "way": "食伤生财", "priority": 1},
+            {"ten_god": "正官", "role": "护用", "way": "官护财", "priority": 2},
+            {"ten_god": "伤官", "role": "生用", "way": "食伤生财", "priority": 3},
+        ],
+        "jishen": ["比肩", "劫财"],
+        "defeat_causes": ["比劫夺财"],
+    },
+    # === 建禄格/月刃格（比劫当令，月令定格之物为比肩/劫财，逆用制之化之） ===
+    "建禄格": {
+        "yongshen": "比肩",
+        "mode": "逆用",
+        "xiangshen_candidates": [
+            {"ten_god": "正官", "role": "制用", "way": "官制禄", "priority": 1},
+            {"ten_god": "七杀", "role": "制用", "way": "杀制禄", "priority": 2},
+            {"ten_god": "正财", "role": "泄用", "way": "禄生财", "priority": 3},
+            {"ten_god": "食神", "role": "泄用", "way": "食伤泄秀", "priority": 4},
+        ],
+        "jishen": [],
+        "defeat_causes": ["建禄无制"],
+    },
+    "月刃格": {
+        "yongshen": "劫财",
+        "mode": "逆用",
+        "xiangshen_candidates": [
+            {"ten_god": "七杀", "role": "制用", "way": "杀制刃", "priority": 1},
+            {"ten_god": "正官", "role": "制用", "way": "官制刃", "priority": 2},
+            {"ten_god": "食神", "role": "泄用", "way": "食伤泄刃", "priority": 3},
+        ],
+        "jishen": [],
+        "defeat_causes": ["阳刃无制", "冲刃"],
+    },
+    # === 特殊格局 ===
+    "从弱格": {
+        "yongshen": "从势",
+        "mode": "顺势",
+        "xiangshen_candidates": [
+            {"ten_god": "七杀", "role": "顺势", "way": "从杀顺势", "priority": 1},
+            {"ten_god": "正财", "role": "顺势", "way": "从财顺势", "priority": 2},
+            {"ten_god": "食神", "role": "顺势", "way": "从儿顺势", "priority": 3},
+        ],
+        "jishen": ["正印", "偏印", "比肩", "劫财"],
+        "defeat_causes": ["印比扶身破从"],
+    },
+    "专旺格": {
+        "yongshen": "比肩",
+        "mode": "顺势",
+        "xiangshen_candidates": [
+            {"ten_god": "食神", "role": "泄秀", "way": "食伤泄秀", "priority": 1},
+            {"ten_god": "正印", "role": "生扶", "way": "印生旺神", "priority": 2},
+            {"ten_god": "比肩", "role": "顺势", "way": "比劫顺势", "priority": 3},
+        ],
+        "jishen": ["正官", "七杀"],
+        "defeat_causes": ["官杀犯旺"],
+    },
+    # === 化气格（天干五合化气，用神=化神） ===
+    "化气格": {
+        "yongshen": "化神",
+        "mode": "顺势",
+        "xiangshen_candidates": [
+            {"ten_god": "食神", "role": "泄秀", "way": "食伤泄化神之秀", "priority": 1},
+            {"ten_god": "正财", "role": "顺势", "way": "财星顺势", "priority": 2},
+            {"ten_god": "正印", "role": "生扶", "way": "印星生扶化神", "priority": 3},
+        ],
+        "jishen": ["正官", "七杀"],
+        "defeat_causes": ["化神被克", "日主有根破化"],
+    },
+}
+
+
+# ------------------------------------------------------------
+# JIUYING_TABLE — 救应对应表（败因 → 救应之神 → 救应机制）
+# 基于《子平真诠·论用神成败救应》
+# ------------------------------------------------------------
+
+JIUYING_TABLE = {
+    "伤官克官": {
+        "jiuying_shen": ["正印", "偏印"],
+        "mechanism": "印制伤官，伤官不克官",
+        "source": "《子平真诠》",
+    },
+    "官杀混杂": {
+        "jiuying_shen": ["食神"],
+        "mechanism": "食神制杀留官，或合去七杀留正官",
+        "source": "《子平真诠》《渊海子平》",
+    },
+    "官星被合": {
+        "jiuying_shen": [],
+        "mechanism": "看合化后能否成新格",
+        "source": "【补充】《子平真诠》论十干合而不合",
+    },
+    "比劫夺财": {
+        "jiuying_shen": ["正官", "七杀"],
+        "mechanism": "官杀制比劫，护财不破",
+        "source": "《子平真诠》",
+    },
+    "财星破印": {
+        "jiuying_shen": ["正官", "七杀"],
+        "mechanism": "官杀通关：财生官杀，官杀生印",
+        "source": "《子平真诠》",
+    },
+    "枭神夺食": {
+        "jiuying_shen": ["偏财", "正财"],
+        "mechanism": "财制偏印，护食神",
+        "source": "《子平真诠》",
+    },
+    "杀无制": {
+        "jiuying_shen": ["食神", "正印", "偏印"],
+        "mechanism": "食神制杀或印星化杀",
+        "source": "《子平真诠》",
+    },
+    "财星党杀": {
+        "jiuying_shen": ["比肩", "劫财"],
+        "mechanism": "比劫制财，断其党援",
+        "source": "【补充】《子平真诠》推论",
+    },
+    "制杀太过": {
+        "jiuying_shen": ["偏财", "正财"],
+        "mechanism": "财泄食神生七杀，恢复平衡",
+        "source": "《子平真诠》",
+    },
+    "伤官无制": {
+        "jiuying_shen": ["正印", "偏印", "偏财", "正财"],
+        "mechanism": "印制伤官或财泄伤官",
+        "source": "《子平真诠》",
+    },
+    "伤官见官": {
+        "jiuying_shen": ["偏财", "正财", "正印"],
+        "mechanism": "财通关（伤官生财，财生官）或印制伤官护官",
+        "source": "《子平真诠》",
+    },
+    "阳刃无制": {
+        "jiuying_shen": ["正官", "七杀"],
+        "mechanism": "官杀制刃",
+        "source": "《子平真诠》",
+    },
+    "冲刃": {
+        "jiuying_shen": [],
+        "mechanism": "合住冲刃之神解冲",
+        "source": "【补充】《滴天髓》合解冲理论",
+    },
+    "建禄无制": {
+        "jiuying_shen": ["正官", "七杀", "食神"],
+        "mechanism": "官杀制禄或食伤泄秀",
+        "source": "《子平真诠》",
+    },
+    "印比扶身破从": {
+        "jiuying_shen": [],
+        "mechanism": "无救应，从格被破",
+        "source": "《子平真诠》",
+    },
+    "官杀犯旺": {
+        "jiuying_shen": [],
+        "mechanism": "无救应，专旺格被破",
+        "source": "《子平真诠》",
+    },
+    "用神被合": {
+        "jiuying_shen": [],
+        "mechanism": "看合化后能否成新格",
+        "source": "【补充】《子平真诠》论十干合而不合",
+    },
+    "用神被冲": {
+        "jiuying_shen": [],
+        "mechanism": "合住冲神以解冲",
+        "source": "【补充】《子平真诠》第22章月令逢冲理论",
+    },
+    "偏印无制": {
+        "jiuying_shen": ["偏财", "正财"],
+        "mechanism": "财制偏印，使偏印不夺食不扰命",
+        "source": "《子平真诠》",
+    },
+    "化神被克": {
+        "jiuying_shen": ["正印"],
+        "mechanism": "印星生扶化神，化解克神",
+        "source": "《子平真诠》论化气格",
+    },
+    "日主有根破化": {
+        "jiuying_shen": [],
+        "mechanism": "日主有根则化不真，无救应需看真假化",
+        "source": "《子平真诠》论十干配合性情",
+    },
+}
+
+
+# ------------------------------------------------------------
+# 格局派核心函数
+# ------------------------------------------------------------
+
+# 天干五合: (stem_a, stem_b) → 化气五行
+_TIAN_GAN_HE = {
+    ("甲", "己"): "土", ("己", "甲"): "土",
+    ("乙", "庚"): "金", ("庚", "乙"): "金",
+    ("丙", "辛"): "水", ("辛", "丙"): "水",
+    ("丁", "壬"): "木", ("壬", "丁"): "木",
+    ("戊", "癸"): "火", ("癸", "戊"): "火",
+}
+
+
+def _check_tian_gan_he(stem_a: str, stem_b: str) -> str | None:
+    """检查两个天干是否五合，返回化气五行或None"""
+    return _TIAN_GAN_HE.get((stem_a, stem_b))
+
+
+def _determine_congshi_yongshen(dm_stem: str, chart_data: dict) -> str:
+    """从弱格动态确定用神：命局中最旺的十神（从杀/从财/从儿）
+
+    优先级：七杀 > 正财/偏财 > 食神/伤官
+    （按命局中出现的力量强弱判断）
+    """
+    fp = chart_data.get("four_pillars", {})
+    tg_counts = {}
+
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and stem != dm_stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            tg_counts[tg] = tg_counts.get(tg, 0) + 1
+        # 藏干也计入
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s and s != dm_stem:
+                tg = _calc_ten_god(dm_stem, s)
+                tg_counts[tg] = tg_counts.get(tg, 0) + w
+
+    # 优先从杀，次从财，再从儿
+    priority_order = ["七杀", "正官", "正财", "偏财", "食神", "伤官"]
+    best_tg = ""
+    best_score = 0
+    for tg in priority_order:
+        score = tg_counts.get(tg, 0)
+        if score > best_score:
+            best_score = score
+            best_tg = tg
+
+    return best_tg if best_tg else "七杀"  # 默认从杀
+
+
+def determine_yongshen(pattern: str, dm_stem: str, month_branch: str, chart_data: dict = None) -> dict:
+    """确定用神（=月令定格之物，直接确定，不竞争）
+
+    返回: {
+        "ten_god": "正官",
+        "five_element": "金",
+        "pattern": "正官格",
+        "mode": "顺用",
+    }
+    """
+    rules = PATTERN_XIANGSHEN_RULES.get(pattern, {})
+    ys_tg = rules.get("yongshen", "")
+    mode = rules.get("mode", "")
+
+    # 从弱格：动态确定用神为命局中最旺的十神（从杀/从财/从儿）
+    if ys_tg == "从势" and chart_data:
+        ys_tg = _determine_congshi_yongshen(dm_stem, chart_data)
+
+    wx = _resolve_five_element(dm_stem, ys_tg, "")
+    return {
+        "ten_god": ys_tg,
+        "five_element": wx,
+        "pattern": pattern,
+        "mode": mode,
+    }
+
+
+def _check_shen_in_chart(ten_god: str, dm_stem: str, chart_data: dict) -> bool:
+    """检查某十神是否在四柱天干中存在"""
+    fp = chart_data.get("four_pillars", {})
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            if tg == ten_god:
+                return True
+    # 也检查地支藏干
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            if s:
+                tg = _calc_ten_god(dm_stem, s)
+                if tg == ten_god:
+                    return True
+    return False
+
+
+def _check_shen_status(ten_god: str, chart_data: dict) -> tuple:
+    """检查某十神在命局中的状态：(exists, has_root, touches_dry)
+
+    - exists: 是否在四柱中存在（天干或藏干）
+    - has_root: 是否在地支有本气根
+    - touches_dry: 是否透干（天干出现）
+    """
+    fp = chart_data.get("four_pillars", {})
+    dm_stem = _extract_dm_stem(chart_data)
+    exists = False
+    touches_dry = False
+    has_root = False
+
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            if tg == ten_god:
+                exists = True
+                touches_dry = True
+
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s:
+                tg = _calc_ten_god(dm_stem, s)
+                if tg == ten_god:
+                    exists = True
+                    if w >= 0.5:
+                        has_root = True
+
+    return (exists, has_root, touches_dry)
+
+
+def generate_xiangshen_candidates(pattern: str, dm_stem: str, chart_data: dict) -> list:
+    """按顺用/逆用规则生成相神候选
+
+    返回候选列表，每个候选:
+    {
+        "role": "相神",
+        "ten_god": "正财",
+        "five_element": "火",
+        "gong_way": "财生官",
+        "priority": 1,
+        "confidence": 50,
+        "exists_in_chart": True/False,
+        "dim": "财运事业",
+        "question": "...",
+    }
+    """
+    rules = PATTERN_XIANGSHEN_RULES.get(pattern, {})
+    candidates_spec = rules.get("xiangshen_candidates", [])
+
+    candidates = []
+    for spec in candidates_spec:
+        tg = spec["ten_god"]
+        wx = _resolve_five_element(dm_stem, tg, "")
+        exists = _check_shen_in_chart(tg, dm_stem, chart_data)
+
+        candidates.append({
+            "role": "相神",
+            "ten_god": tg,
+            "five_element": wx,
+            "gong_way": spec["way"],
+            "priority": spec["priority"],
+            "confidence": 50 + (10 if exists else 0),
+            "exists_in_chart": exists,
+            "dim": XIANGSHEN_DIMENSIONS.get(tg, "综合"),
+            "question": _get_xiangshen_question(tg, spec["way"]),
+        })
+
+    return candidates
+
+
+def _check_guanxing_be_he(dm_stem: str, chart_data: dict) -> bool:
+    """检测正官星是否被天干五合（非日主自合）
+
+    《子平真诠·论十干合而不合》："甲用辛官，透丙作合，而官非其官"
+    日主自合不为合去："乙用庚官，日干之乙与庚作合，是我之官，是我合之"
+    """
+    fp = chart_data.get("four_pillars", {})
+    # 找到正官天干
+    guan_stem = None
+    guan_pos = None
+    for pos in ["year", "month", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and _calc_ten_god(dm_stem, stem) == "正官":
+            guan_stem = stem
+            guan_pos = pos
+            break
+    if not guan_stem:
+        return False
+
+    # 检查是否有其他天干与正官五合（排除日主自合）
+    for pos in ["year", "month", "hour"]:
+        if pos == guan_pos:
+            continue
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and stem != dm_stem:
+            if _check_tian_gan_he(guan_stem, stem):
+                return True
+    return False
+
+
+def _check_yongshen_be_he(pattern: str, dm_stem: str, chart_data: dict) -> bool:
+    """检测用神是否被天干五合（非日主自合）"""
+    rules = PATTERN_XIANGSHEN_RULES.get(pattern, {})
+    ys_tg_name = rules.get("yongshen", "")
+    if not ys_tg_name or ys_tg_name == "从势":
+        return False
+
+    fp = chart_data.get("four_pillars", {})
+    # 找到用神天干
+    ys_stem = None
+    ys_pos = None
+    for pos in ["year", "month", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and _calc_ten_god(dm_stem, stem) == ys_tg_name:
+            ys_stem = stem
+            ys_pos = pos
+            break
+    if not ys_stem:
+        return False
+
+    # 检查是否有其他天干与用神五合（排除日主自合）
+    for pos in ["year", "month", "hour"]:
+        if pos == ys_pos:
+            continue
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and stem != dm_stem:
+            if _check_tian_gan_he(ys_stem, stem):
+                return True
+    return False
+
+
+def _check_yongshen_chong(pattern: str, chart_data: dict) -> bool:
+    """检测月令（用神之根）是否被地支六冲"""
+    fp = chart_data.get("four_pillars", {})
+    month_branch = fp.get("month", {}).get("branch", "")
+    if not month_branch:
+        return False
+
+    opposite = _OPPOSITES.get(month_branch, "")
+    if not opposite:
+        return False
+
+    # 检查年支、日支、时支是否冲月令
+    for pos in ["year", "day", "hour"]:
+        b = fp.get(pos, {}).get("branch", "")
+        if b == opposite:
+            return True
+    return False
+
+
+def _check_defeat_cause(cause_name: str, pattern: str, chart_data: dict) -> bool:
+    """检测命局中是否存在某败因"""
+    dm_stem = _extract_dm_stem(chart_data)
+    fp = chart_data.get("four_pillars", {})
+
+    # 收集四柱所有天干十神
+    all_tg = set()
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            all_tg.add(_calc_ten_god(dm_stem, stem))
+
+    if cause_name == "伤官克官":
+        return "伤官" in all_tg and "正官" in all_tg
+    elif cause_name == "官杀混杂":
+        return "正官" in all_tg and "七杀" in all_tg
+    elif cause_name == "官星被合":
+        # 正官透干且被他干五合（非日主自合）
+        return _check_guanxing_be_he(dm_stem, chart_data)
+    elif cause_name == "比劫夺财":
+        return ("比肩" in all_tg or "劫财" in all_tg) and ("正财" in all_tg or "偏财" in all_tg)
+    elif cause_name == "财星破印":
+        return ("正财" in all_tg or "偏财" in all_tg) and ("正印" in all_tg or "偏印" in all_tg)
+    elif cause_name == "枭神夺食":
+        return "偏印" in all_tg and "食神" in all_tg
+    elif cause_name == "杀无制":
+        return "七杀" in all_tg and "食神" not in all_tg and "正印" not in all_tg and "偏印" not in all_tg
+    elif cause_name == "财星党杀":
+        return ("正财" in all_tg or "偏财" in all_tg) and "七杀" in all_tg
+    elif cause_name == "制杀太过":
+        # 食神数量 >= 2 且七杀存在
+        sg_count = sum(1 for pos in ["year", "month", "day", "hour"]
+                       if _calc_ten_god(dm_stem, fp.get(pos, {}).get("stem", "")) == "食神")
+        return sg_count >= 2 and "七杀" in all_tg
+    elif cause_name == "伤官无制":
+        # 伤官伤尽（不见正官）则为贵格，不判败
+        if pattern == "伤官格" and "正官" not in all_tg:
+            # 检查藏干中也无正官
+            has_guan_hidden = False
+            for pos in ["year", "month", "day", "hour"]:
+                for hs in fp.get(pos, {}).get("hidden_stems", []):
+                    s = hs.get("stem", "") if isinstance(hs, dict) else hs
+                    if s and _calc_ten_god(dm_stem, s) == "正官":
+                        has_guan_hidden = True
+                        break
+            if not has_guan_hidden:
+                return False  # 伤官伤尽，不判败
+        return "伤官" in all_tg and "正印" not in all_tg and "偏印" not in all_tg
+    elif cause_name == "伤官见官":
+        return "伤官" in all_tg and "正官" in all_tg
+    elif cause_name == "阳刃无制":
+        return pattern == "月刃格" and "正官" not in all_tg and "七杀" not in all_tg
+    elif cause_name == "冲刃":
+        # 简化：月刃格且月令被冲
+        month_branch = fp.get("month", {}).get("branch", "")
+        for pos in ["year", "day"]:
+            b = fp.get(pos, {}).get("branch", "")
+            if b and b == _OPPOSITES.get(month_branch, ""):
+                return True
+        return False
+    elif cause_name == "建禄无制":
+        return pattern == "建禄格" and "正官" not in all_tg and "七杀" not in all_tg and "食神" not in all_tg
+    elif cause_name == "印比扶身破从":
+        if pattern != "从弱格":
+            return False
+        return "正印" in all_tg or "偏印" in all_tg or "比肩" in all_tg or "劫财" in all_tg
+    elif cause_name == "官杀犯旺":
+        if pattern != "专旺格":
+            return False
+        return "正官" in all_tg or "七杀" in all_tg
+    elif cause_name == "用神被合":
+        return _check_yongshen_be_he(pattern, dm_stem, chart_data)
+    elif cause_name == "用神被冲":
+        return _check_yongshen_chong(pattern, chart_data)
+    elif cause_name == "偏印无制":
+        # 偏印格中偏印透干且无财星制之
+        return pattern == "偏印格" and "偏印" in all_tg and "偏财" not in all_tg and "正财" not in all_tg
+    elif cause_name == "化神被克":
+        # 化气格中化神五行被克
+        if pattern != "化气格":
+            return False
+        huaqi_wx = _detect_huaqi_wuxing(dm_stem, chart_data)
+        if not huaqi_wx:
+            return False
+        ke_wx = _KE.get(huaqi_wx, "")
+        for pos in ["year", "month", "day", "hour"]:
+            stem = fp.get(pos, {}).get("stem", "")
+            if stem and WUXING_MAP.get(stem, "") == ke_wx and stem != dm_stem:
+                return True
+        return False
+    elif cause_name == "日主有根破化":
+        # 化气格中日主有根则化不真
+        if pattern != "化气格":
+            return False
+        dm_wx = WUXING_MAP.get(dm_stem, "")
+        for pos in ["year", "month", "day", "hour"]:
+            for hs in fp.get(pos, {}).get("hidden_stems", []):
+                s = hs.get("stem", "") if isinstance(hs, dict) else hs
+                w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+                if s and WUXING_MAP.get(s, "") == dm_wx and w >= 0.5:
+                    return True
+        return False
+
+    return False
+
+
+def check_chengbai(pattern: str, yongshen: dict, xiangshen: dict, chart_data: dict) -> dict:
+    """成败检测：检测命局中是否有克用神、混用神之物
+
+    返回: {
+        "is_defeated": False,
+        "defeat_causes": [],
+        "has_xiangshen": True,
+    }
+    """
+    rules = PATTERN_XIANGSHEN_RULES.get(pattern, {})
+    defeat_cause_names = rules.get("defeat_causes", [])
+
+    causes_found = []
+    for cause_name in defeat_cause_names:
+        if _check_defeat_cause(cause_name, pattern, chart_data):
+            causes_found.append(cause_name)
+
+    return {
+        "is_defeated": len(causes_found) > 0,
+        "defeat_causes": causes_found,
+        "has_xiangshen": xiangshen.get("exists_in_chart", False) if xiangshen else False,
+    }
+
+
+def _level_rank(level: str) -> int:
+    """救应等级转数字"""
+    ranks = {"无": 0, "下等": 1, "中等": 2, "上等": 3}
+    return ranks.get(level, 0)
+
+
+def check_jiuying_v2(pattern: str, defeat_causes: list, chart_data: dict) -> dict:
+    """救应检测：检测是否有制忌之神
+
+    返回: {
+        "has_jiuying": True,
+        "jiuying_shen": "正印",
+        "jiuying_level": "上等",
+        "mechanism": "印制伤官",
+    }
+    """
+    best_jiuying = None
+    best_level = "无"
+    best_mechanism = ""
+
+    for cause_name in defeat_causes:
+        rule = JIUYING_TABLE.get(cause_name, {})
+        jiuying_shens = rule.get("jiuying_shen", [])
+
+        for shen in jiuying_shens:
+            exists, has_root, touches = _check_shen_status(shen, chart_data)
+            if exists:
+                if touches and has_root:
+                    level = "上等"
+                elif touches:
+                    level = "中等"
+                else:
+                    level = "下等"
+
+                if _level_rank(level) > _level_rank(best_level):
+                    best_jiuying = shen
+                    best_level = level
+                    best_mechanism = rule.get("mechanism", "")
+
+    return {
+        "has_jiuying": best_jiuying is not None,
+        "jiuying_shen": best_jiuying,
+        "jiuying_level": best_level,
+        "mechanism": best_mechanism,
+    }
+
+
+# ------------------------------------------------------------
+# 化气格检测
+# ------------------------------------------------------------
+
+def _detect_huaqi_wuxing(dm_stem: str, chart_data: dict) -> str | None:
+    """检测天干五合化气，返回化神五行或None
+
+    《子平真诠·论十干配合性情》：日干与月干或时干五合，化神当令乘旺为真化
+    """
+    fp = chart_data.get("four_pillars", {})
+    month_stem = fp.get("month", {}).get("stem", "")
+    hour_stem = fp.get("hour", {}).get("stem", "")
+
+    # 日干与月干或时干五合
+    for partner in [month_stem, hour_stem]:
+        if partner and partner != dm_stem:
+            huaqi_wx = _check_tian_gan_he(dm_stem, partner)
+            if huaqi_wx:
+                return huaqi_wx
+    return None
+
+
+def check_huaqi_ge(dm_stem: str, chart_data: dict) -> dict | None:
+    """检测命局是否构成化气格
+
+    条件：
+    1. 日干与月干或时干形成天干五合
+    2. 化神五行在月令得气（月令本气或藏干与化神同类）
+    3. 日主无强根（真化条件）
+
+    返回: {"is_huaqi": True, "huaqi_wuxing": "土", "is_zhen": True} 或 None
+    """
+    huaqi_wx = _detect_huaqi_wuxing(dm_stem, chart_data)
+    if not huaqi_wx:
+        return None
+
+    fp = chart_data.get("four_pillars", {})
+    month_branch = fp.get("month", {}).get("branch", "")
+
+    # 检查化神是否在月令得气
+    month_stems = get_month_stems(month_branch) if month_branch else []
+    month_wx = [WUXING_MAP.get(s, "") for s in month_stems]
+    if huaqi_wx not in month_wx:
+        return None  # 化神不得月令，不构成化气格
+
+    # 检查日主是否有强根（真化vs假化）
+    dm_wx = WUXING_MAP.get(dm_stem, "")
+    has_strong_root = False
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s and WUXING_MAP.get(s, "") == dm_wx and w >= 0.5:
+                has_strong_root = True
+                break
+
+    is_zhen = not has_strong_root
+
+    return {
+        "is_huaqi": True,
+        "huaqi_wuxing": huaqi_wx,
+        "is_zhen": is_zhen,
+        "pattern": "化气格",
+    }
+
+
+# ------------------------------------------------------------
+# 用神变化检测
+# ------------------------------------------------------------
+
+def check_yongshen_bianhua(pattern: str, dm_stem: str, chart_data: dict) -> dict:
+    """检测用神是否因月令逢冲或透干变化而需变更
+
+    《子平真诠·论用神变化》：
+    - 月令逢冲而用神变者，须从他处另寻用神
+    - 透干变化：月令藏干透出不同天干则用神不同
+
+    返回: {
+        "has_bianhua": bool,
+        "reason": "月令逢冲" / "透干变化" / "",
+        "new_yongshen": "十神名" or "",
+    }
+    """
+    fp = chart_data.get("four_pillars", {})
+    month_branch = fp.get("month", {}).get("branch", "")
+
+    # 1. 月令逢冲 → 用神可能变化
+    if _check_yongshen_chong(pattern, chart_data):
+        # 月令被冲，另寻透干之物为用
+        month_stems = get_month_stems(month_branch) if month_branch else []
+        # 优先找月令中气/余气透干
+        for i, stem in enumerate(month_stems[1:], 1):  # 跳过本气
+            for pos in ["year", "month", "hour"]:
+                tg_stem = fp.get(pos, {}).get("stem", "")
+                if tg_stem == stem:
+                    new_tg = _calc_ten_god(dm_stem, stem)
+                    if new_tg and new_tg not in ("比肩", "劫财"):
+                        return {
+                            "has_bianhua": True,
+                            "reason": "月令逢冲",
+                            "new_yongshen": new_tg,
+                        }
+        # 如果中气余气都未透，找四柱中其他透干的官杀/食伤/财星
+        for pos in ["year", "month", "hour"]:
+            stem = fp.get(pos, {}).get("stem", "")
+            if stem and stem != dm_stem:
+                tg = _calc_ten_god(dm_stem, stem)
+                if tg in ("正官", "七杀", "食神", "伤官", "正财", "偏财",
+                          "正印", "偏印"):
+                    return {
+                        "has_bianhua": True,
+                        "reason": "月令逢冲",
+                        "new_yongshen": tg,
+                    }
+
+    # 2. 透干变化：月令中气/余气透出且力量强于本气
+    touchu = detect_ganzhi_touchu(chart_data)
+    if touchu and touchu.get("level") in ("中气", "余气") and touchu.get("is_strong"):
+        new_tg = touchu.get("touched_ten_god", "")
+        if new_tg and new_tg not in ("比肩", "劫财"):
+            current_ys = PATTERN_XIANGSHEN_RULES.get(pattern, {}).get("yongshen", "")
+            if new_tg != current_ys:
+                return {
+                    "has_bianhua": True,
+                    "reason": "透干变化",
+                    "new_yongshen": new_tg,
+                }
+
+    return {"has_bianhua": False, "reason": "", "new_yongshen": ""}
+
+
+# ------------------------------------------------------------
+# 加权因子函数（调候/扶抑降级为加权因子）
+# ------------------------------------------------------------
+
+# 调候五行矩阵: (日干, 月支) → 首选调候五行
+# 基于《穷通宝鉴》十天干十二月令调候用神表
+_TIAOHOU_MATRIX = {
+    "甲": {"寅": "火", "卯": "火", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "金", "酉": "金", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "乙": {"寅": "火", "卯": "火", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "水", "酉": "水", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "丙": {"寅": "水", "卯": "水", "辰": "水", "巳": "金", "午": "水", "未": "金",
+           "申": "水", "酉": "水", "戌": "木", "亥": "木", "子": "水", "丑": "水"},
+    "丁": {"寅": "木", "卯": "木", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "木", "酉": "木", "戌": "木", "亥": "木", "子": "木", "丑": "木"},
+    "戊": {"寅": "火", "卯": "火", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "火", "酉": "火", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "己": {"寅": "火", "卯": "火", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "火", "酉": "火", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "庚": {"寅": "火", "卯": "火", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "火", "酉": "火", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "辛": {"寅": "水", "卯": "水", "辰": "木", "巳": "水", "午": "水", "未": "水",
+           "申": "水", "酉": "水", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "壬": {"寅": "金", "卯": "金", "辰": "木", "巳": "金", "午": "金", "未": "水",
+           "申": "木", "酉": "木", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+    "癸": {"寅": "金", "卯": "金", "辰": "木", "巳": "金", "午": "金", "未": "水",
+           "申": "金", "酉": "金", "戌": "木", "亥": "火", "子": "火", "丑": "火"},
+}
+
+
+def _get_tiaohou_wuxing(dm_stem: str, month_branch: str) -> str:
+    """获取调候五行（基于穷通宝鉴十天干十二月令表）"""
+    matrix = _TIAOHOU_MATRIX.get(dm_stem, {})
+    return matrix.get(month_branch, "")
+
+
+def get_tiaohou_weight(dm_stem: str, month_branch: str, candidate: dict) -> int:
+    """调候加权因子：返回对候选的加权分（-30 ~ +30）"""
+    tiaohou_wx = _get_tiaohou_wuxing(dm_stem, month_branch)
+    if not tiaohou_wx:
+        return 0
+
+    candidate_wx = candidate.get("five_element", "")
+    if candidate_wx == tiaohou_wx:
+        return 30
+    elif _SHENG.get(candidate_wx, "") == tiaohou_wx or _SHENG.get(tiaohou_wx, "") == candidate_wx:
+        return 15
+    elif candidate_wx == _KE.get(tiaohou_wx, "") or tiaohou_wx == _KE.get(candidate_wx, ""):
+        return -15
+    return 0
+
+
+def get_fuyi_weight(wangshuai_level: str, candidate: dict) -> int:
+    """扶抑加权因子：返回对候选的加权分（-20 ~ +20）"""
+    if wangshuai_level in ("极旺", "身旺"):
+        if candidate.get("ten_god") in ("正官", "七杀", "正财", "偏财", "食神", "伤官"):
+            return 20
+        else:
+            return -10
+    elif wangshuai_level in ("极弱", "身弱"):
+        if candidate.get("ten_god") in ("正印", "偏印", "比肩", "劫财"):
+            return 20
+        else:
+            return -10
+    return 0
+
+
+# ------------------------------------------------------------
+# 格神取运 — 大运喜忌规则表
+# 基于《子平真诠》各格局取运章节
+# ------------------------------------------------------------
+
+PATTERN_DAYUN_RULES = {
+    "正官格": {"xi": ["正财运", "偏财运", "正印运", "偏印运"], "ji": ["伤官运", "七杀运"]},
+    "七杀格": {"xi": ["食神运", "正印运", "偏印运"], "ji": ["正财运", "偏财运"]},
+    "正财格": {"xi": ["食神运", "伤官运", "正官运"], "ji": ["比肩运", "劫财运"]},
+    "偏财格": {"xi": ["食神运", "伤官运", "正官运"], "ji": ["比肩运", "劫财运"]},
+    "正印格": {"xi": ["正官运", "七杀运", "比肩运"], "ji": ["正财运", "偏财运"]},
+    "偏印格": {"xi": ["偏财运", "正财运"], "ji": ["食神运"]},
+    "食神格": {"xi": ["比肩运", "劫财运", "正财运"], "ji": ["偏印运"]},
+    "伤官格": {"xi": ["正印运", "偏印运", "偏财运"], "ji": ["正官运"]},
+    "建禄格": {"xi": ["正官运", "七杀运", "食神运", "正财运"], "ji": ["比肩运", "劫财运"]},
+    "月刃格": {"xi": ["七杀运", "正官运", "食神运"], "ji": ["比肩运", "劫财运"]},
+    "从弱格": {"xi": ["七杀运", "正财运", "偏财运", "食神运"], "ji": ["正印运", "偏印运", "比肩运"]},
+    "专旺格": {"xi": ["食神运", "伤官运", "正印运"], "ji": ["正官运", "七杀运"]},
+    "化气格": {"xi": ["食神运", "正财运", "正印运"], "ji": ["正官运", "七杀运"]},
+}
+
+
+def get_dayun_xiji(pattern: str) -> dict:
+    """获取格局的大运喜忌
+
+    返回: {"xi": ["正财运", ...], "ji": ["伤官运", ...]}
+    """
+    return PATTERN_DAYUN_RULES.get(pattern, {"xi": [], "ji": []})
+
+
+# ------------------------------------------------------------
+# 真从假从判断
+# ------------------------------------------------------------
+
+def check_zhen_jia_cong(chart_data: dict) -> dict:
+    """判断从弱格/专旺格的真假
+
+    《子平真诠》《滴天髓》任铁樵注：
+    - 真从：日主无根无气，完全顺应旺神
+    - 假从：日主有微根或印比暗藏，从得不纯
+
+    返回: {"is_zhen": bool, "reason": str}
+    """
+    dm_stem = _extract_dm_stem(chart_data)
+    fp = chart_data.get("four_pillars", {})
+    dm_wx = WUXING_MAP.get(dm_stem, "")
+
+    # 检查日主是否有根（本气或中气藏干与日主同类）
+    has_root = False
+    has_yin_bi = False  # 有印比暗藏
+
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if not s:
+                continue
+            hs_wx = WUXING_MAP.get(s, "")
+            tg = _calc_ten_god(dm_stem, s)
+            # 同类五行（比劫根）
+            if hs_wx == dm_wx and w >= 0.3:
+                has_root = True
+            # 印星或比肩劫财暗藏
+            if tg in ("正印", "偏印", "比肩", "劫财"):
+                has_yin_bi = True
+
+    # 也检查天干
+    for pos in ["year", "month", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            if tg in ("正印", "偏印", "比肩", "劫财"):
+                has_yin_bi = True
+
+    if not has_root and not has_yin_bi:
+        return {"is_zhen": True, "reason": "日主无根无印比，真从"}
+    elif has_root:
+        return {"is_zhen": False, "reason": "日主有根，假从"}
+    else:
+        return {"is_zhen": False, "reason": "日主有印比暗藏，假从不纯"}
+
+
+# ------------------------------------------------------------
+# 格局高低评判（在用神+成败救应之后）
+# ------------------------------------------------------------
+
+def _calc_youqing_score(pattern: str, yongshen: dict, xiangshen: dict, chart_data: dict) -> int:
+    """计算有情分数 (0-4)"""
+    score = 0
+    dm_stem = _extract_dm_stem(chart_data)
+    fp = chart_data.get("four_pillars", {})
+
+    ys_tg = yongshen.get("ten_god", "")
+    ys_wx = yongshen.get("five_element", "")
+
+    # Q-01: 用神贴近日主（日支、月干、时干）
+    day_branch = fp.get("day", {}).get("branch", "")
+    month_stem = fp.get("month", {}).get("stem", "")
+    hour_stem = fp.get("hour", {}).get("stem", "")
+    near_positions = []
+    if month_stem:
+        near_positions.append(_calc_ten_god(dm_stem, month_stem))
+    if hour_stem:
+        near_positions.append(_calc_ten_god(dm_stem, hour_stem))
+    # 日支藏干
+    for hs in fp.get("day", {}).get("hidden_stems", []):
+        s = hs.get("stem", "") if isinstance(hs, dict) else hs
+        if s:
+            near_positions.append(_calc_ten_god(dm_stem, s))
+    if ys_tg in near_positions:
+        score += 1
+
+    # Q-02: 用神不被天干五合（日主自合不为合去）
+    if not _check_yongshen_be_he(pattern, dm_stem, chart_data):
+        score += 1
+
+    # Q-04: 相神配置齐全
+    if xiangshen and xiangshen.get("exists_in_chart"):
+        score += 1
+
+    # Q-06: 五行流通（相神→用神→日主形成相生）
+    if xiangshen and xiangshen.get("exists_in_chart"):
+        xs_wx = xiangshen.get("five_element", "")
+        dm_wx = WUXING_MAP.get(dm_stem, "")
+        # 相神生用神 或 用神生日主
+        if _SHENG.get(xs_wx, "") == ys_wx or _SHENG.get(ys_wx, "") == dm_wx:
+            score += 1
+
+    return score
+
+
+def _calc_youli_score(pattern: str, yongshen: dict, xiangshen: dict, chart_data: dict) -> int:
+    """计算有力分数 (0-4)"""
+    score = 0
+    dm_stem = _extract_dm_stem(chart_data)
+    fp = chart_data.get("four_pillars", {})
+
+    ys_tg = yongshen.get("ten_god", "")
+
+    # L-01: 用神得月令（月令本气即用神，格局法中默认满足）
+    score += 1
+
+    # L-02 + L-03: 用神有根 + 透干
+    exists, has_root, touches = _check_shen_status(ys_tg, chart_data)
+    if touches:
+        score += 1
+    if has_root:
+        score += 1
+
+    # L-05: 用神有生源（相神存在且是生用神的角色）
+    if xiangshen and xiangshen.get("exists_in_chart"):
+        role = xiangshen.get("gong_way", "")
+        if "生" in role or "护" in role:
+            score += 1
+
+    return score
+
+
+def judge_pattern_quality_v2(
+    pattern: str, yongshen: dict, xiangshen: dict,
+    chengbai: dict, jiuying: dict, chart_data: dict
+) -> str:
+    """格局高低评判（在用神+成败救应之后）
+
+    返回: "上格" / "中格" / "中下格" / "下格"
+    """
+    # 败格无救 → 下格
+    if chengbai.get("is_defeated") and not jiuying.get("has_jiuying", False):
+        return "下格"
+
+    youqing_score = _calc_youqing_score(pattern, yongshen, xiangshen, chart_data)
+    youli_score = _calc_youli_score(pattern, yongshen, xiangshen, chart_data)
+
+    # 败格有救 → 根据救应等级
+    if chengbai.get("is_defeated") and jiuying.get("has_jiuying"):
+        level = jiuying.get("jiuying_level", "无")
+        if level == "上等":
+            return "中格"
+        elif level == "中等":
+            return "中下格"
+        else:
+            return "下格"
+
+    # 无败因 → 按有情有力评判
+    if youqing_score >= 3 and youli_score >= 3:
+        return "上格"
+    elif youqing_score >= 2 and youli_score >= 2:
+        return "中格"
+    elif youqing_score >= 1 or youli_score >= 1:
+        return "中下格"
+    else:
+        return "下格"
