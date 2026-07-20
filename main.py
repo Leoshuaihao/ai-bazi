@@ -4,7 +4,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 import os
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, Header, Depends
 from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -889,10 +889,17 @@ async def predictions_next(request: dict):
 # ── 新流程端点：逐步验证收敛 ──
 
 from services.verification import init_verification, process_verification, get_session as get_verification_session
+from services.gate import require_auth
+from services.user_data import (
+    save_chart_record,
+    save_verification_record,
+    get_user_charts,
+    get_user_verifications,
+)
 
 
 @app.post("/api/predictions/start")
-async def predictions_start(birth: BirthInfo):
+async def predictions_start(birth: BirthInfo, authorization: str = Header(None)):
     """新的断前事入口：排盘 + 格局分类 + 返回第一条验证问题
 
     替代旧的 /api/predictions/generate（固定7题），
@@ -906,7 +913,19 @@ async def predictions_start(birth: BirthInfo):
         raise HTTPException(status_code=500, detail=f"排盘失败: {str(e)}")
 
     chart_data = chart.model_dump() if hasattr(chart, "model_dump") else chart
-    result = init_verification(chart_data)
+
+    # 提取登录用户 ID（可选）
+    user_id = None
+    if authorization and authorization.startswith("Bearer "):
+        try:
+            from services.auth import verify_jwt
+            uid = verify_jwt(authorization[7:])
+            if uid:
+                user_id = uid
+        except Exception:
+            pass
+
+    result = init_verification(chart_data, user_id=user_id)
 
     # 生成 prediction session（兼容旧校准流程）
     import uuid
@@ -2297,6 +2316,64 @@ async def dayun_chat_endpoint(request: dict):
         if content and not content.startswith("[API_"): return {"answer": content.strip()}
     except Exception: pass
     return {"answer": "抱歉，暂时无法回答，请稍后重试。"}
+
+
+# ============================================================
+# 用户数据持久化 API
+# ============================================================
+
+@app.get("/api/user/readings")
+async def get_user_readings(user_id: str = Depends(require_auth)):
+    """获取当前用户的排盘和验证记录（需要登录）"""
+    charts = await get_user_charts(user_id, limit=10)
+    verifications = await get_user_verifications(user_id, limit=10)
+    return {
+        "charts": charts,
+        "verifications": verifications,
+    }
+
+
+@app.post("/api/user/save-reading")
+async def save_user_reading(
+    request: Request,
+    user_id: str = Depends(require_auth),
+):
+    """保存排盘记录和验证结果（需要登录）"""
+    try:
+        body = await request.json()
+    except Exception:
+        raise HTTPException(status_code=400, detail="无效的请求体")
+
+    chart_data = body.get("chart_data")
+    birth_info = body.get("birth_info")
+    verification_result = body.get("verification_result")
+    verification_history = body.get("verification_history", [])
+
+    chart_record_id = None
+
+    # 保存排盘记录
+    if chart_data and birth_info:
+        try:
+            chart_record_id = await save_chart_record(user_id, birth_info, chart_data)
+        except Exception as e:
+            print(f"[save-reading] chart save failed: {e}")
+
+    # 保存验证结果
+    if verification_result:
+        try:
+            await save_verification_record(
+                user_id=user_id,
+                chart_record_id=chart_record_id,
+                result=verification_result,
+                history=verification_history,
+            )
+        except Exception as e:
+            print(f"[save-reading] verification save failed: {e}")
+
+    return {
+        "ok": True,
+        "chart_record_id": chart_record_id,
+    }
 
 
 # 静态文件服务（放在路由定义之后，避免覆盖 API 路由）

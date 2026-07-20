@@ -22,6 +22,7 @@
     </div>
     <div class="top-actions">
       <button id="auth-btn" class="btn btn-ghost" onclick="openAuthModal()">登录</button>
+      <button id="records-btn" class="btn btn-ghost" onclick="toggleRecordsPopup()" hidden>📋 我的记录</button>
       <span id="points-badge" class="points-badge" onclick="togglePointsCenter()" hidden>💎 <span id="points-balance-text">0</span></span>
       <button id="chat-toggle-btn" class="btn btn-secondary chat-toggle-badge" onclick="toggleChat()" hidden>💬 问答<span id="chat-unread-dot" class="chat-unread-dot" hidden></span></button>
       <button class="btn btn-ghost" type="button" id="sample-btn">填入示例</button>
@@ -211,6 +212,14 @@
   <h3>是否进入断前事校正？</h3>
   <p>八字已经排出，断前事会用你的真实过往校验后台草稿。</p>
   <div class="popover-actions"><button class="btn btn-ghost" type="button" id="invite-later-btn">我再看会</button><button class="btn btn-primary" type="button" id="invite-start-btn">开始校正</button></div>
+</div>
+
+<!-- 我的记录弹层 -->
+<div id="records-popover" class="popover" hidden>
+  <h3>📋 我的记录</h3>
+  <div id="records-list" style="max-height:320px;overflow-y:auto;margin-top:8px;">
+    <div class="loading-inline">加载中...</div>
+  </div>
 </div>
 
 <!-- 积分中心弹层 -->
@@ -2024,7 +2033,20 @@ async function applyLockedResult(){
   if(S.chart){S.chart.yongshen={...(S.chart.yongshen||{}),primary:result.yong_shen,pattern:result.pattern};renderYongshen(S.chart.yongshen);updateCalGate();renderDayun(S.chart.dayun||[])}
   S.reportPublished=true;S.predictionsReady=true;
   closePredictionDialog();showToast('格局已锁定 ✦ 报告已更新');
+  // 自动保存到用户记录（若已登录）
+  saveReadingToCloud();
   try{await loadForecast(S.calibrationResult)}catch(e){console.warn('forecast load failed',e)}
+}
+
+async function saveReadingToCloud(){
+  if(!AUTH_TOKEN)return;
+  const payload={
+    chart_data:S.chart||{},
+    birth_info:S.payload||{},
+    verification_result:S.calibrationResult||{},
+    verification_history:S.predHistory||[]
+  };
+  try{await authFetch('/api/user/save-reading',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});console.log('[save] reading saved')}catch(e){console.warn('[save] failed',e)}
 }
 
 function resetPredictionFlow(){
@@ -2228,6 +2250,8 @@ function updateAuthUI() {
     // Show points badge and chat toggle when logged in
     const pointsBadge = document.getElementById('points-badge');
     if (pointsBadge) pointsBadge.hidden = false;
+    const recordsBtn = document.getElementById('records-btn');
+    if (recordsBtn) recordsBtn.hidden = false;
     const chatToggle = document.getElementById('chat-toggle-btn');
     if (chatToggle) chatToggle.hidden = false;
     loadPoints();
@@ -2241,6 +2265,8 @@ function updateAuthUI() {
     btn.onclick = openAuthModal;
     const pointsBadge = document.getElementById('points-badge');
     if (pointsBadge) pointsBadge.hidden = true;
+    const recordsBtn = document.getElementById('records-btn');
+    if (recordsBtn) recordsBtn.hidden = true;
     const chatToggle = document.getElementById('chat-toggle-btn');
     if (chatToggle) chatToggle.hidden = true;
   }
@@ -2250,6 +2276,57 @@ function showUserMenu() {
   const popover = document.getElementById('points-popover');
   if (popover) {
     popover.hidden = !popover.hidden;
+  }
+}
+
+async function toggleRecordsPopup() {
+  const popover = document.getElementById('records-popover');
+  if (!popover) return;
+  // 关闭其他弹层
+  const pp = document.getElementById('points-popover'); if (pp) pp.hidden = true;
+  popover.hidden = !popover.hidden;
+  if (!popover.hidden) await loadRecords();
+}
+
+async function loadRecords() {
+  const list = document.getElementById('records-list');
+  if (!list) return;
+  list.innerHTML = '<div class="loading-inline">加载中...</div>';
+  try {
+    const data = await authFetch('/api/user/readings');
+    const charts = data.charts || [];
+    const vers = data.verifications || [];
+    if (!charts.length && !vers.length) {
+      list.innerHTML = '<div class="empty-inline">暂无排盘记录。<br>完成一次断前事校正即可保存。</div>';
+      return;
+    }
+    let html = '';
+    if (vers.length) {
+      html += '<div style="font-size:0.72rem;color:var(--muted);margin-bottom:6px;">最近验证记录</div>';
+      vers.slice(0,5).forEach(v => {
+        const d = v.created_at ? new Date(v.created_at).toLocaleDateString('zh-CN') : '';
+        html += `<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:0.78rem;">
+          <span style="color:var(--accent);font-weight:800;">${escHtml(v.pattern)}</span>
+          <span style="color:var(--ink-2)">·${escHtml(v.yong_shen)}</span>
+          <span style="color:var(--muted);float:right;font-size:0.68rem;">${d}</span>
+          <br><span style="font-size:0.68rem;color:var(--muted);">${v.confidence}% · ${v.rounds}轮</span>
+        </div>`;
+      });
+    }
+    if (charts.length) {
+      html += '<div style="font-size:0.72rem;color:var(--muted);margin:10px 0 6px;">最近排盘</div>';
+      charts.slice(0,5).forEach(c => {
+        const d = c.created_at ? new Date(c.created_at).toLocaleDateString('zh-CN') : '';
+        const bi = c.birth_info || {};
+        html += `<div style="padding:6px 0;border-bottom:1px solid var(--line);font-size:0.74rem;color:var(--ink-2);">
+          ${bi.year||'?'}.${bi.month||'?'}.${bi.day||'?'} ${bi.city||''}
+          <span style="color:var(--muted);float:right;font-size:0.68rem;">${d}</span>
+        </div>`;
+      });
+    }
+    list.innerHTML = html;
+  } catch (e) {
+    list.innerHTML = '<div class="error-inline">加载失败，请重试</div>';
   }
 }
 
