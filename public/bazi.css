@@ -1207,3 +1207,15 @@ body {
   font-size: 0.68rem; color: var(--muted); line-height: 1.5;
 }
 
+/* V2 进度标签 */
+.cu-progress-tag {
+  display: inline-block;
+  padding: 1px 8px;
+  border-radius: 10px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  background: var(--accent-bg);
+  color: var(--accent);
+  margin-left: 6px;
+}
+

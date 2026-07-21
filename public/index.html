@@ -2079,7 +2079,8 @@ function renderRiskScan(uc){
 // ============================================================
 // NEW PREDICTION FLOW — 逐步验证对话
 // ============================================================
-const ANSWER_LABEL_MAP={'accurate':'✓ 准确','direction_right':'△ 方向对细节错','wrong_event':'△ 事件不对','relation_deviation':'△ 关系描述偏差','inaccurate':'✗ 不准','unsure':'? 不确定','很像':'很像','有点出入':'有点出入','完全不像':'完全不像','是的':'是的','不太确定':'不太确定','不是':'不是'};
+const ANSWER_LABEL_MAP={'accurate':'✓ 准确','direction_right':'△ 方向对细节错','wrong_event':'△ 事件不对','relation_deviation':'△ 关系描述偏差','inaccurate':'✗ 不准','unsure':'? 不确定','很像':'是','有点出入':'记不清了','完全不像':'不是','是的':'是','不太确定':'记不清了','不是':'不是','是':'是','记不清了':'记不清了'};
+const V2_ANSWER_MAP={'是':'yes','不是':'no','记不清了':'unclear','很像':'yes','是的':'yes','不太确定':'unclear','不是':'no','完全不像':'no'};
 function layerLabel(q){const map={L1:'格局定向',L2:'六亲验证'};if(map[q.layer])return map[q.layer];if(parseInt(q.layer?.replace('L',''))>=8)return 'AI增强鉴别';return '深度验证';}
 
 async function startPredictionFlow(){
@@ -2096,8 +2097,10 @@ async function startPredictionFlow(){
     const startBody={...S.payload};if(S.predUncertainty)startBody.uncertainty=S.predUncertainty;
     const data=await apiFetch('/api/predictions/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(startBody)});
     S.predSessionId=data.session_id||'';S.predHypotheses=data.hypotheses||[];
-    S.predCurrentQuestion=data.question;
-    S.predHistory.push({role:'ai',question:data.question,hypotheses:structuredCloneSafe(data.hypotheses)});
+    S.predTotalQuestions=data.question_count||3;
+    // V2: question 在 current_question 字段中
+    S.predCurrentQuestion=data.current_question||data.question;
+    S.predHistory.push({role:'ai',question:S.predCurrentQuestion,hypotheses:structuredCloneSafe(data.hypotheses)});
     S.predLoading=false;S.predictionsReady=true;
     hidePredictionSkeleton();
     renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();
@@ -2113,25 +2116,37 @@ async function startPredictionFlow(){
 async function verifyAnswer(){
   if(!S.predSelectedAnswer){showToast('请先选择一个答案');return}
   const answer=S.predSelectedAnswer;const note=S.predNote.trim();
-  S.predHistory.push({role:'user',answer:answer,answerLabel:ANSWER_LABEL_MAP[answer]||answer,note:note||null});
-  // Step 2.2: 连续 3 条 unsure → 题量从 5 降为 3
-  if(answer==='unsure'){S.predUnsureStreak=(S.predUnsureStreak||0)+1}else{S.predUnsureStreak=0}
-  if(S.predUnsureStreak>=3&&S.predMaxRounds>3){S.predMaxRounds=3}
+  // V2: 映射中文为 yes/no/unclear
+  const v2Answer=V2_ANSWER_MAP[answer]||answer;
+  // V2: 发送 question_id
+  const qId=S.predCurrentQuestion?S.predCurrentQuestion.id:'';
+  S.predHistory.push({role:'user',answer:answer,answerLabel:ANSWER_LABEL_MAP[answer]||answer,v2Answer:v2Answer,note:note||null});
   S.predLoading=true;S.predSelectedAnswer='';S.predNote='';
   if($('#pred-note-input'))$('#pred-note-input').value='';
   renderPredBody();renderPredFoot();scrollToBottom();
   try{
-    const data=await apiFetch('/api/predictions/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.predSessionId,answer:answer,note:note,max_rounds:S.predMaxRounds})});
+    const data=await apiFetch('/api/predictions/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.predSessionId,question_id:qId,answer:v2Answer,note:note})});
     S.predHypotheses=data.hypotheses||[];S.predLoading=false;S.predError=null;
-    if(data.locked){
-      S.predLocked=true;S.predLockedResult=data.result;
-      S.predHistory.push({role:'system',result:data.result,rounds:data.rounds});
-      // Step 3.2: 进入修正阶段
-      S.predPhase='correcting';
+    // V2: 锁定检查
+    if(data.phase==='locked'||data.ready_for_forecast){
+      S.predLocked=true;S.predLockedResult=data.lock_state||data.result;
+      S.predHistory.push({role:'system',result:S.predLockedResult,lock:true});
+      S.predPhase='locked';
       renderPredBody();scrollToBottom();
       await loadCorrectionData();
       renderPredBody();scrollToBottom();
-    }else{S.predCurrentQuestion=data.question;S.predHistory.push({role:'ai',question:data.question,hypotheses:structuredCloneSafe(data.hypotheses)});renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();}
+    }else if(data.rollback_required){
+      // V2: 回退触发 → 显示调整信息
+      S.predCurrentQuestion=data.next_question;
+      S.predHistory.push({role:'ai',question:data.next_question,adjustment:data.adjustment});
+      S.predPhase='adjusting';
+      renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();
+    }else{
+      // V2: 下一题
+      S.predCurrentQuestion=data.next_question;
+      S.predHistory.push({role:'ai',question:data.next_question,progress:data.progress});
+      renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();
+    }
   }catch(err){
     S.predLoading=false;S.predError={message:friendlyError(err,'提交失败，请重试'),retry:true,answer:answer,note:note};
     renderPredBody();renderPredFoot();
@@ -2173,9 +2188,13 @@ async function loadCorrectionData(){
     ];
     S.predCorrectionLevels=lv;
 
-    // 构造修正前后对比
+    // 构造修正前后对比 (V2 兼容)
+    const afterPat=S.predLockedResult?.pattern_type||S.predLockedResult?.pattern||'?';
+    const afterYS=S.predLockedResult?.yongshen_wuxing||S.predLockedResult?.yong_shen||'?';
+    const afterWS=S.predLockedResult?.wangshuai_level||S.predLockedResult?.five_element||'?';
+    const afterConf=S.predLockedResult?.confidence||S.predLockedResult?.match_rate||85;
     const before={wangshuai:(S.chart?.yongshen?.ri_zhu_strength||'?'),yongshen:(S.chart?.yongshen?.primary||'?'),pattern:(S.chart?.yongshen?.pattern||'?'),confidence:60};
-    const after={wangshuai:S.predLockedResult?.five_element||'?',yongshen:S.predLockedResult?.yong_shen||'?',pattern:S.predLockedResult?.pattern||'?',confidence:S.predLockedResult?.confidence||85};
+    const after={wangshuai:afterWS,yongshen:afterYS,pattern:afterPat,confidence:afterConf};
     S.predCorrectionCompare={before,after};
   }catch(e){
     console.warn('correction data fetch failed',e);
@@ -2189,10 +2208,23 @@ async function loadCorrectionData(){
       {label:'综合定盘',desc:`确认为${S.predLockedResult?.pattern||'正格'}`},
       {label:'对比验证',desc:'修正前后对比完成'}
     ];
-    steps.forEach((s,i)=>{levels.push({level:i,label:s.label,desc:s.desc,status:'completed'})});
+    const afterPat=S.predLockedResult?.pattern_type||S.predLockedResult?.pattern||'正格';
+    const afterYS=S.predLockedResult?.yongshen_wuxing||S.predLockedResult?.yong_shen||'?';
+    const afterWS=S.predLockedResult?.wangshuai_level||S.predLockedResult?.five_element||'?';
+    const afterConf=S.predLockedResult?.confidence||S.predLockedResult?.match_rate||85;
+    steps=[];
+    const steps2=[
+      {label:'提取格局候选',desc:'从多个候选格局中筛选'},
+      {label:'验证用神',desc:`锁定用神为 ${afterYS}`},
+      {label:'确认旺衰',desc:'日主强弱最终确认'},
+      {label:'排除冲突',desc:'排除与用户反馈矛盾的格局'},
+      {label:'综合定盘',desc:`确认为${afterPat}`},
+      {label:'对比验证',desc:'修正前后对比完成'}
+    ];
+    steps2.forEach((s,i)=>{levels.push({level:i,label:s.label,desc:s.desc,status:'completed'})});
     S.predCorrectionLevels=levels;
     const before={wangshuai:(S.chart?.yongshen?.ri_zhu_strength||'?'),yongshen:(S.chart?.yongshen?.primary||'?'),pattern:(S.chart?.yongshen?.pattern||'?'),confidence:60};
-    const after={wangshuai:S.predLockedResult?.five_element||'?',yongshen:S.predLockedResult?.yong_shen||'?',pattern:S.predLockedResult?.pattern||'?',confidence:S.predLockedResult?.confidence||85};
+    const after={wangshuai:afterWS,yongshen:afterYS,pattern:afterPat,confidence:afterConf};
     S.predCorrectionCompare={before,after};
   }
 }
@@ -2268,19 +2300,30 @@ function renderPredBody(){
   S.predHistory.forEach((msg,idx)=>{
     const isOld=S.predHistoryCollapsed&&idx<S.predHistory.length-2;
     if(msg.role==='ai'){
-      const q=msg.question;
-      const ds=q.discrimination_score;
+      const q=msg.question;if(!q)return;
+      // V2: 使用 category + dq_score
+      const cat=q.category||'验证';
+      const ds=q.dq_score;
       let dsTag='';
       if(typeof ds==='number'){
-        const dsLevel=ds>=0.7?'high':ds>=0.4?'medium':'low';
-        dsTag=`<span class="cu-disc-score ${dsLevel}">区分度 ${(ds*100).toFixed(0)}%</span>`;
+        const dsLevel=ds>=1.5?'high':ds>=0.4?'medium':'low';
+        dsTag=`<span class="cu-disc-score ${dsLevel}">D(q) ${ds.toFixed(1)}</span>`;
       }
-      html+=`<div class="pred-msg ai${isOld?' collapsed':''}"><div class="pred-msg-head"><span class="pred-msg-avatar">命</span><span class="pred-msg-meta">第 ${q.round} 轮 · ${q.layer} · ${layerLabel(q)}</span></div><div class="pred-msg-body">${dsTag}<p class="pred-question">${escHtml(q.question)}</p>${q.explanation?`<p class="pred-explanation">${escHtml(q.explanation)}</p>`:''}${q.pattern_feature?`<p class="pred-feature">${escHtml(q.pattern_feature)}</p>`:''}</div></div>`;
+      const progress=msg.progress||q.progress||'';
+      const progressTag=progress?`<span class="cu-progress-tag">${progress}</span>`:'';
+      html+=`<div class="pred-msg ai${isOld?' collapsed':''}"><div class="pred-msg-head"><span class="pred-msg-avatar">命</span><span class="pred-msg-meta">${cat} ${progressTag}</span></div><div class="pred-msg-body">${dsTag}<p class="pred-question">${escHtml(q.question_text||q.question)}</p></div></div>`;
     }else if(msg.role==='user'){
       html+=`<div class="pred-msg user${isOld?' collapsed':''}"><div class="pred-msg-body"><span class="pred-answer-label">${escHtml(msg.answerLabel)}</span>${msg.note?`<p class="pred-note-display">${escHtml(msg.note)}</p>`:''}</div></div>`;
     }else if(msg.role==='system'){
       const r=msg.result;
-      html+=`<div class="pred-msg system"><div class="pred-result-card"><div class="pred-result-icon">✦</div><h4>格局锁定</h4><p>经过 ${msg.rounds} 轮验证，命盘格局确认为：</p><div class="pred-result-main">${escHtml(r.pattern)} · ${escHtml(r.pattern_type||'')}</div><div class="pred-result-meta"><span>用神：${escHtml(r.yong_shen||'')}</span><span>五行：${escHtml(r.five_element||'')}</span><span>置信度：${r.confidence||'?'}%</span></div>${(S.predLockedResult&&S.predPhase!=='correcting')?`<button class="btn btn-primary" onclick="applyLockedResult()">确认并应用到命盘</button>`:''}</div></div>`;
+      if(r){
+        // V2: lock_state 格式
+        if(r.pattern_type){
+          html+=`<div class="pred-msg system"><div class="pred-result-card"><div class="pred-result-icon">✦</div><h4>格局锁定</h4><p>验证完成，命盘格局确认为：</p><div class="pred-result-main">${escHtml(r.pattern_type)}</div><div class="pred-result-meta"><span>旺衰：${escHtml(r.wangshuai_level||'')}</span><span>用神五行：${escHtml(r.yongshen_wuxing||'')}</span><span>匹配率：${(r.confidence*100).toFixed(0)||'?'}%</span></div>${(S.predLockedResult&&S.predPhase!=='locked'&&S.predPhase!=='correcting')?`<button class="btn btn-primary" onclick="applyLockedResult()">确认并应用到命盘</button>`:''}</div></div>`;
+        }else{
+          html+=`<div class="pred-msg system"><div class="pred-result-card"><div class="pred-result-icon">✦</div><h4>格局锁定</h4><div class="pred-result-main">${escHtml(r.pattern||'')} · ${escHtml(r.pattern_type||'')}</div><div class="pred-result-meta"><span>用神：${escHtml(r.yong_shen||'')}</span><span>五行：${escHtml(r.five_element||'')}</span><span>置信度：${r.confidence||'?'}%</span></div></div></div>`;
+        }
+      }
     }
   });
   const oldCount=S.predHistory.filter((m,i)=>i<S.predHistory.length-2).length;
@@ -2320,14 +2363,11 @@ function renderPredFoot(){
     foot.innerHTML=`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说你的情况..." style="width:100%;min-height:80px;font-size:0.82rem;margin-bottom:8px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>发送</button></div>`;
     return
   }
-  // 六档分级按钮 (Step 2.1)
+  // V2: 三选一按钮（是/不是/记不清了）
   const grades=[
-    {value:'accurate',label:'✓ 准确',color:'green'},
-    {value:'direction_right',label:'△ 方向对细节错',color:'blue'},
-    {value:'wrong_event',label:'△ 事件不对',color:'orange'},
-    {value:'relation_deviation',label:'△ 关系描述偏差',color:'orange'},
-    {value:'inaccurate',label:'✗ 不准',color:'red'},
-    {value:'unsure',label:'? 不确定',color:'gray'}
+    {value:'是',label:'✓ 是',color:'green'},
+    {value:'不是',label:'✗ 不是',color:'red'},
+    {value:'记不清了',label:'? 记不清了',color:'gray'}
   ];
   const optsHtml=grades.map(g=>{
     const sel=S.predSelectedAnswer===g.value?' selected':'';
@@ -2377,8 +2417,12 @@ function openPredictionDialog(){
 async function applyLockedResult(){
   const result=S.predLockedResult;if(!result)return;
   S.sessionId=S.predSessionId;
-  S.calibrationResult={pattern:result.pattern,yong_shen:result.yong_shen,five_element:result.five_element,confidence:result.confidence,pattern_type:result.pattern_type,gong_way:result.gong_way,rounds:S.predHistory.filter(h=>h.role==='user').length,verdict:{verdict:'passed'},result_message:`经过 ${S.predHistory.filter(h=>h.role==='user').length} 轮验证，格局确认为${result.pattern}`};
-  if(S.chart){S.chart.yongshen={...(S.chart.yongshen||{}),primary:result.yong_shen,pattern:result.pattern};renderYongshen(S.chart.yongshen);updateCalGate();renderDayun(S.chart.dayun||[])}
+  // V2 lock_state 字段映射（兼容旧格式）
+  const pattern=result.pattern_type||result.pattern||'';
+  const yongshen=result.yongshen_wuxing||result.yong_shen||'';
+  const wangshuai=result.wangshuai_level||result.five_element||'';
+  S.calibrationResult={pattern:pattern,yong_shen:yongshen,five_element:wangshuai,confidence:result.confidence||result.match_rate||0,pattern_type:result.pattern_type||result.pattern||'',gong_way:result.gong_way||'',rounds:S.predHistory.filter(h=>h.role==='user').length,verdict:{verdict:'passed'},result_message:`经过验证，格局确认为${pattern}`};
+  if(S.chart){S.chart.yongshen={...(S.chart.yongshen||{}),primary:yongshen,pattern:pattern};renderYongshen(S.chart.yongshen);updateCalGate();renderDayun(S.chart.dayun||[])}
   S.reportPublished=true;S.predictionsReady=true;
   closePredictionDialog();setStep('correction');showToast('格局已锁定 ✦ 报告已更新');
   // 藏起风险扫描卡片
