@@ -63,6 +63,17 @@ from api.routes.chat import router as chat_router
 from api.routes.liuyue import router as liuyue_router
 from api.routes.liunian import router as liunian_router
 
+# V2 模块导入 (Phase 4)
+from services.discrimination import init_verification_v2, VerificationSessionV2
+from services.feedback_adjuster import (
+    process_feedback_v2, compute_unreliability,
+    lock_parameters, check_lock_ready,
+    build_safe_state_from_session,
+)
+from services.safety_boundary import (
+    SafeState, Prediction, validate_prediction, build_safe_state,
+)
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
@@ -884,15 +895,17 @@ from services.user_data import (
 
 @app.post("/api/predictions/start")
 async def predictions_start(request: dict, authorization: str = Header(None)):
-    """新的断前事入口：排盘 + 格局分类 + 返回第一条验证问题
+    """V2 断前事入口：排盘 + 六亲评估 + D(q) 问题序列编排。
 
-    替代旧的 /api/predictions/generate（固定7题），
-    改为逐步对话式验证，收敛后锁定格局和用神。
+    替代旧的 V1 验证流程，使用 V2 四模块：
+    - liuqin.py: 六亲双轨评估
+    - discrimination.py: D(q) 鉴别力排序 + 问题序列
+    - feedback_adjuster.py: 三段反馈环
+    - safety_boundary.py: 安全边界校验
 
     请求体: {year, month, day, hour, minute, gender, ...,
              uncertainty: dict (可选, 来自 /api/precheck/uncertainty)}
     """
-    # 从 request 中提取 birth 信息（向后兼容：直接传 BirthInfo 字段）
     birth = BirthInfo(
         year=request.get("year", 0),
         month=request.get("month", 0),
@@ -915,8 +928,8 @@ async def predictions_start(request: dict, authorization: str = Header(None)):
         raise HTTPException(status_code=500, detail=f"排盘失败: {str(e)}")
 
     chart_data = chart.model_dump() if hasattr(chart, "model_dump") else chart
+    chart_data["gender"] = birth.gender
 
-    # 提取登录用户 ID（可选）
     user_id = None
     if authorization and authorization.startswith("Bearer "):
         try:
@@ -927,78 +940,157 @@ async def predictions_start(request: dict, authorization: str = Header(None)):
         except Exception:
             pass
 
-    result = init_verification(chart_data, user_id=user_id, uncertainty=uncertainty)
+    # V2: 使用 init_verification_v2()
+    session = init_verification_v2(chart_data, user_id=user_id, uncertainty=uncertainty)
 
-    # 生成 prediction session（兼容旧校准流程）
-    import uuid
-    session_id = str(uuid.uuid4())
-    _prediction_sessions[session_id] = {
+    # 保存到全局 sessions (兼容旧校准流程)
+    _prediction_sessions[session.session_id] = {
+        "v2_session": session,
         "chart_data": chart_data,
         "predictions": [],
         "feedbacks": [],
-        "verification_session_id": result["session_id"],
         "uncertainty": uncertainty,
     }
 
+    # 构建 V2 格式响应
+    q = session.current_question
     return {
-        "session_id": session_id,
+        "session_id": session.session_id,
+        "phase": session.phase,
+        "question_count": session.question_count,
+        "residual_ambiguity": session.residual_ambiguity,
         "chart_data": chart_data,
-        "stage": result.get("stage", "pattern"),
-        "sub_stage": result.get("sub_stage", "L1"),
-        "hypotheses": [],
-        "question": result["question"],
-        "step_results": result.get("step_results", {}),
+        "current_question": {
+            "id": q.id,
+            "category": q.category,
+            "question_text": q.question_text,
+            "options": q.options,
+            "dq_score": q.dq_score,
+            "progress": f"1/{session.question_count}",
+        } if q else None,
+        "true_solar_info": true_solar_info,
     }
 
 
 @app.post("/api/predictions/verify")
 async def predictions_verify(request: dict):
-    """验证反馈接口：提交对当前问题的回答，返回下一条问题或锁定结果
+    """V2 验证反馈接口：提交对当前问题的回答，返回下一条问题或锁定结果。
 
-    请求: {"session_id": str, "answer": "accurate|partial|inaccurate", "note": str}
-    未锁定: {"locked": false, "question": {...}, "hypotheses": [...]}
-    已锁定: {"locked": true, "result": {pattern, yong_shen, five_element, gong_way, confidence}, "hypotheses": [...]}
+    V2 使用 process_feedback_v2() 处理反馈，支持：
+    - 三段反馈环（U(answer)评估 → 参数修正 → 问题重排）
+    - 冲突层级回查（六亲→L3, 大运→L2）
+    - 连续未收敛降级
+
+    选项标准化映射（兼容前端直接返回中文选项）:
+      "是" → "yes", "不是" → "no", "记不清了" → "unclear"
+
+    请求: {"session_id": str, "question_id": str, "answer": "yes|no|unclear", "note": str}
     """
-    prediction_session_id = request.get("session_id", "")
+    session_id = request.get("session_id", "")
+    question_id = request.get("question_id", "")
     answer = request.get("answer", "")
     note = request.get("note", "")
 
-    if not prediction_session_id:
+    if not session_id:
         raise HTTPException(status_code=400, detail="缺少 session_id")
 
-    # 将中文选项标准化为英文枚举（兼容前端直接返回中文选项文本）
-    _ANSWER_NORMALIZE = {
-        "很像": "accurate", "有点出入": "partial", "完全不像": "inaccurate",
-        "是的": "accurate", "不太确定": "partial", "不是": "inaccurate",
+    # 选项标准化：中文 → V2 枚举
+    _V2_ANSWER_MAP = {
+        "是": "yes", "不是": "no", "记不清了": "unclear",
+        "准确": "yes", "不准": "no", "不太确定": "unclear",
+        "accurate": "yes", "inaccurate": "no", "partial": "unclear",
     }
-    answer = _ANSWER_NORMALIZE.get(answer, answer)
+    answer = _V2_ANSWER_MAP.get(answer, answer)
 
-    if answer not in ("accurate", "partial", "inaccurate"):
-        raise HTTPException(status_code=400, detail="answer 必须是 accurate/partial/inaccurate")
+    if answer not in ("yes", "no", "unclear"):
+        raise HTTPException(status_code=400, detail=f"不支持的选项: {answer}，请使用 yes/no/unclear")
 
-    # 从 prediction session 中获取 verification session
-    pred_session = _prediction_sessions.get(prediction_session_id)
+    # 查找 V2 session
+    pred_session = _prediction_sessions.get(session_id)
     if not pred_session:
-        raise HTTPException(status_code=404, detail="未找到会话")
+        raise HTTPException(status_code=404, detail=f"未找到会话: {session_id}")
 
-    verification_sid = pred_session.get("verification_session_id", "")
-    if not verification_sid:
+    v2_session = pred_session.get("v2_session")
+    if not v2_session:
         raise HTTPException(status_code=400, detail="请先调用 /api/predictions/start")
 
-    result = await process_verification(verification_sid, answer, note)
+    # 自动检测 question_id（若未传则使用当前问题）
+    if not question_id and v2_session.current_question:
+        question_id = v2_session.current_question.id
 
-    if result.get("error"):
-        raise HTTPException(status_code=400, detail=result["error"])
+    if not question_id:
+        raise HTTPException(status_code=400, detail="缺少 question_id")
 
-    if result.get("locked"):
-        # 锁定后，将结果写入 prediction session 供后续校准使用
-        pred_session["locked_result"] = result["result"]
-        pred_session["hypotheses"] = result.get("hypotheses") or result.get("xiangshen_candidates") or []
-        pred_session["locked_quality"] = result.get("quality")
-        pred_session["locked_purity"] = result.get("purity")
-        pred_session["locked_source"] = result.get("pattern_source")
+    # V2: 使用 process_feedback_v2()
+    result = process_feedback_v2(v2_session, question_id, answer, note)
 
-    return result
+    # 更新 session 引用
+    pred_session["v2_session"] = result.updated_session
+
+    # 如果触发回退/调整
+    if result.rollback_required and result.adjustment:
+        return {
+            "phase": v2_session.phase,
+            "rollback_required": True,
+            "adjustment": {
+                "reset_mode": result.adjustment.reset_mode,
+                "rollback_level": result.adjustment.rollback_level,
+                "degraded": result.adjustment.degraded,
+                "degraded_reason": result.adjustment.degraded_reason,
+            },
+            "next_question": {
+                "id": result.next_question["id"],
+                "category": result.next_question["category"],
+                "question_text": result.next_question["question_text"],
+                "options": result.next_question["options"],
+                "progress": f"{int(result.progress * v2_session.question_count)}/{v2_session.question_count}",
+            } if result.next_question else None,
+            "progress": result.progress,
+        }
+
+    # 检查是否达到锁定条件
+    if check_lock_ready(v2_session) and not v2_session.locked:
+        lock_state = lock_parameters(v2_session)
+
+        # 构建 SafeState 用于后续预测
+        safe = build_safe_state_from_session(v2_session)
+
+        return {
+            "phase": "locked",
+            "progress": f"{v2_session.question_count}/{v2_session.question_count}",
+            "lock_state": {
+                "pattern_type": lock_state["pattern_type"],
+                "wangshuai_level": lock_state["wangshuai_level"],
+                "yongshen_wuxing": lock_state["yongshen_wuxing"],
+                "confidence": lock_state["confidence"],
+                "match_rate": result.progress,
+            },
+            "safe_state": {
+                "pattern_type": safe.pattern_type,
+                "wangshuai_level": safe.wangshuai_level,
+                "yongshen_wuxing": safe.yongshen_wuxing,
+            },
+            "ready_for_forecast": True,
+        }
+
+    # 正常流程：返回下一题
+    next_q = result.next_question
+    answered_cnt = len(v2_session.answered)
+    return {
+        "phase": v2_session.phase,
+        "progress": f"{answered_cnt}/{v2_session.question_count}",
+        "rollback_required": False,
+        "adjustment_triggered": result.adjustment is not None,
+        "degraded": result.adjustment.degraded if result.adjustment else False,
+        "next_question": {
+            "id": next_q["id"],
+            "category": next_q["category"],
+            "question_text": next_q["question_text"],
+            "options": next_q["options"],
+            "dq_score": next_q.get("dq_score", 0),
+            "progress": f"{answered_cnt + 1}/{v2_session.question_count}",
+        } if next_q else None,
+    }
 
 
 @app.post("/api/calibrate/hexagram")

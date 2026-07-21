@@ -458,6 +458,15 @@ def lock_parameters(session: VerificationSessionV2) -> dict:
     yongshen_data = chart_data.get("_yongshen", {})
     yongshen_wuxing = yongshen_data.get("five_element", "")
 
+    # 如果无 yongshen 数据，回填
+    if not yongshen_wuxing:
+        from rules.pattern import determine_yongshen
+        dm = chart_data.get("day_master", "")
+        mb = chart_data.get("four_pillars", {}).get("month", {}).get("branch", "")
+        ys = determine_yongshen(pattern_type, dm, mb, chart_data)
+        yongshen_wuxing = ys.get("five_element", "未知")
+        yongshen_data = ys
+
     # 学派权重（默认初始值）
     school_weights = {
         "格局派": 0.40,
