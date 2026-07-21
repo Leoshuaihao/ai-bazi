@@ -89,8 +89,21 @@ def estimate_ambiguity_space_size(
     if uncertainty is None:
         return base
 
-    # 从 UncertaintyReport.items 提取各维度风险
-    item_map = {it.dimension: it.risk_score for it in getattr(uncertainty, 'items', [])}
+    # 从 UncertaintyReport.items 提取各维度风险（兼容 dict/object）
+    items = getattr(uncertainty, 'items', None)
+    if items is None and isinstance(uncertainty, dict):
+        items = uncertainty.get('items', [])
+    elif items is None:
+        items = []
+    # getattr 对 dict 返回 <built-in method items>，isinstance 守卫防止此情况
+    if callable(items):
+        items = []
+    item_map = {}
+    for it in items:
+        if isinstance(it, dict):
+            item_map[it.get('dimension', '')] = it.get('risk_score', 0)
+        else:
+            item_map[getattr(it, 'dimension', '')] = getattr(it, 'risk_score', 0)
 
     modifier = 1.0
     if item_map.get("时辰风险", 0) > 0.5:
