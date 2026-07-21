@@ -1248,6 +1248,12 @@ function renderYongshen(ys){
       </div>`;
     }else{
       // State 3: Questions ready — waiting for user to calibrate
+      // Unified entry: if risk-scan-card is visible, it serves as the sole entry point.
+      // Only show the button here when risk-scan-card is NOT visible (e.g. uncertainty precheck failed).
+      const rsc=$('#risk-scan-card');
+      const rscVisible=rsc&&rsc.style.display!=='none';
+      const entryBtn=rscVisible?'':`<button class="btn btn-primary cal-start-btn" onclick="openCalibrationDock()" style="position:relative;z-index:1;">✦ 开始断前事校正</button>`;
+      const entryHint=rscVisible?`<div style="color:var(--muted);font-size:0.74rem;margin-bottom:8px;position:relative;z-index:1;">请通过下方「命盘校准扫描」开始断前事校正</div>`:`<div style="color:var(--muted);font-size:0.74rem;margin-bottom:8px;position:relative;z-index:1;">请完成断前事校正以解锁完整命局纲要</div>`;
       $('#yongshen-flow').innerHTML=`
       <div style="text-align:center;padding:24px 16px;border:1px solid var(--line);border-radius:var(--radius-sm);background:rgba(20,14,35,0.35);position:relative;overflow:hidden;">
         <div class="cal-pulse-ring"></div>
@@ -1255,8 +1261,8 @@ function renderYongshen(ys){
         <div class="cal-pulse-ring cal-pulse-ring-3"></div>
         <div style="font-size:2.4rem;margin-bottom:6px;position:relative;z-index:1;">✦</div>
         <div class="cal-wait-text" style="color:var(--ink-2);font-weight:800;font-size:0.9rem;margin-bottom:6px;position:relative;z-index:1;">AI 已生成审盘草稿<span class="cal-dots"><span>.</span><span>.</span><span>.</span></span></div>
-        <div style="color:var(--muted);font-size:0.74rem;margin-bottom:8px;position:relative;z-index:1;">请完成断前事校正以解锁完整命局纲要</div>
-        <button class="btn btn-primary cal-start-btn" onclick="openCalibrationDock()" style="position:relative;z-index:1;">✦ 开始断前事校正</button>
+        ${entryHint}
+        ${entryBtn}
         <div class="cal-shimmer"></div>
       </div>`;}
     return;
@@ -2437,7 +2443,9 @@ async function loadAIYongshen(payload){
     if(S.chart)renderYongshen(S.chart.yongshen);
     // Step 3.1: 显示风险扫描
     if(S.predUncertainty)renderRiskScan(S.predUncertainty);
-  }catch(err){console.warn('AI yongshen load failed',err);S.aiYongshenLoaded=true;if(S.chart)renderYongshen(S.chart.yongshen);showPredictionSkeleton();await startPredictionFlow();if(S.chart)renderYongshen(S.chart.yongshen);if(S.predUncertainty)renderRiskScan(S.predUncertainty)}
+    // 修复：risk-scan-card 显示后重新渲染 yongshen 区域，避免 .cal-start-btn 与 #cu-risk-start-btn 同时可见
+    if(S.chart)renderYongshen(S.chart.yongshen);
+  }catch(err){console.warn('AI yongshen load failed',err);S.aiYongshenLoaded=true;if(S.chart)renderYongshen(S.chart.yongshen);showPredictionSkeleton();await startPredictionFlow();if(S.chart)renderYongshen(S.chart.yongshen);if(S.predUncertainty)renderRiskScan(S.predUncertainty);if(S.chart)renderYongshen(S.chart.yongshen)}
 }
 function showPredictionSkeleton(){
   const existing=$('#prediction-skeleton');

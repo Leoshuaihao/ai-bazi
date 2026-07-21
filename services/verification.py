@@ -38,6 +38,107 @@ from services.user_data import save_verification_session as _save_db_session
 from services.user_data import load_verification_session as _load_db_session
 
 # ============================================================
+# SmartPredictionSelector 集成 — 用区分度评分驱动题目选取
+# ============================================================
+
+# 十神 → SmartPredictionSelector 类别映射
+_TEN_GOD_TO_SMART_CATEGORY = {
+    "正官": "事业",
+    "七杀": "事业",
+    "正财": "事业",
+    "偏财": "事业",
+    "正印": "学历",
+    "偏印": "学历",
+    "食神": "性格",
+    "伤官": "性格",
+    "比肩": "兄弟关",
+    "劫财": "兄弟关",
+}
+
+# 诊断步骤 → SmartPredictionSelector 类别映射
+_DIAG_STEP_TO_SMART_CATEGORY = {
+    "D1": "关键年份",   # 月令被冲 → 人生突变年份
+    "D2": "性格",       # 月令被合 → 双重性格
+    "D3": "性格",       # 中气格局 → 性格特征不同
+    "D4": "事业",       # 用神救应 → 潜力发挥
+    "D5": "父母关",     # 时辰校验 → 与父母信息相关
+}
+
+
+def _smart_rerank_candidates(candidates, uncertainty, asked_list=None):
+    """用 SmartPredictionSelector 对相神候选重新排序。
+
+    在原有 confidence 排序基础上，叠加区分度评分作为加权因子，
+    使得高区分度的候选优先被验证。
+
+    不修改 SmartPredictionSelector 的评分逻辑，仅调用。
+    """
+    if not candidates:
+        return candidates
+    try:
+        from services.predictions import SmartPredictionSelector
+        selector = SmartPredictionSelector()
+    except Exception:
+        return candidates
+
+    asked_set = set(asked_list or [])
+    history = {
+        "asked_counts": {},
+        "supplement_streak": 0,
+    }
+    for c in candidates:
+        tg = c.get("ten_god", "")
+        if tg in asked_set:
+            history["asked_counts"][_TEN_GOD_TO_SMART_CATEGORY.get(tg, "性格")] = \
+                history["asked_counts"].get(_TEN_GOD_TO_SMART_CATEGORY.get(tg, "性格"), 0) + 1
+
+    # 为每个候选计算区分度得分
+    for c in candidates:
+        tg = c.get("ten_god", "")
+        category = _TEN_GOD_TO_SMART_CATEGORY.get(tg, "性格")
+        score_info = selector.calculate_discrimination_score(
+            {"category": category},
+            uncertainty=uncertainty or {},
+            history=history,
+        )
+        c["_smart_score"] = score_info["total"]
+
+    # 综合排序：confidence (0-99) 权重 0.6 + smart_score (0-10)*10 权重 0.4
+    candidates.sort(
+        key=lambda x: x.get("confidence", 50) * 0.6 + x.get("_smart_score", 5) * 10 * 0.4,
+        reverse=True,
+    )
+    return candidates
+
+
+def _smart_rank_diag_steps(applicable_steps, uncertainty):
+    """用 SmartPredictionSelector 对适用的诊断步骤重新排序。
+
+    applicable_steps: list of step numbers (1-5) that are applicable
+    Returns: reordered list of step numbers
+    """
+    if not applicable_steps or len(applicable_steps) <= 1:
+        return applicable_steps
+    try:
+        from services.predictions import SmartPredictionSelector
+        selector = SmartPredictionSelector()
+    except Exception:
+        return applicable_steps
+
+    scored = []
+    for step_num in applicable_steps:
+        step_key = f"D{step_num}"
+        category = _DIAG_STEP_TO_SMART_CATEGORY.get(step_key, "性格")
+        score_info = selector.calculate_discrimination_score(
+            {"category": category},
+            uncertainty=uncertainty or {},
+        )
+        scored.append((step_num, score_info["total"]))
+
+    scored.sort(key=lambda x: x[1], reverse=True)
+    return [s[0] for s in scored]
+
+# ============================================================
 # LLM 系统提示词
 # ============================================================
 
@@ -387,7 +488,7 @@ def _get_quality_question(qtype: str, tg: str) -> str:
 # init_verification (V3)
 # ============================================================
 
-def init_verification(chart_data: dict, user_id: str = None) -> dict:
+def init_verification(chart_data: dict, user_id: str = None, uncertainty: dict = None) -> dict:
     _cleanup_expired_sessions()
     session_id = str(uuid.uuid4())
 
@@ -488,7 +589,17 @@ def init_verification(chart_data: dict, user_id: str = None) -> dict:
         "history": [],
         "current_question": first_question,
         "_created_at": datetime.now().timestamp(),
+        # SmartPredictionSelector 集成：存储不确定性报告供后续选题使用
+        "uncertainty": uncertainty,
     }
+
+    # 不确定性驱动的初始置信度调整
+    if uncertainty:
+        overall_risk = uncertainty.get("overall_risk", 0.0)
+        if overall_risk > 0.6:
+            session["confidence"] = max(10, session["confidence"] - 10)
+        elif overall_risk > 0.3:
+            session["confidence"] = max(15, session["confidence"] - 5)
 
     _verification_sessions[session_id] = session
 
@@ -929,6 +1040,11 @@ async def _enter_xiangshen(session):
         c["confidence"] = max(1, min(99, c["confidence"] + th_weight + fy_weight))
 
     candidates.sort(key=lambda x: x["confidence"], reverse=True)
+
+    # SmartPredictionSelector 集成：用区分度评分对候选重新排序
+    uncertainty = session.get("uncertainty")
+    candidates = _smart_rerank_candidates(candidates, uncertainty, asked_list=[])
+
     session["xiangshen_candidates"] = candidates
     session["_xs_asked"] = []
 
@@ -974,6 +1090,12 @@ async def _handle_xiangshen(session, answer):
                 c["confidence"] = min(99, c["confidence"] + 3)
 
     candidates.sort(key=lambda x: x["confidence"], reverse=True)
+
+    # SmartPredictionSelector 集成：用区分度评分对候选重新排序（考虑已问过的惩罚）
+    uncertainty = session.get("uncertainty")
+    asked = session.get("_xs_asked", [])
+    candidates = _smart_rerank_candidates(candidates, uncertainty, asked_list=asked)
+
     session["xiangshen_candidates"] = candidates
 
     # 收敛判断
@@ -1226,7 +1348,41 @@ async def _enter_diagnosis(session):
     session["diagnosis_sub_stage"] = 1
     session["round"] += 1
 
-    return await _run_diagnosis_step(session, 1)
+    # SmartPredictionSelector 集成：预检查适用步骤并用区分度重新排序
+    chart = session["chart_data"]
+    dm_stem = _extract_dm_stem(chart)
+    month_branch = _extract_month_branch(chart)
+    fp = chart.get("four_pillars", {})
+    uncertainty = session.get("uncertainty")
+
+    applicable_steps = []
+    # D1: 月令被冲
+    if _check_month_branch_chong(fp, month_branch)["is_chong"]:
+        applicable_steps.append(1)
+    # D2: 月令被合
+    if _check_month_branch_he(fp, month_branch)["is_he"]:
+        applicable_steps.append(2)
+    # D3: 中气格局
+    stems = _get_month_hidden_stems(month_branch)
+    if len(stems) >= 2:
+        tg2 = _calc_ten_god(dm_stem, stems[1])
+        alt_pattern = _TG_TO_PATTERN.get(tg2, "")
+        if alt_pattern and alt_pattern != session["pattern"]:
+            applicable_steps.append(3)
+    # D4: 救应（总是适用）
+    applicable_steps.append(4)
+    # D5: 时辰（总是适用）
+    applicable_steps.append(5)
+
+    # 用 SmartPredictionSelector 重新排序（仅当有 uncertainty 数据时）
+    if uncertainty and len(applicable_steps) > 1:
+        applicable_steps = _smart_rank_diag_steps(applicable_steps, uncertainty)
+
+    session["_diag_order"] = applicable_steps
+    session["_diag_order_idx"] = 0
+
+    first_step = applicable_steps[0] if applicable_steps else 1
+    return await _run_diagnosis_step(session, first_step)
 
 
 async def _run_diagnosis_step(session, step_num):
@@ -1235,6 +1391,19 @@ async def _run_diagnosis_step(session, step_num):
     dm_stem = _extract_dm_stem(chart)
     month_branch = _extract_month_branch(chart)
     fp = chart.get("four_pillars", {})
+
+    # 辅助函数：从 _diag_order 中找到下一个适用步骤
+    def _next_step(current):
+        order = session.get("_diag_order")
+        if not order:
+            return current + 1
+        try:
+            idx = order.index(current)
+            if idx + 1 < len(order):
+                return order[idx + 1]
+        except ValueError:
+            pass
+        return current + 1
 
     if step_num == 1:
         # D1: 月令被冲
@@ -1251,7 +1420,7 @@ async def _run_diagnosis_step(session, step_num):
                     "question": q, "diagnosis_step": "D1"}
         else:
             session["round"] += 1
-            return await _run_diagnosis_step(session, step_num + 1)
+            return await _run_diagnosis_step(session, _next_step(1))
 
     elif step_num == 2:
         d2 = _check_month_branch_he(fp, month_branch)
@@ -1267,7 +1436,7 @@ async def _run_diagnosis_step(session, step_num):
                     "question": q, "diagnosis_step": "D2"}
         else:
             session["round"] += 1
-            return await _run_diagnosis_step(session, step_num + 1)
+            return await _run_diagnosis_step(session, _next_step(2))
 
     elif step_num == 3:
         stems = _get_month_hidden_stems(month_branch)
@@ -1287,7 +1456,7 @@ async def _run_diagnosis_step(session, step_num):
                 return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D3",
                         "question": q, "diagnosis_step": "D3"}
         session["round"] += 1
-        return await _run_diagnosis_step(session, step_num + 1)
+        return await _run_diagnosis_step(session, _next_step(3))
 
     elif step_num == 4:
         q = {"round": session["round"], "layer": f"L{session['round']}",
@@ -1371,7 +1540,17 @@ async def _handle_diagnosis(session, answer):
             session["round"] += 1
             return await _run_diagnosis_step(session, 5)  # 跳至时辰
         session["round"] += 1
-        return await _run_diagnosis_step(session, step_num + 1)
+        # 使用 _diag_order 中的顺序跳到下一个诊断步骤
+        _order = session.get("_diag_order")
+        _next = step_num + 1
+        if _order:
+            try:
+                _idx = _order.index(step_num)
+                if _idx + 1 < len(_order):
+                    _next = _order[_idx + 1]
+            except ValueError:
+                pass
+        return await _run_diagnosis_step(session, _next)
 
     return await _enter_xiangshen(session)
 

@@ -937,12 +937,30 @@ from services.user_data import (
 
 
 @app.post("/api/predictions/start")
-async def predictions_start(birth: BirthInfo, authorization: str = Header(None)):
+async def predictions_start(request: dict, authorization: str = Header(None)):
     """新的断前事入口：排盘 + 格局分类 + 返回第一条验证问题
 
     替代旧的 /api/predictions/generate（固定7题），
     改为逐步对话式验证，收敛后锁定格局和用神。
+
+    请求体: {year, month, day, hour, minute, gender, ...,
+             uncertainty: dict (可选, 来自 /api/precheck/uncertainty)}
     """
+    # 从 request 中提取 birth 信息（向后兼容：直接传 BirthInfo 字段）
+    birth = BirthInfo(
+        year=request.get("year", 0),
+        month=request.get("month", 0),
+        day=request.get("day", 0),
+        hour=request.get("hour", 0),
+        minute=request.get("minute", 0),
+        gender=request.get("gender", ""),
+        calendar_type=request.get("calendar_type", "solar"),
+        province=request.get("province", ""),
+        city=request.get("city", ""),
+        use_true_solar=request.get("use_true_solar", False),
+    )
+    uncertainty = request.get("uncertainty")
+
     _validate_birth_info(birth)
     try:
         params, true_solar_info = process_birth_info(birth)
@@ -963,7 +981,7 @@ async def predictions_start(birth: BirthInfo, authorization: str = Header(None))
         except Exception:
             pass
 
-    result = init_verification(chart_data, user_id=user_id)
+    result = init_verification(chart_data, user_id=user_id, uncertainty=uncertainty)
 
     # 生成 prediction session（兼容旧校准流程）
     import uuid
@@ -973,6 +991,7 @@ async def predictions_start(birth: BirthInfo, authorization: str = Header(None))
         "predictions": [],
         "feedbacks": [],
         "verification_session_id": result["session_id"],
+        "uncertainty": uncertainty,
     }
 
     return {
