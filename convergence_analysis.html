@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>验证流程逐轮拆解 — 收敛问题诊断</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.7; padding: 20px; max-width: 1100px; margin: 0 auto; }
+  h1 { color: #58a6ff; font-size: 22px; margin: 30px 0 10px; border-bottom: 1px solid #21262d; padding-bottom: 10px; }
+  h2 { color: #79c0ff; font-size: 18px; margin: 25px 0 10px; }
+  h3 { color: #d2a8ff; font-size: 15px; margin: 20px 0 8px; }
+  p { margin: 8px 0; font-size: 14px; }
+  .subtitle { color: #8b949e; font-size: 13px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #161b22; color: #58a6ff; padding: 8px 10px; text-align: left; border: 1px solid #21262d; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #21262d; vertical-align: top; }
+  tr:nth-child(even) td { background: #0d1117; }
+  tr:nth-child(odd) td { background: #11182150; }
+  .bug { background: #3d1f1f !important; border-left: 3px solid #f85149 !important; }
+  .ok { background: #1a2e1a !important; border-left: 3px solid #3fb950 !important; }
+  .warn { background: #2e271a !important; border-left: 3px solid #d29922 !important; }
+  .info { background: #1a2233 !important; border-left: 3px solid #58a6ff !important; }
+  .code { font-family: "SF Mono", "Fira Code", monospace; background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #79c0ff; }
+  .highlight { color: #f85149; font-weight: bold; }
+  .highlight-green { color: #3fb950; font-weight: bold; }
+  .highlight-yellow { color: #d29922; font-weight: bold; }
+  .card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 16px; margin: 12px 0; }
+  .card-bug { border-color: #f8514955; }
+  .card-ok { border-color: #3fb95055; }
+  .card-warn { border-color: #d2992255; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag-v3 { background: #1a3a5c; color: #58a6ff; }
+  .tag-v4 { background: #3d1f3d; color: #d2a8ff; }
+  .tag-bug { background: #3d1f1f; color: #f85149; }
+  .tag-ok { background: #1a2e1a; color: #3fb950; }
+  .trace { font-family: "SF Mono", monospace; font-size: 12px; background: #0d1117; border: 1px solid #21262d; border-radius: 6px; padding: 12px; margin: 10px 0; white-space: pre-wrap; line-height: 1.5; }
+  .arrow { color: #8b949e; }
+  .num { color: #d2a8ff; font-weight: bold; }
+  ul { margin: 8px 0 8px 20px; font-size: 14px; }
+  li { margin: 4px 0; }
+  .summary-box { background: #161b22; border: 2px solid #f8514955; border-radius: 8px; padding: 16px; margin: 20px 0; }
+</style>
+</head>
+<body>
+
+<h1>验证流程逐轮拆解 — 收敛问题诊断报告</h1>
+<p class="subtitle">对照 services/verification.py 实际代码，逐轮分析每一轮问答的后台状态、权重调整、收敛条件，以及 LLM 介入后哪里断裂</p>
+
+<!-- ============================================ -->
+<h1>一、全局架构：两条路径</h1>
+
+<p>代码里有<span class="highlight-yellow">两条执行路径</span>，取决于环境变量 <span class="code">DEEPSEEK_API_KEY</span> 是否存在：</p>
+
+<table>
+<tr>
+  <th style="width:15%">路径</th>
+  <th style="width:10%">条件</th>
+  <th>执行逻辑</th>
+  <th style="width:15%">收敛状态</th>
+</tr>
+<tr>
+  <td><span class="tag tag-v3">V3 静态</span></td>
+  <td>无 API Key</td>
+  <td><span class="code">_dispatch_static()</span> 按状态机执行：每轮回答→调 confidence→检查收敛→推进阶段</td>
+  <td><span class="tag tag-ok">正常收敛</span></td>
+</tr>
+<tr>
+  <td><span class="tag tag-v4">V4 LLM</span></td>
+  <td>有 API Key</td>
+  <td><span class="code">_llm_next()</span> 先拦截：LLM 决定 ask_question/advance_stage/backtrack。只有 LLM 返回 None 时才降级到静态</td>
+  <td><span class="tag tag-bug">无法收敛</span></td>
+</tr>
+</table>
+
+<div class="card card-bug">
+<h3 style="color:#f85149">根本问题：LLM 拦截点与静态状态机的断裂</h3>
+<p><span class="code">_llm_next()</span> 第 495 行的拦截规则：</p>
+<div class="trace">if sub.endswith("_L3") or sub in ("ys_3", "ys_2"):
+    return None  # 只有这些阶段才交给静态状态机</div>
+<p>也就是说，LLM 在以下阶段<span class="highlight">全部拦截</span>：</p>
+<ul>
+  <li><span class="code">L1</span> — 格局特征验证</li>
+  <li><span class="code">phase2_L2</span> — 有情验证</li>
+  <li><span class="code">diag_D1</span> ~ <span class="code">diag_D4</span> — 诊断链</li>
+  <li><span class="code">ys_1</span> — 用神第一轮</li>
+</ul>
+<p>只有 <span class="code">phase2_L3</span>、<span class="code">ys_2</span>、<span class="code">ys_3</span> 才降级到静态。</p>
+<p><span class="highlight">当 LLM 返回 ask_question 时，sub_stage 不变，下一轮还是被 LLM 拦截 → 无限循环</span></p>
+</div>
+
+<!-- ============================================ -->
+<h1>二、逐轮拆解</h1>
+
+<!-- Phase 0 -->
+<h2>阶段 0：自动分析（不耗轮次）</h2>
+<table>
+<tr><th style="width:8%">步骤</th><th style="width:20%">做什么</th><th>产出</th><th>初始 confidence</th></tr>
+<tr>
+  <td class="info">Step1</td>
+  <td>月令本气 → 定格局</td>
+  <td>如 "七杀格"</td>
+  <td>-</td>
+</tr>
+<tr>
+  <td class="info">Step2</td>
+  <td>天干透出 / 地支合局 → 是否变格</td>
+  <td>pattern 可能被改写</td>
+  <td>-</td>
+</tr>
+<tr>
+  <td class="info">Step3</td>
+  <td>旺衰五等判定</td>
+  <td>极旺/身旺/中和/身弱/极弱</td>
+  <td><span class="code">极旺→25, 身旺→30, 中和→20, 身弱→25, 极弱→20</span></td>
+</tr>
+</table>
+
+<!-- Q1 -->
+<h2>第 1 轮问答：L1 格局特征验证</h2>
+
+<div class="card">
+<h3>问什么</h3>
+<p>验证系统判的格局（如"七杀格"）跟用户性格是否匹配。根据旺衰选不同版本的问题。</p>
+<p>例（七杀格+身旺）："你人生中是否经历过较大的压力或挑战，但事后回头看，那些压力反而促成了你的成长？"</p>
+
+<h3>后台候选</h3>
+<table>
+<tr><th>候选</th><th>当前 confidence</th><th>说明</th></tr>
+<tr><td>格局本身（如七杀格）</td><td>20~30</td><td>只有 1 个候选，没有备选</td></tr>
+</table>
+
+<h3>选项</h3>
+<p><span class="code">["很像", "有点出入", "完全不像"]</span></p>
+
+<h3>V3 静态路径：权重调整</h3>
+<table>
+<tr><th>用户回答</th><th>confidence 变化</th><th>l1_answer</th><th>下一步</th></tr>
+<tr class="ok"><td>"很像" (accurate)</td><td>+15（如 30→45）</td><td>High</td><td>→ Phase2 L2（有情验证）</td></tr>
+<tr class="warn"><td>"有点出入" (partial)</td><td>不变</td><td>Medium</td><td>→ 静默检查纯杂 → Phase2 L2</td></tr>
+<tr class="bug"><td>"完全不像" (inaccurate)</td><td>-20（如 30→10）</td><td>Low</td><td>→ 检查纯杂 → 有混杂问纯杂 / 无混杂进诊断链</td></tr>
+</table>
+
+<h3>V4 LLM 路径：实际发生了什么</h3>
+<div class="card card-bug">
+<p><span class="tag tag-bug">BUG</span> LLM 通过 <span class="code">_llm_next()</span> 生成问题，返回 <span class="code">action: "ask_question"</span></p>
+<p>后果：</p>
+<ul>
+  <li><span class="highlight">confidence 不变</span> — LLM 返回的 confidence 值存在 <span class="code">session["_llm_last_quality"]</span>，但没写回 <span class="code">session["confidence"]</span></li>
+  <li><span class="highlight">sub_stage 不变</span> — 仍然是 "L1"，下一轮还是被 LLM 拦截</li>
+  <li><span class="highlight">l1_answer 不设置</span> — <span class="code">_handle_L1()</span> 从未执行</li>
+  <li><span class="highlight">无推进计数器</span> — 没有任何机制限制 LLM 在同一阶段问几轮</li>
+</ul>
+<p>结果：LLM 在 L1 阶段反复生成问题，永远不返回 <span class="code">advance_stage</span></p>
+</div>
+</div>
+
+<!-- Q2 -->
+<h2>第 2 轮问答：Phase2 L2 有情验证</h2>
+
+<div class="card">
+<h3>问什么</h3>
+<p>验证用神是否有"辅助力量"（有情）。比如七杀格用食神制杀，问食神相关的特质。</p>
+<p>例："在压力大的时候，你是否有某种宣泄或舒缓的方式——比如创作、运动？"</p>
+
+<h3>后台候选</h3>
+<table>
+<tr><th>候选</th><th>状态</th><th>说明</th></tr>
+<tr><td>phase2_youqing</td><td>None → True/False</td><td>布尔值，不是 confidence</td></tr>
+</table>
+
+<h3>V3 静态路径</h3>
+<table>
+<tr><th>用户回答</th><th>设置</th><th>下一步</th></tr>
+<tr class="ok"><td>"很像"</td><td>phase2_youqing = True</td><td>→ Phase2 L3（有力验证）</td></tr>
+<tr class="warn"><td>"有点出入"</td><td>phase2_youqing = False</td><td>→ Phase2 L3</td></tr>
+<tr class="warn"><td>"完全不像"</td><td>phase2_youqing = False</td><td>→ Phase2 L3</td></tr>
+</table>
+<p><span class="highlight-yellow">注意：这一轮不调 confidence，只设布尔值</span></p>
+
+<h3>V4 LLM 路径</h3>
+<div class="card card-bug">
+<p><span class="tag tag-bug">BUG</span> LLM 拦截 phase2_L2（不以 _L3 结尾）</p>
+<ul>
+  <li><span class="highlight">phase2_youqing 从不设置</span> — <span class="code">_handle_phase2_L2()</span> 未执行</li>
+  <li>LLM 生成问题但不推进到 phase2_L3</li>
+  <li>→ 同样卡死在 phase2_L2</li>
+</ul>
+</div>
+</div>
+
+<!-- Q3 -->
+<h2>第 3 轮问答：Phase2 L3 有力验证</h2>
+
+<div class="card">
+<h3>问什么</h3>
+<p>验证用神是否有"实体力量"（有力）。比如才华是否产生了实际成果。</p>
+
+<h3>V3 静态路径</h3>
+<table>
+<tr><th>用户回答</th><th>设置</th><th>品质判定</th><th>下一步</th></tr>
+<tr class="ok"><td>"很像"</td><td>phase2_youli = True</td><td>看 youqing 组合</td><td>→ 用神收敛</td></tr>
+<tr class="warn"><td>"有点出入"</td><td>phase2_youli = False</td><td>看 youqing 组合</td><td>→ 用神收敛 或 诊断链</td></tr>
+</table>
+<table>
+<tr><th>youqing</th><th>youli</th><th>品质</th><th>下一步</th></tr>
+<tr class="ok"><td>True</td><td>True</td><td>上格</td><td>→ 用神收敛</td></tr>
+<tr class="warn"><td>True</td><td>False</td><td>中格</td><td>→ 用神收敛</td></tr>
+<tr class="warn"><td>False</td><td>True</td><td>中下格</td><td>→ 用神收敛</td></tr>
+<tr class="bug"><td>False</td><td>False</td><td>下格</td><td>→ 诊断链 或 通关检查</td></tr>
+</table>
+
+<h3>V4 LLM 路径</h3>
+<div class="card card-ok">
+<p><span class="tag tag-ok">OK</span> <span class="code">_llm_next()</span> 对 phase2_L3 返回 None → 降级到静态</p>
+<p>但问题是：如果 L1 和 L2 被 LLM 拦截卡死，<span class="highlight">代码根本走不到 phase2_L3</span></p>
+</div>
+</div>
+
+<!-- Diagnosis -->
+<h2>诊断链 D1-D5（仅在 L1 否定 或 品质=下格 时触发）</h2>
+
+<div class="card">
+<p>每一步都是问用户一个 yes/no 问题，"是"就回品质评估，"否"就下一步。</p>
+
+<table>
+<tr><th>步骤</th><th>问什么</th><th>V3 静态：回答"是"的后果</th><th>V3 静态：回答"否"的后果</th><th>V4 LLM</th></tr>
+<tr class="info">
+  <td>D1 冲</td>
+  <td>"你是否觉得自己性格或人生方向发生过比较突然的转变？"</td>
+  <td>有救应→回Phase2 (conf×0.7)；无救应→D3</td>
+  <td>→ D2</td>
+  <td><span class="tag tag-bug">拦截，卡死</span></td>
+</tr>
+<tr class="info">
+  <td>D2 合</td>
+  <td>"你是否在不同环境下会表现出完全不同的性格特质？"</td>
+  <td>格局改变，conf=20，回 L1 重来</td>
+  <td>→ D3</td>
+  <td><span class="tag tag-bug">拦截，卡死</span></td>
+</tr>
+<tr class="info">
+  <td>D3 中气</td>
+  <td>"换个角度——[中气格局的问题]"</td>
+  <td>格局改为中气格，conf=25，回Phase2</td>
+  <td>→ D4</td>
+  <td><span class="tag tag-bug">拦截，卡死</span></td>
+</tr>
+<tr class="info">
+  <td>D4 救应</td>
+  <td>"你是否觉得自己有些潜力被某些因素限制住了？"</td>
+  <td>→ 回Phase2</td>
+  <td>→ D5</td>
+  <td><span class="tag tag-bug">拦截，卡死</span></td>
+</tr>
+<tr class="info">
+  <td>D5 时辰</td>
+  <td>"你的出生时间是准确的吗？"</td>
+  <td>conf×0.6 → 回Phase2</td>
+  <td>"不太确定"→结束；"不准"→回首页</td>
+  <td><span class="tag tag-ok">不拦截</span></td>
+</tr>
+</table>
+
+<p><span class="highlight-yellow">特殊规则：</span>diagnosis_count（否定次数）≥ 3 → 直接跳 D5</p>
+</div>
+
+<!-- Yongshen -->
+<h2>用神收敛阶段：ys_1 → ys_2 → ys_3（核心收敛逻辑）</h2>
+
+<div class="card">
+<h3>候选生成（进入用神阶段时一次性生成）</h3>
+<p>以 <span class="highlight-green">七杀格 + 身旺（方向=克泄耗）</span> 为例：</p>
+
+<table>
+<tr>
+  <th>来源</th>
+  <th>权重 weight</th>
+  <th>初始 confidence</th>
+  <th>初始排序分 (conf×weight)</th>
+  <th>候选用神</th>
+</tr>
+<tr class="ok">
+  <td>格局法</td>
+  <td>2.0</td>
+  <td>35</td>
+  <td class="num">70</td>
+  <td>食神(35), 正印(35), 伤官(35)</td>
+</tr>
+<tr class="warn">
+  <td>调候法</td>
+  <td>1.5</td>
+  <td>25</td>
+  <td class="num">37.5</td>
+  <td>取决于月份（如冬月生火）</td>
+</tr>
+<tr class="warn">
+  <td>通关法</td>
+  <td>1.5</td>
+  <td>22</td>
+  <td class="num">33</td>
+  <td>取决于五行对峙</td>
+</tr>
+<tr>
+  <td>扶抑法</td>
+  <td>1.0</td>
+  <td>15</td>
+  <td class="num">15</td>
+  <td>身旺→克泄耗方向</td>
+</tr>
+</table>
+
+<p><span class="highlight-yellow">初始排序是 confidence × weight，但后续轮次只按 confidence 排序（不再乘 weight）！</span></p>
+
+<h3>第 ys_1 轮：问排名第一的候选</h3>
+<table>
+<tr><th style="width:15%">用户回答</th><th>目标候选 confidence</th><th>非目标候选 confidence</th><th>说明</th></tr>
+<tr class="ok"><td>"是的" (accurate)</td><td>+15（35→50）</td><td>-5（25→20, 15→10）</td><td>目标涨，其他降</td></tr>
+<tr class="warn"><td>"不太确定" (partial)</td><td>+3（35→38）</td><td>不变</td><td>微涨</td></tr>
+<tr class="bug"><td>"不是" (inaccurate)</td><td>-20（35→15）</td><td>+3（25→28, 15→18）</td><td>目标大跌，其他微涨</td></tr>
+</table>
+
+<p>调整后按 <span class="highlight">confidence（不乘 weight）</span>重新排序。</p>
+
+<h3>收敛条件检查（每轮回答后都检查）</h3>
+<div class="card card-ok">
+<p>条件 1（提前锁定）：<span class="code">top.confidence >= 65</span> 且 <span class="code">top - second >= 20</span></p>
+<p>条件 2（强制结束）：sub_stage == "ys_3" → 无论是否满足条件 1，直接 finalize</p>
+<p>条件 3（再生）：如果 next_idx > 3 且 regeneration < 2 → regeneration++，top.confidence += 5，重置到 ys_1</p>
+</div>
+
+<h3>具体数值追踪（V3 静态路径，正常收敛）</h3>
+<div class="trace">初始候选（七杀格+身旺）:
+  食神(格局法) conf=35  ← 第1轮问这个
+  正印(格局法) conf=35
+  伤官(格局法) conf=35
+  [调候] conf=25
+  [通关] conf=22
+  [扶抑] conf=15
+
+<span class="highlight-green">--- ys_1: 问食神 ---</span>
+用户回答 "是的" (accurate):
+  食神: 35+15 = 50
+  正印: 35-5 = 30
+  伤官: 35-5 = 30
+  调候: 25-5 = 20
+  通关: 22-5 = 17
+  扶抑: 15-5 = 10
+  排序后: 食神(50) > 正印(30) = 伤官(30) > 调候(20) > 通关(17) > 扶抑(10)
+  收敛检查: 50 >= 65? 否 → 继续
+
+<span class="highlight-green">--- ys_2: 问正印（下一个未问过的） ---</span>
+  (ys_2 不被 LLM 拦截，走静态)
+用户回答 "不是" (inaccurate):
+  正印: 30-20 = 10
+  食神: 50+3 = 53  (非目标，目标被否定→涨)
+  伤官: 30+3 = 33
+  调候: 20+3 = 23
+  通关: 17+3 = 20
+  扶抑: 10+3 = 13
+  排序后: 食神(53) > 伤官(33) > 调候(23) > 通关(20) > 正印(10) > 扶抑(13)
+  收敛检查: 53 >= 65? 否 → 继续
+
+<span class="highlight-green">--- ys_3: 问伤官（下一个未问过的） ---</span>
+  (ys_3 不被 LLM 拦截，走静态)
+用户回答 "不是" (inaccurate):
+  伤官: 33-20 = 13
+  食神: 53+3 = 56
+  调候: 23+3 = 26
+  通关: 20+3 = 23
+  扶抑: 13+3 = 16
+  正印: 10+3 = 13
+  排序后: 食神(56) > 调候(26) > 通关(23) > 扶抑(16) > 伤官(13) = 正印(13)
+  
+  sub == "ys_3" → <span class="highlight-green">强制 finalize</span>
+  结果: 用神=食神, confidence=56</div>
+
+<p><span class="highlight-yellow">问题：</span>3 轮问的是 3 个不同候选，每个候选只被问 1 次。食神虽然从 35→50→53→56，但始终没到 65 的提前锁定阈值。最终靠 ys_3 强制结束。</p>
+
+<h3>V4 LLM 路径：用神阶段发生了什么</h3>
+<div class="card card-bug">
+<p><span class="tag tag-bug">BUG</span> ys_1 被 LLM 拦截（<span class="code">_llm_next()</span> 第 495 行只放行 ys_2 和 ys_3）</p>
+<p>当 LLM 返回 <span class="code">action: "ask_question"</span> 时：</p>
+<ul>
+  <li><span class="highlight">_handle_yongshen() 从未执行</span> — 以下代码全部跳过：</li>
+  <li>  - confidence +15/+3/-20 调整 → <span class="highlight">不执行</span></li>
+  <li>  - 候选重新排序 → <span class="highlight">不执行</span></li>
+  <li>  - 收敛条件检查 → <span class="highlight">不执行</span></li>
+  <li>  - sub_stage 推进到 ys_2 → <span class="highlight">不执行</span></li>
+  <li>sub_stage 仍然是 "ys_1" → 下一轮还是被 LLM 拦截 → <span class="highlight">无限循环</span></li>
+</ul>
+<p>即使 LLM 正确生成了关于食神的问题，用户的回答也<span class="highlight">完全不会影响候选的 confidence</span>。</p>
+<p>候选的 confidence 永远停留在初始值（35/25/22/15），永远不满足 65 的收敛阈值。</p>
+</div>
+</div>
+
+<!-- ============================================ -->
+<h1>三、收敛断裂点总结</h1>
+
+<div class="summary-box">
+<h3 style="color:#f85149">5 个断裂点</h3>
+<table>
+<tr><th>#</th><th>位置</th><th>V3 静态（正常）</th><th>V4 LLM（实际）</th><th>后果</th></tr>
+<tr class="bug">
+  <td>1</td>
+  <td>L1 格局验证</td>
+  <td>回答→调 confidence→设 l1_answer→推进</td>
+  <td>LLM 生成问题，不调 confidence，不设 l1_answer，不推进</td>
+  <td>卡在 L1 无限问</td>
+</tr>
+<tr class="bug">
+  <td>2</td>
+  <td>phase2_L2 有情</td>
+  <td>回答→设 phase2_youqing→推进 L3</td>
+  <td>LLM 生成问题，不设 youqing，不推进</td>
+  <td>卡在 L2 无限问</td>
+</tr>
+<tr class="bug">
+  <td>3</td>
+  <td>diag_D1~D4 诊断链</td>
+  <td>回答→设 diagnosis_path→推进或回 Phase2</td>
+  <td>LLM 生成问题，不推进诊断链</td>
+  <td>卡在诊断步无限问</td>
+</tr>
+<tr class="bug">
+  <td>4</td>
+  <td>ys_1 用神第一轮</td>
+  <td>回答→调候选 confidence→重排→检查收敛→推进 ys_2</td>
+  <td>LLM 生成问题，不调 confidence，不检查收敛，不推进</td>
+  <td>卡在 ys_1 无限问，候选分数永远不变</td>
+</tr>
+<tr class="warn">
+  <td>5</td>
+  <td>初始 confidence 过低</td>
+  <td>身旺→30，需要至少2轮"很像"才能到65</td>
+  <td>即使 V3 正常，3轮问3个不同候选，单个候选最多被问1次，很难到65</td>
+  <td>靠 ys_3 强制结束，confidence 可能只有50-56</td>
+</tr>
+</table>
+</div>
+
+<!-- ============================================ -->
+<h1>四、为什么 LLM 不返回 advance_stage</h1>
+
+<div class="card">
+<p>LLM 的 prompt（第 504-524 行）告诉它：</p>
+<div class="trace">规则:
+- 如果当前格局特征已足够确认，action="advance_stage"
+- 如果用户持续否定，可以 action="backtrack"</div>
+<p>但存在以下问题：</p>
+<ul>
+  <li><span class="highlight">"足够确认"没有量化标准</span> — LLM 不知道 confidence 是多少，也不知道阈值是 65</li>
+  <li><span class="highlight">LLM 看不到候选列表</span> — prompt 里没有传入 yongshen_candidates 的 confidence 值</li>
+  <li><span class="highlight">没有轮次限制</span> — prompt 没说"你最多问 3 轮必须 advance"</li>
+  <li><span class="highlight">LLM 倾向于继续追问</span> — 命理师的 system prompt 鼓励深入验证，所以 LLM 自然倾向于多问</li>
+</ul>
+</div>
+
+<!-- ============================================ -->
+<h1>五、修复方向（仅供参考，不改动代码）</h1>
+
+<div class="card card-warn">
+<h3>方案 A：LLM 只增强问题文本，不控制流程</h3>
+<p>把 <span class="code">_llm_next()</span> 改为：先执行静态 handler 拿到问题和阶段推进，再用 LLM 增强问题文本。LLM 不决定 action。</p>
+</div>
+
+<div class="card card-warn">
+<h3>方案 B：给 LLM 加轮次硬限制</h3>
+<p>在 <span class="code">_llm_next()</span> 里加计数器：同一 sub_stage 最多问 2 轮，第 3 轮强制 advance_stage。</p>
+</div>
+
+<div class="card card-warn">
+<h3>方案 C：LLM 返回 ask_question 时也执行权重调整</h3>
+<p>在 <span class="code">ask_question</span> 分支里，先调用静态 handler 做 confidence 调整，再用 LLM 的问题文本覆盖。</p>
+</div>
+
+<div class="card card-warn">
+<h3>方案 D：降低收敛阈值 或 改为相对排序</h3>
+<p>把 65 降到 50，或者改为"3 轮后取 confidence 最高的"（实际上 ys_3 已经这样做了，但 LLM 路径走不到 ys_3）。</p>
+</div>
+
+<!-- ============================================ -->
+<h1>六、测试用例建议</h1>
+
+<div class="card">
+<h3>测试 1：V3 静态路径（关闭 LLM）</h3>
+<p>不设置 <span class="code">DEEPSEEK_API_KEY</span>，用 debug_cli.py 测试：</p>
+<ul>
+  <li>预期：6-8 轮完成，ys_3 强制收敛</li>
+  <li>验证点：每轮 confidence 是否变化，sub_stage 是否推进</li>
+</ul>
+
+<h3>测试 2：V4 LLM 路径（开启 LLM）</h3>
+<p>设置 <span class="code">DEEPSEEK_API_KEY</span>，用 debug_cli.py 测试：</p>
+<ul>
+  <li>预期：卡在 L1 或 ys_1，sub_stage 不变</li>
+  <li>验证点：用 <span class="code">!state</span> 查看 sub_stage 和 confidence 是否动</li>
+</ul>
+
+<h3>测试 3：用 <span class="code">!state</span> 逐轮观察</h3>
+<p>每轮回答后执行 <span class="code">!state</span>，记录：</p>
+<ul>
+  <li>sub_stage 是否变化</li>
+  <li>confidence 是否变化</li>
+  <li>yongshen_candidates 的 confidence 是否变化</li>
+  <li>round 是否递增</li>
+</ul>
+</div>
+
+</body>
+</html>

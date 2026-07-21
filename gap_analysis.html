@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>静态候选范围验证 — 典籍 vs 代码差距分析</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.7; padding: 20px; max-width: 1100px; margin: 0 auto; }
+  h1 { color: #58a6ff; font-size: 22px; margin: 30px 0 10px; border-bottom: 1px solid #21262d; padding-bottom: 10px; }
+  h2 { color: #79c0ff; font-size: 18px; margin: 25px 0 10px; }
+  h3 { color: #d2a8ff; font-size: 15px; margin: 20px 0 8px; }
+  p { margin: 8px 0; font-size: 14px; }
+  .subtitle { color: #8b949e; font-size: 13px; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13px; }
+  th { background: #161b22; color: #58a6ff; padding: 8px 10px; text-align: left; border: 1px solid #21262d; font-weight: 600; }
+  td { padding: 8px 10px; border: 1px solid #21262d; vertical-align: top; }
+  tr:nth-child(even) td { background: #0d1117; }
+  tr:nth-child(odd) td { background: #11182150; }
+  .ok { background: #1a2e1a !important; }
+  .bug { background: #3d1f1f !important; }
+  .warn { background: #2e271a !important; }
+  .info { background: #1a2233 !important; }
+  .code { font-family: "SF Mono", "Fira Code", monospace; background: #161b22; padding: 2px 6px; border-radius: 4px; font-size: 12px; color: #79c0ff; }
+  .highlight { color: #f85149; font-weight: bold; }
+  .highlight-green { color: #3fb950; font-weight: bold; }
+  .highlight-yellow { color: #d29922; font-weight: bold; }
+  .verdict { font-size: 18px; font-weight: bold; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center; }
+  .verdict-ok { background: #1a2e1a; border: 2px solid #3fb95055; color: #3fb950; }
+  .verdict-warn { background: #2e271a; border: 2px solid #d2992255; color: #d29922; }
+  .verdict-bug { background: #3d1f1f; border: 2px solid #f8514955; color: #f85149; }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 11px; font-weight: 600; margin-right: 4px; }
+  .tag-ok { background: #1a2e1a; color: #3fb950; }
+  .tag-bug { background: #3d1f1f; color: #f85149; }
+  .tag-warn { background: #2e271a; color: #d29922; }
+  ul { margin: 8px 0 8px 20px; font-size: 14px; }
+  li { margin: 4px 0; }
+</style>
+</head>
+<body>
+
+<h1>静态候选范围验证 — 典籍 vs 代码差距分析</h1>
+<p class="subtitle">对照 classical-researcher 典籍调研报告与 code-analyst 代码分析报告，逐条对比判定</p>
+
+<!-- ============================================ -->
+<h1>一、结论</h1>
+
+<div class="verdict verdict-warn">
+  静态规则在八格（正格）范围内基本正确，但存在 3 个严重缺陷必须修复后才能作为混合架构地基
+</div>
+
+<table>
+<tr><th style="width:15%">领域</th><th style="width:10%">判定</th><th>说明</th></tr>
+<tr class="ok"><td>八格用神候选</td><td><span class="tag tag-ok">基本正确</span></td><td>PATTERN_YONGSHEN 覆盖了典籍规定的主要候选，仅偏印格缺食神</td></tr>
+<tr class="bug"><td>建禄格/月刃格</td><td><span class="tag tag-bug">完全缺失</span></td><td>_TG_TO_PATTERN 无比肩/劫财映射，月令为比劫时格局返回空</td></tr>
+<tr class="bug"><td>从弱格/专旺格方向</td><td><span class="tag tag-bug">方向错误</span></td><td>扶抑法对从弱格生扶、对专旺格克泄，与典籍"顺势"相反</td></tr>
+<tr class="bug"><td>调候法覆盖</td><td><span class="tag tag-bug">严重不足</span></td><td>只覆盖冬夏两季，春秋完全无调候候选；典籍有完整10×12矩阵</td></tr>
+<tr class="warn"><td>用神优先级</td><td><span class="tag tag-warn">权重不符</span></td><td>代码格局法最高(2.0)，典籍极端气候下调候优先</td></tr>
+<tr class="warn"><td>排序逻辑</td><td><span class="tag tag-warn">不一致</span></td><td>初始排序 confidence×weight，后续排序只用 confidence</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h1>二、八格用神候选逐条对比</h1>
+
+<h2>2.1 PATTERN_YONGSHEN vs 典籍候选</h2>
+
+<table>
+<tr>
+  <th style="width:10%">格局</th>
+  <th style="width:8%">顺/逆</th>
+  <th style="width:25%">典籍候选（相神/制化）</th>
+  <th style="width:25%">代码候选（PATTERN_YONGSHEN）</th>
+  <th style="width:8%">判定</th>
+  <th>差异说明</th>
+</tr>
+<tr class="ok">
+  <td>正官格</td><td>顺</td>
+  <td>财星(生官)、印星(护官)</td>
+  <td>正印、正财、偏印</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖。偏印也是印星，合理</td>
+</tr>
+<tr class="ok">
+  <td>七杀格</td><td>逆</td>
+  <td>食伤(制杀)、印星(化杀)</td>
+  <td>食神、正印、伤官</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖。食神制杀/伤官驾杀/印化杀三种路径</td>
+</tr>
+<tr class="ok">
+  <td>正财格</td><td>顺</td>
+  <td>食伤(生财)、官星(护财)</td>
+  <td>食神、正官、伤官</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖</td>
+</tr>
+<tr class="ok">
+  <td>偏财格</td><td>顺</td>
+  <td>食伤(生财)、官杀(护财)</td>
+  <td>正官、食神、七杀</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖。正官/七杀都是护财之官杀</td>
+</tr>
+<tr class="ok">
+  <td>正印格</td><td>顺</td>
+  <td>官杀(生印)、比劫(护印)</td>
+  <td>正官、比肩、七杀</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖</td>
+</tr>
+<tr class="warn">
+  <td>偏印格</td><td>逆</td>
+  <td>偏财(制枭)、食神(泄枭)</td>
+  <td>偏财、比肩、正财</td>
+  <td><span class="tag tag-warn">⚠️</span></td>
+  <td><span class="highlight">缺食神</span>（典籍明确"食泄枭秀"）。比肩和正财典籍未提及</td>
+</tr>
+<tr class="ok">
+  <td>食神格</td><td>顺</td>
+  <td>财星(护食)、身旺/比劫(生食)</td>
+  <td>比肩、正财、劫财</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>全覆盖。比肩/劫财=身旺生食</td>
+</tr>
+<tr class="ok">
+  <td>伤官格</td><td>逆</td>
+  <td>印星(制伤)、财星(化伤)</td>
+  <td>正印、偏财、偏印</td>
+  <td><span class="tag tag-ok">✅</span></td>
+  <td>基本覆盖。典籍提到条件性的"伤驾杀"（七杀），但属罕见变局</td>
+</tr>
+</table>
+
+<div class="verdict verdict-ok" style="font-size:14px; padding:12px;">
+  八格候选覆盖度：7/8 完全正确，1/8 有遗漏（偏印格缺食神）<br>
+  <span style="font-size:12px; color:#8b949e;">结论：PATTERN_YONGSHEN 的设计思路正确——它存的是"相神"（怎么用这个格局），不是格局本身。3个候选覆盖了主要用法路径。</span>
+</div>
+
+<!-- ============================================ -->
+<h1>三、严重缺陷详析</h1>
+
+<h2>缺陷 1：建禄格/月刃格完全缺失</h2>
+<table>
+<tr><th style="width:20%">项目</th><th>内容</th></tr>
+<tr class="info"><td>典籍规定</td><td>月令为比劫时，月令本身不可取用，到四柱另寻财官食印透干会支者取用。建禄一般身旺喜克泄耗（官杀/食伤/财星）；月刃为凶神必须官杀制刃或食伤泄刃</td></tr>
+<tr class="bug"><td>代码现状</td><td><span class="code">_TG_TO_PATTERN</span> 无"比肩"和"劫财"映射 → <span class="code">determine_pattern_type()</span> 返回空字符串 → <span class="code">PATTERN_YONGSHEN.get("", [])</span> 返回空列表 → <span class="highlight">格局法零候选</span></td></tr>
+<tr class="warn"><td>影响面</td><td>任何月令本气十神为比肩或劫财的命盘。例如：甲日主生寅月（比肩）、乙日主生卯月（比肩）、甲日主生卯月（劫财）等。这在实际八字中<span class="highlight-yellow">占比约 12-15%</span></td></tr>
+<tr class="warn"><td>当前兜底</td><td>只能靠扶抑法/调候法/通关法生成候选，但这些候选没有格局法加持（weight=2.0），初始排序分会很低</td></tr>
+</table>
+
+<h2>缺陷 2：从弱格/专旺格扶抑方向错误</h2>
+<table>
+<tr><th style="width:20%">项目</th><th>内容</th></tr>
+<tr class="info"><td>典籍规定</td><td>从弱格：顺弱势，用官杀/财/食伤（<span class="highlight">忌印比</span>）；专旺格：食伤泄秀为首选，次取财星（<span class="highlight">忌官杀犯旺</span>）</td></tr>
+<tr class="bug"><td>代码现状</td><td>从弱格 → <span class="code">judge_wangshuai_level</span> 返回"极弱" → direction="生扶" → 扶抑法生成正印/偏印/比肩/劫财 → <span class="highlight">正好是典籍禁忌的印比</span></td></tr>
+<tr class="bug"><td></td><td>专旺格 → 返回"极旺" → direction="克泄耗" → 扶抑法生成正官/七杀 → <span class="highlight">正好是典籍禁忌的官杀</span></td></tr>
+<tr class="bug"><td>额外问题</td><td>PATTERN_YONGSHEN 无"从弱格"/"专旺格"条目 → 格局法零候选 → 扶抑法成为唯一来源，且方向错误 → <span class="highlight">候选完全错误</span></td></tr>
+</table>
+
+<h2>缺陷 3：调候法只覆盖冬夏两季</h2>
+<table>
+<tr><th style="width:20%">项目</th><th>内容</th></tr>
+<tr class="info"><td>典籍规定</td><td>《穷通宝鉴》有完整的 10日干×12月令 调候用神矩阵。每个月令都有具体的调候用神，不仅限于冬夏</td></tr>
+<tr class="bug"><td>代码现状</td><td><span class="code">_get_tiaohou_wuxing()</span> 只处理：冬月(亥子丑)→火、夏月(巳午)→水。<span class="highlight">春秋8个月完全无调候候选</span></td></tr>
+<tr class="warn"><td>影响</td><td>春季(寅卯辰)和秋季(申酉戌)出生的命盘不会生成调候法候选。典籍中寅月需丙火照暖、辰月需甲木疏土、申月需丁火炼金等——这些都是重要的用神来源</td></tr>
+</table>
+
+<!-- ============================================ -->
+<h1>四、中等问题</h1>
+
+<h2>问题 4：用神优先级与典籍不符</h2>
+<table>
+<tr><th>优先级</th><th>典籍</th><th>代码 weight</th><th>差异</th></tr>
+<tr class="warn"><td>第一（极端气候）</td><td>调候法</td><td>格局法(2.0)</td><td><span class="highlight">代码格局法始终最高，但典籍说极端气候调候优先</span></td></tr>
+<tr class="ok"><td>第二</td><td>通关法</td><td>调候法(1.5) = 通关法(1.5)</td><td>通关法与调候法同级，问题不大</td></tr>
+<tr class="warn"><td>第三</td><td>格局法</td><td>-</td><td>代码中格局法被提到第一</td></tr>
+<tr class="ok"><td>第四</td><td>扶抑法</td><td>扶抑法(1.0)</td><td>一致</td></tr>
+</table>
+<p><span class="highlight-yellow">说明：</span>典籍的优先级是"以急缓定主次"——极端气候调候优先，非极端格局优先。代码的固定 weight 无法体现这种动态优先级。<span class="highlight-yellow">但这在混合架构中可以由 LLM 来判断"是否极端气候"</span>。</p>
+
+<h2>问题 5：排序逻辑不一致</h2>
+<table>
+<tr><th>时机</th><th>排序公式</th><th>问题</th></tr>
+<tr class="warn"><td>初始排序</td><td><span class="code">confidence × weight</span></td><td>格局法候选(35×2.0=70) 排在 扶抑法(15×1.0=15) 前面</td></tr>
+<tr class="bug"><td>用户回答后重排</td><td><span class="code">confidence</span>（不乘 weight）</td><td><span class="highlight">weight 权重只第一轮有效，之后形同虚设</span></td></tr>
+</table>
+
+<h2>问题 6：格局法 confidence 不递减</h2>
+<table>
+<tr><th>候选位置</th><th>代码 confidence</th><th>典籍优先级</th></tr>
+<tr class="warn"><td>第一候选</td><td>35</td><td>应最高（月令本气透干）</td></tr>
+<tr class="warn"><td>第二候选</td><td>35</td><td>应次之（中气/变化）</td></tr>
+<tr class="warn"><td>第三候选</td><td>35</td><td>应最低（备选）</td></tr>
+</table>
+<p><span class="code">generate_pattern_hypotheses()</span> 中有递减（35/27/19），但 <span class="code">_generate_yongshen_candidates()</span> 中全部给 35，没有区分。</p>
+
+<!-- ============================================ -->
+<h1>五、修复优先级建议</h1>
+
+<table>
+<tr><th style="width:5%">#</th><th style="width:8%">严重度</th><th style="width:25%">问题</th><th>修复方式</th><th style="width:12%">影响面</th></tr>
+<tr class="bug">
+  <td>1</td><td>P0</td>
+  <td>建禄格/月刃格完全缺失</td>
+  <td>① <span class="code">_TG_TO_PATTERN</span> 加比肩→建禄格、劫财→月刃格<br>② <span class="code">PATTERN_YONGSHEN</span> 加建禄格/月刃格条目<br>③ 候选根据命局组合动态生成（官杀/食伤/财星/印星）</td>
+  <td>~12-15% 命盘</td>
+</tr>
+<tr class="bug">
+  <td>2</td><td>P0</td>
+  <td>从弱格/专旺格扶抑方向错误</td>
+  <td>① <span class="code">PATTERN_YONGSHEN</span> 加从弱格/专旺格条目<br>② 特殊格局跳过扶抑法，改为"顺势法"<br>③ 从弱格用官杀/财/食伤；专旺格用食伤/财</td>
+  <td>极端命盘</td>
+</tr>
+<tr class="bug">
+  <td>3</td><td>P1</td>
+  <td>调候法只覆盖冬夏</td>
+  <td>① 实现完整 10×12 调候矩阵（典籍已有现成表）<br>② 或至少补齐春秋8个月的基础调候</td>
+  <td>~60% 命盘（春秋两季）</td>
+</tr>
+<tr class="warn">
+  <td>4</td><td>P1</td>
+  <td>偏印格缺食神</td>
+  <td><span class="code">PATTERN_YONGSHEN["偏印格"]</span> 改为 [偏财, 食神, 正财]</td>
+  <td>偏印格命盘</td>
+</tr>
+<tr class="warn">
+  <td>5</td><td>P2</td>
+  <td>排序逻辑不一致</td>
+  <td>后续重排也用 <span class="code">confidence × weight</span></td>
+  <td>所有命盘</td>
+</tr>
+<tr class="warn">
+  <td>6</td><td>P2</td>
+  <td>格局法 confidence 不递减</td>
+  <td>第一候选35、第二27、第三19</td>
+  <td>所有正格命盘</td>
+</tr>
+<tr class="warn">
+  <td>7</td><td>P2</td>
+  <td>用神优先级与典籍不符</td>
+  <td>可在 LLM 路径中动态判断"是否极端气候"调整 weight；或静态按月令气候给调候法加权</td>
+  <td>极端气候命盘</td>
+</tr>
+</table>
+
+<!-- ============================================ -->
+<h1>六、对混合架构的影响</h1>
+
+<div style="background:#161b22; border:1px solid #21262d; border-radius:8px; padding:16px; margin:12px 0;">
+<h3 style="color:#3fb950">可以继续推进的</h3>
+<ul>
+  <li><span class="highlight-green">八格（正格）候选生成逻辑正确</span>——PATTERN_YONGSHEN 的设计思路验证通过</li>
+  <li><span class="highlight-green">4来源架构（格局/调候/通关/扶抑）符合典籍体系</span>——典籍确实有这四种取用方法</li>
+  <li><span class="highlight-green">通关法5组五行对应正确</span>——代码的 _TONGGUAN_MAP 与典籍一致</li>
+  <li><span class="highlight-green">扶抑法身旺/身弱方向正确</span>（仅对正格而言）</li>
+</ul>
+</div>
+
+<div style="background:#161b22; border:1px solid #21262d; border-radius:8px; padding:16px; margin:12px 0;">
+<h3 style="color:#f85149">必须先修复的</h3>
+<ul>
+  <li><span class="highlight">P0：建禄格/月刃格</span>——12-15% 的命盘完全没有格局法候选，LLM 再强也没有正确的候选可选</li>
+  <li><span class="highlight">P0：从弱格/专旺格方向</span>——扶抑法生成的候选与典籍完全相反，会误导 LLM</li>
+  <li><span class="highlight">P1：调候法覆盖</span>——60% 的命盘缺少调候候选，少了一个重要的用神来源</li>
+</ul>
+</div>
+
+<div style="background:#161b22; border:1px solid #21262d; border-radius:8px; padding:16px; margin:12px 0;">
+<h3 style="color:#d29922">可以在混合架构中由 LLM 弥补的</h3>
+<ul>
+  <li>用神优先级的动态判断（极端气候 vs 非极端）——LLM 可以根据月令判断是否需要调候优先</li>
+  <li>偏印格缺食神——LLM 可以在候选生成后补充</li>
+  <li>confidence 递减——LLM 可以通过问题设计体现候选优先级</li>
+</ul>
+</div>
+
+</body>
+</html>

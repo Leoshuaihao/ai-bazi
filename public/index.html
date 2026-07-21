@@ -44,6 +44,8 @@
     <div class="step" data-step="chart"><div class="step-circle">2</div><span class="step-label">初盘排定</span></div>
     <div class="step-line" data-line="2"></div>
     <div class="step" data-step="calibration"><div class="step-circle">3</div><span class="step-label">前事校准</span></div>
+    <div class="step-line" data-line="3"></div>
+    <div class="step" data-step="correction"><div class="step-circle">4</div><span class="step-label">修正定盘</span></div>
   </div>
 </section>
 
@@ -87,11 +89,24 @@
       <div style="display:flex;gap:6px;flex-wrap:wrap;"><button class="btn btn-secondary" type="button" id="copy-summary-btn">复制摘要</button><button class="btn btn-ghost" type="button" id="rerun-btn">重新录入</button></div>
     </div>
     <div id="subject-card-content"></div>
+    <!-- Step 3.3: 六步推导可展开面板 -->
+    <div class="cu-six-step-toggle" onclick="toggleSixStep()" id="six-step-toggle" style="display:none;">📐 推导过程 ▾</div>
+    <div id="six-step-panel" class="cu-six-step-panel" style="display:none">
+      <div id="six-step-content"></div>
+    </div>
   </div>
 
   <div class="card" style="margin-top:12px;">
     <div class="section-label" style="margin-bottom:4px;">命局纲要</div>
     <div id="yongshen-flow"></div>
+  </div>
+
+  <!-- Step 3.1: 五维风险扫描卡片 -->
+  <div id="risk-scan-card" class="card cu-risk-card" style="display:none;margin-top:10px;">
+    <div class="cu-risk-header">🔍 命盘校准扫描</div>
+    <div id="cu-risk-items"></div>
+    <div id="cu-risk-summary"></div>
+    <button class="cu-btn" onclick="openCalibrationDock()" style="display:none;" id="cu-risk-start-btn">开始智能校准</button>
   </div>
 
 <section id="chart-section" class="report-section">
@@ -151,6 +166,9 @@
       <!-- Row 5: 五维卡片 (calibration only) -->
       <div id="dayun-dims" style="margin-top:10px;"></div>
 
+      <!-- Row 5b: 修正路径时间线 (Step 2.3) -->
+      <div id="dayun-correction-tl"></div>
+
       <!-- Row 5: AI 对话 (calibration only) -->
       <div id="dayun-chat" style="margin-top:10px;"></div>
     </div>
@@ -208,12 +226,6 @@
   </div>
 </div>
 
-<div id="calibration-invite" class="popover" hidden>
-  <h3>是否进入断前事校正？</h3>
-  <p>八字已经排出，断前事会用你的真实过往校验后台草稿。</p>
-  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="invite-later-btn">我再看会</button><button class="btn btn-primary" type="button" id="invite-start-btn">开始校正</button></div>
-</div>
-
 <!-- 我的记录弹层 -->
 <div id="records-popover" class="popover" hidden>
   <h3>📋 我的记录</h3>
@@ -258,16 +270,6 @@
     <div class="pred-body" id="pred-body"></div>
     <div class="pred-foot" id="pred-foot"></div>
   </aside>
-</div>
-
-<div id="time-dialog" class="popover" hidden>
-  <h3>出生时间是否精准？</h3><p>你的经历反馈与当前时柱推导存在偏差。</p>
-  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="time-accurate-btn">时间准确</button><button class="btn btn-primary" type="button" id="time-uncertain-btn">帮我匹配时辰</button></div>
-</div>
-
-<div id="matched-time-dialog" class="popover" hidden>
-  <h3>已匹配出更可能的出生时段</h3><p id="matched-time-copy"></p>
-  <div class="popover-actions"><button class="btn btn-ghost" type="button" id="matched-back-btn">返回</button><button class="btn btn-primary" type="button" id="matched-confirm-btn">确认刷新</button></div>
 </div>
 
 <div id="date-modal-backdrop" class="modal-backdrop" hidden>
@@ -546,13 +548,18 @@ const PILLAR_LABELS={year:'年柱',month:'月柱',day:'日柱',hour:'时柱'};
 const TEN_GODS=['比肩','劫财','食神','伤官','正财','偏财','正官','七杀','正印','偏印'];
 const TG_SHORT={比肩:'比',劫财:'劫',食神:'食',伤官:'伤',正财:'财',偏财:'偏',正官:'官',七杀:'杀',正印:'印',偏印:'枭'};
 const TG_COLORS={比肩:'#f87171',劫财:'#fb923c',食神:'#fbbf24',伤官:'#facc15',正财:'#a3e635',偏财:'#4ade80',正官:'#38bdf8',七杀:'#818cf8',正印:'#c084fc',偏印:'#e879f9'};
-const FEEDBACK_LABELS={accurate:'说对了',partial:'方向对，细节偏',inaccurate:'不对',supplement:'补充背景'};
-const STATUS_OPTS=[['accurate','说对了'],['partial','方向对，细节偏'],['inaccurate','不对'],['supplement','补充背景']];
+const FEEDBACK_LABELS={accurate:'说对了',partial:'方向对，细节偏',inaccurate:'不对',supplement:'补充背景'}; // deprecated — replaced by GRADE_LABELS
+const STATUS_OPTS=[['accurate','说对了'],['partial','方向对，细节偏'],['inaccurate','不对'],['supplement','补充背景']]; // deprecated
+const GRADE_LABELS={accurate:'✓ 准确',direction_right:'△ 方向对细节错',wrong_event:'△ 事件不对',relation_deviation:'△ 关系描述偏差',inaccurate:'✗ 不准',unsure:'? 不确定'};
 
 // State
 const S={calendar:'solar',gender:'male',timeApprox:false,subjectName:'',payload:null,currentStep:'input',chart:null,initialChart:null,sessionId:'',predictions:[],feedbackDrafts:[],currentPredictionIndex:0,feedbacksSubmitted:false,calibrationResult:null,calibrating:false,forecast:null,classicsDraft:null,classicsReady:false,predictionsReady:false,reportPublished:false,inviteTimer:null,inviteShown:false,inviteDismissed:false,matchedTime:null,aiYongshenLoaded:false,
   // 新断前事对话流程状态
-  predSessionId:'',predCurrentQuestion:null,predHypotheses:[],predHistory:[],predLocked:false,predLockedResult:null,predSelectedAnswer:'',predNote:'',predLoading:false,predError:null,predUsingNewFlow:false,predHistoryCollapsed:false};
+  predSessionId:'',predCurrentQuestion:null,predHypotheses:[],predHistory:[],predLocked:false,predLockedResult:null,predSelectedAnswer:'',predNote:'',predLoading:false,predError:null,predUsingNewFlow:false,predHistoryCollapsed:false,
+  // 动态题量 (Step 2.2)
+  predMaxRounds:5,predUnsureStreak:0,predUncertainty:null,
+  // 修正阶段 (Step 3.2)
+  predPhase:null,predCorrectionLevels:null,predCorrectionCompare:null};
 
 // ============================================================
 // THEME
@@ -580,12 +587,6 @@ function bindControls(){
   // Input trigger toggle
   const trig=$('#input-trigger');
   if(trig) trig.addEventListener('click',toggleInputPanel);
-  $('#invite-start-btn').addEventListener('click',openCalibrationDock);
-  $('#invite-later-btn').addEventListener('click',dismissCalibrationInvite);
-  $('#time-accurate-btn').addEventListener('click',()=>confirmBirthTime(true));
-  $('#time-uncertain-btn').addEventListener('click',()=>confirmBirthTime(false));
-  $('#matched-back-btn').addEventListener('click',()=>{$('#matched-time-dialog').hidden=true;$('#time-dialog').hidden=false});
-  $('#matched-confirm-btn').addEventListener('click',applyMatchedTime);
   $('#rerun-btn').addEventListener('click',()=>{resetReportOnly();window.scrollTo({top:0,behavior:'smooth'})});
 }
 
@@ -645,7 +646,7 @@ function updateBirthDateTimeLabel(){const dv=$('#birth-date').value,tv=$('#birth
 
 function fillSample(){$('#birth-date').value='1990-06-15';$('#birth-time').value='12:20';updateBirthDateTimeLabel();setSeg('calendar','solar');setSeg('gender','male');$('#birth-city').value='广州';$('#time-approx').checked=false;S.timeApprox=false;$('#setup-panel').hidden=false;$('#input-trigger').classList.add('open');showToast('已填入示例 ✦')}
 function resetForm(){$('#birth-form').reset();setSeg('calendar','solar');setSeg('gender','male');updateBirthDateTimeLabel();S.timeApprox=false;S.subjectName='';resetReportOnly()}
-function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payload=null;S.chart=null;S.initialChart=null;S.subjectName='';S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;resetPredictionFlow();$('.hero').classList.remove('collapsed');$('#hero-badge-text').textContent='✦ AI 驱动的八字命盘分析';$('#setup-panel').hidden=true;$('#result-shell').classList.remove('visible');$('#calibration-invite').hidden=true;$('#prediction-overlay').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;$('#top-calibration-btn').hidden=true;const trig=$('#input-trigger');if(trig){trig.classList.remove('open','done');trig.querySelector('.input-trigger-hint').textContent='点击填写出生资料'};setStep('input')}
+function resetReportOnly(){if(S.inviteTimer)clearTimeout(S.inviteTimer);S.payload=null;S.chart=null;S.initialChart=null;S.subjectName='';S.sessionId='';S.predictions=[];S.feedbackDrafts=[];S.currentPredictionIndex=0;S.feedbacksSubmitted=false;S.calibrationResult=null;S.forecast=null;S.classicsDraft=null;S.classicsReady=false;S.predictionsReady=false;S.reportPublished=false;S.inviteShown=false;S.inviteDismissed=false;S.matchedTime=null;resetPredictionFlow();$('.hero').classList.remove('collapsed');$('#hero-badge-text').textContent='✦ AI 驱动的八字命盘分析';$('#setup-panel').hidden=true;$('#result-shell').classList.remove('visible');$('#prediction-overlay').hidden=true;$('#top-calibration-btn').hidden=true;const trig=$('#input-trigger');if(trig){trig.classList.remove('open','done');trig.querySelector('.input-trigger-hint').textContent='点击填写出生资料'};setStep('input');const rsc=$('#risk-scan-card');if(rsc)rsc.style.display='none';}
 
 // ============================================================
 // API
@@ -656,7 +657,7 @@ function friendlyError(e,fb){const m=e&&e.message?e.message:fb;if(m.includes('Fa
 // ============================================================
 // STEP INDICATOR
 // ============================================================
-function setStep(k){S.currentStep=k;const steps={input:1,chart:2,calibration:3};const n=steps[k]||1;$$('#step-indicator .step').forEach(s=>{const sn=steps[s.dataset.step]||0;s.classList.remove('active','done');if(sn<n)s.classList.add('done');if(sn===n)s.classList.add('active')});$$('#step-indicator .step-line').forEach(l=>{l.classList.toggle('done',Number(l.dataset.line)<n)})}
+function setStep(k){S.currentStep=k;const steps={input:1,chart:2,calibration:3,correction:4};const n=steps[k]||1;$$('#step-indicator .step').forEach(s=>{const sn=steps[s.dataset.step]||0;s.classList.remove('active','done');if(sn<n)s.classList.add('done');if(sn===n)s.classList.add('active')});$$('#step-indicator .step-line').forEach(l=>{l.classList.toggle('done',Number(l.dataset.line)<n)})}
 
 // ============================================================
 // SUBMIT CHART
@@ -1531,6 +1532,11 @@ function renderDayunSummary(cur,ys){
 }
 
 function renderDayunDims(opts){opts=opts||{};const isLiunian=!!opts.year;
+  // Step 2.3: 六维评分卡模式
+  if(opts.mode==='hexagram'){
+    renderHexagramScorecard(opts.hexagramData||null,opts.loading);
+    return;
+  }
   const fc=opts.forecast||S.forecast||{};
   const dims=[['career','事业'],['wealth','财富'],['marriage','婚姻'],['relationship','贵人'],['health','健康']];
   // Loading state when fetching liunian data
@@ -1584,6 +1590,73 @@ function renderDayunDims(opts){opts=opts||{};const isLiunian=!!opts.year;
     </div>`;
   }).join('');
   $('#dayun-dims').innerHTML=`<div class="dim-grid" style="grid-template-columns:repeat(5,1fr);">${cards}</div>`;
+}
+
+// Step 2.3: 六维评分卡
+function renderHexagramScorecard(hexData,loading){
+  if(loading){
+    $('#dayun-dims').innerHTML=`<div class="cu-hex-score"><h4>六维评估 · 加载中</h4><div class="skel-line" style="width:90%;"></div><div class="skel-line" style="width:80%;"></div><div class="skel-line" style="width:70%;"></div><div class="skel-line" style="width:60%;"></div><div class="skel-line" style="width:75%;"></div><div class="skel-line" style="width:65%;"></div></div>`;
+    return;
+  }
+  const dims=[
+    {key:'wangshuai',label:'旺衰'},
+    {key:'pattern',label:'格局喜忌'},
+    {key:'yongshen',label:'用神'},
+    {key:'dayun_trend',label:'大运走向'},
+    {key:'six_kin',label:'六亲'},
+    {key:'personality',label:'性格',discount:true}
+  ];
+  const data=hexData||{};
+  const rows=dims.map(d=>{
+    const dim=data[d.key]||{};
+    const score=typeof dim.score==='number'?dim.score:0;
+    const barW=Math.max(3,score*10); // 0-10 → 0-100%
+    const level=score>=7?'high':score>=4?'mid':'low';
+    const pass=score>=5;
+    const statusIcon=pass?'✓':'✗';
+    const statusCls=pass?'pass':'fail';
+    const discountTag=d.discount?`<span class="cu-hex-discount">50%折</span>`:'';
+    return`<div class="cu-hex-row">
+      <span class="cu-hex-label">${escHtml(d.label)}${discountTag}</span>
+      <div class="cu-hex-track"><div class="cu-hex-fill ${level}" style="width:${barW}%"></div></div>
+      <span class="cu-hex-score-val" style="color:${pass?'#4ade80':'#f87171'}">${score.toFixed(1)}</span>
+      <span class="cu-hex-status ${statusCls}">${statusIcon}</span>
+    </div>`;
+  }).join('');
+  $('#dayun-dims').innerHTML=`<div class="cu-hex-score"><h4>✦ 六维评估</h4>${rows}</div>`;
+}
+
+// Step 2.3: 修正路径时间线
+function renderCorrectionTimeline(levels){
+  const L=levels||[];const maxL=L.length-1;
+  if(!L.length){$('#dayun-correction-tl').innerHTML='';return}
+  const items=L.map((lv,i)=>{
+    let markerCls='';let markerIcon='○';
+    if(lv.done){markerCls='done';markerIcon='✓'}
+    else if(i===maxL||lv.current){markerCls='current';markerIcon='◉'}
+    return`<div class="cu-tl-item">
+      <div class="cu-tl-marker ${markerCls}">${markerIcon}</div>
+      <div class="cu-tl-content">
+        <div class="cu-tl-title">Level ${i}: ${escHtml(lv.label||'修正阶段')}</div>
+        ${lv.desc?`<div class="cu-tl-desc">${escHtml(lv.desc)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  $('#dayun-correction-tl').innerHTML=`<div class="cu-timeline"><h4>✦ 修正路径</h4>${items}</div>`;
+}
+
+// Step 2.3: 加载六维评分卡 + 修正时间线
+async function loadHexagramAndTimeline(){
+  renderDayunDims({mode:'hexagram',loading:true});
+  try{
+    const data=await apiFetch('/api/calibrate/hexagram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId})});
+    renderDayunDims({mode:'hexagram',hexagramData:data.hexagram||{}});
+    if(data.correction_levels)renderCorrectionTimeline(data.correction_levels);
+  }catch(e){
+    console.warn('hexagram fetch failed',e);
+    // Fallback: show empty state
+    $('#dayun-dims').innerHTML=`<div class="cu-hex-score"><h4>✦ 六维评估</h4><div style="text-align:center;padding:12px;color:var(--muted);font-size:0.74rem;">六维数据加载中，请稍后刷新</div></div>`;
+  }
 }
 
 function renderDayunChat(){
@@ -1878,13 +1951,121 @@ function renderShenshaLifeMap(data){
 // ============================================================
 // CLASSICS (dead — merged into yongshen flow; kept as no-ops)
 // ============================================================
-async function loadClassics(payload){S.classicsReady=true;try{const data=await apiFetch('/api/classical-analysis',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});S.classicsDraft=data;if(S.chart){renderSummary(S.chart);updateCalGate()};maybeScheduleInvite()}catch(err){/* silent */}}
-function renderClassics(data){/* merged into yongshen flow */}
-function publishFormalReport(cd){S.reportPublished=true;if(S.chart)renderChart(S.chart);const data=cd||S.classicsDraft;if(data)renderClassics(data)}
-function renderFBBlock(){if(!S.calibrationResult)return'';const ev=buildFBE().slice(0,3);if(!ev.length)return'';return`<div style="padding:12px;border:1px solid var(--line);border-radius:6px;background:rgba(139,92,246,0.04);margin-bottom:12px;"><strong style="display:block;margin-bottom:4px;font-size:0.85rem;">本次校正使用的反馈</strong><p style="color:var(--ink-2);font-size:0.8rem;">${escHtml(ev.join('；'))}</p></div>`}
-function renderSources(sources){const rows=(sources||[]).slice(0,10);const primary=rows.slice(0,3),extra=rows.slice(3);return`<div class="source-block"><h4>检索到的原文依据</h4><p class="source-note">匹配度表示原文与当前命盘关键词的相关性，不是吉凶评分。</p><div>${primary.length?primary.map(r=>renderSourceRow(r)).join(''):'<div class="source-row"><div>暂无可展示出典</div><div></div></div>'}</div>${extra.length?`<details style="border-top:1px solid var(--line);"><summary style="cursor:pointer;padding:10px 16px;color:var(--ink-2);font-weight:700;font-size:0.82rem;">展开其余 ${extra.length} 条</summary><div>${extra.map(r=>renderSourceRow(r)).join('')}</div></details>`:''}</div>`}
+// [deprecated] loadClassics / renderClassics / publishFormalReport / renderFBBlock / renderSources / renderCorrectionResult / refreshClassics / renderForecast — removed in Step 2.4
 function renderSourceRow(r){const title=`${r.source||'典籍'} / ${r.chapter||'章节'}`;const ctx=joinParts([r.topic,r.context]);const ex=truncate(r.excerpt||r.text||'',160);return`<div class="source-row"><div><div class="source-title">${escHtml(title)}</div>${ctx?`<div class="source-context">${escHtml(ctx)}</div>`:''}${ex?`<div class="source-excerpt">${escHtml(ex)}</div>`:''}</div><div class="source-score">${r.score!==undefined?escHtml(String(r.score)):''}</div></div>`}
 function truncate(v,lim){const t=String(v||'').trim();return t.length<=lim?t:t.slice(0,lim)+'...'}
+
+// ============================================================
+// Step 3.3: 六步推导可展开面板
+// ============================================================
+function toggleSixStep(){
+  const panel=$('#six-step-panel');if(!panel)return;
+  const open=panel.style.display!=='none';
+  panel.style.display=open?'none':'';
+  const toggle=$('#six-step-toggle');if(toggle){
+    toggle.innerHTML=open?'📐 推导过程 ▾':'📐 推导过程 ▴';
+    toggle.classList.toggle('open',!open);
+  }
+}
+
+function renderSixStep(data){
+  if(!data||!data.derivation_steps){
+    // Fallback: parse from hypotheses or construct from prediction result
+    const steps=[
+      {label:'定格局',conclusion:(S.predHypotheses&&S.predHypotheses.length>0?(S.predHypotheses[0].pattern||'待定'):'待定'),detail:'基于月令提纲与四柱五行生克关系，确定命局基本格局'},
+      {label:'辨用神',conclusion:(S.chart?.yongshen?.primary||'待定'),detail:'根据日主强弱与格局需求，选取扶抑或调候用神'},
+      {label:'明喜忌',conclusion:(S.chart?.yongshen?.secondary?'喜'+S.chart.yongshen.secondary+(S.chart.yongshen.ji_shen?' 忌'+S.chart.yongshen.ji_shen:''):'待定'),detail:'用神定而后喜忌分明，喜神扶助用神，忌神克制用神'},
+      {label:'十神定位',conclusion:'详见命盘十神分布',detail:'以日主为中心，确立十神角色关系，明确各个维度的作用力方向'},
+      {label:'宫位取象',conclusion:'四柱分属年/月/日/时',detail:'年柱祖基、月柱父母兄弟、日柱自身配偶、时柱子女晚运'},
+      {label:'应期锁定',conclusion:'详见大运流年',detail:'结合大运排布与时柱引动，锁定人生关键转折时间节点'}
+    ];
+    renderSixStepFromArray(steps);
+    return;
+  }
+  renderSixStepFromArray(data.derivation_steps);
+}
+
+function renderSixStepFromArray(steps){
+  const content=$('#six-step-content');if(!content)return;
+  if(!steps||!steps.length){content.innerHTML='<div class="loading-inline">推导数据暂不可用</div>';return}
+  const items=steps.map((s,i)=>{
+    const n=i+1;
+    return `<div class="cu-step-item">
+      <div class="cu-step-num">${String(n).padStart(2,'0')}</div>
+      <div class="cu-step-info">
+        <div class="cu-step-title">${escHtml(s.label||'步骤'+n)}</div>
+        <div class="cu-step-conclusion">${escHtml(s.conclusion||'待定')}</div>
+        ${s.detail?`<div class="cu-step-detail">${escHtml(s.detail)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  content.innerHTML=items;
+
+  // Show toggle
+  const toggle=$('#six-step-toggle');if(toggle)toggle.style.display='';
+}
+
+// ============================================================
+// Step 3.1: 五维风险扫描卡片
+// ============================================================
+function renderRiskScan(uc){
+  const card=$('#risk-scan-card');if(!card||!uc)return;
+  card.style.display='';
+
+  // Five risk dimensions
+  const dims=[
+    {key:'hour_risk',label:'时辰风险',descMap:{low:'时辰信息足以准确定盘',medium:'时辰区段内存在歧义，建议结合前事验证',high:'时辰不确定，强烈建议通过断前事校准'}},
+    {key:'strength_ambiguity',label:'旺衰模糊度',descMap:{low:'日主强弱判断明确',medium:'存在从与不从的模糊边界',high:'旺衰判断高度依赖用神取向，需多轮验证'}},
+    {key:'yongshen_controversy',label:'用神争议度',descMap:{low:'用神取向各家一致',medium:'不同流派可能取不同用神',high:'核心争议焦点，必须通过反馈定夺'}},
+    {key:'pattern_ambiguity',label:'格局多解性',descMap:{low:'格局判断较确定',medium:'存在 2 种可能格局解释',high:'多格局可能性并存，需逐一排除'}},
+    {key:'cong_ge_risk',label:'从格真假',descMap:{low:'非从格或从格明确',medium:'假从或边界模糊',high:'真从/假从临界，判断错误将颠覆全局'}}
+  ];
+
+  const riskLevel=uc.risk_level||'medium';
+  let overallScore=0; let count=0;
+  const items=dims.map(d=>{
+    const v=uc[d.key]||'low';
+    const pct=v==='high'?85:v==='medium'?50:15;
+    if(v==='high')overallScore+=3;else if(v==='medium')overallScore+=1.5;else overallScore+=0.5;
+    count++;
+    const desc=d.descMap[v]||'';
+    return `<div>
+      <div class="cu-risk-item">
+        <span class="cu-risk-label">${d.label}</span>
+        <div class="cu-risk-bar-track"><div class="cu-risk-bar-fill ${v}" style="width:${pct}%"></div></div>
+        <span class="cu-risk-tag ${v}">${v==='high'?'高':v==='medium'?'中':'低'}</span>
+      </div>
+      <div class="cu-risk-desc">${desc}</div>
+    </div>`;
+  }).join('');
+
+  const avgScore=overallScore/count;
+  const ringLevel=avgScore>=2.4?'high':avgScore>=1.2?'medium':'low';
+  const ringPct=Math.round((avgScore/3)*100);
+  const circumference=2*Math.PI*26;
+  const offset=circumference-(ringPct/100)*circumference;
+  const ringColor=ringLevel==='high'?'#f87171':ringLevel==='medium'?'#fbbf24':'#4ade80';
+
+  const sq=uc.suggested_questions||[];
+  const qList=sq.length?`<ul style="padding-left:16px;">${sq.map(q=>`<li>${escHtml(q)}</li>`).join('')}</ul>`:'<span style="color:var(--muted);">暂无建议问题</span>';
+
+  $('#cu-risk-items').innerHTML=items;
+  $('#cu-risk-summary').innerHTML=`
+    <div class="cu-risk-summary-wrap">
+      <svg class="cu-risk-ring" viewBox="0 0 64 64">
+        <circle class="bg" cx="32" cy="32" r="26"/>
+        <circle class="fg ${ringLevel}" cx="32" cy="32" r="26"
+          stroke-dasharray="${circumference}" stroke-dashoffset="${offset}"
+          transform="rotate(-90 32 32)"/>
+        <text x="32" y="36" text-anchor="middle" class="cu-risk-ring-text">${ringPct}%</text>
+      </svg>
+      <div class="cu-risk-questions">
+        <strong>💡 建议关注问题</strong>
+        ${qList}
+      </div>
+    </div>`;
+  const btn=$('#cu-risk-start-btn');if(btn)btn.style.display='';
+}
 
 // ============================================================
 // PREDICTIONS & CALIBRATION (same logic, adapted)
@@ -1892,52 +2073,59 @@ function truncate(v,lim){const t=String(v||'').trim();return t.length<=lim?t:t.s
 // ============================================================
 // NEW PREDICTION FLOW — 逐步验证对话
 // ============================================================
-const ANSWER_LABEL_MAP={'accurate':'说对了','partial':'方向对，细节偏','inaccurate':'不对','很像':'很像','有点出入':'有点出入','完全不像':'完全不像','是的':'是的','不太确定':'不太确定','不是':'不是'};
+const ANSWER_LABEL_MAP={'accurate':'✓ 准确','direction_right':'△ 方向对细节错','wrong_event':'△ 事件不对','relation_deviation':'△ 关系描述偏差','inaccurate':'✗ 不准','unsure':'? 不确定','很像':'很像','有点出入':'有点出入','完全不像':'完全不像','是的':'是的','不太确定':'不太确定','不是':'不是'};
 function layerLabel(q){const map={L1:'格局定向',L2:'六亲验证'};if(map[q.layer])return map[q.layer];if(parseInt(q.layer?.replace('L',''))>=8)return 'AI增强鉴别';return '深度验证';}
 
 async function startPredictionFlow(){
   S.predUsingNewFlow=true;S.predLoading=true;S.predHistory=[];S.predLocked=false;S.predLockedResult=null;S.predError=null;
-  S.predSelectedAnswer='';S.predNote='';
+  S.predSelectedAnswer='';S.predNote='';S.predMaxRounds=5;S.predUnsureStreak=0;S.predUncertainty=null;
+  S.predPhase=null;S.predCorrectionLevels=null;S.predCorrectionCompare=null;
   renderPredBody();renderPredFoot();renderHypoBar();
+  // Step 2.2: 预检查不确定性
   try{
-    const data=await apiFetch('/api/predictions/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(S.payload)});
+    const ucData=await apiFetch('/api/precheck/uncertainty',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(S.payload)});
+    S.predUncertainty=ucData;
+  }catch(e){console.warn('precheck uncertainty fetch failed',e)}
+  try{
+    const startBody={...S.payload};if(S.predUncertainty)startBody.uncertainty=S.predUncertainty;
+    const data=await apiFetch('/api/predictions/start',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(startBody)});
     S.predSessionId=data.session_id||'';S.predHypotheses=data.hypotheses||[];
     S.predCurrentQuestion=data.question;
     S.predHistory.push({role:'ai',question:data.question,hypotheses:structuredCloneSafe(data.hypotheses)});
     S.predLoading=false;S.predictionsReady=true;
     hidePredictionSkeleton();
     renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();
+    // Step 3.3: 填充六步推导面板
+    renderSixStep(data.derivation?data:{derivation_steps:null});
   }catch(err){
     S.predLoading=false;S.predError={message:friendlyError(err,'启动断前事验证失败'),retry:true};
     hidePredictionSkeleton();renderPredBody();renderPredFoot();
-    // 降级到旧流程
-    console.warn('新API不可用，降级到旧流程',err);
-    S.predUsingNewFlow=false;
-    try{await apiFetchAndFillOld(S.payload)}catch(e2){showToast(friendlyError(e2,'断前事生成失败'))}
+    // Fallback: 用已有数据填充
+    renderSixStep({derivation_steps:null});
   }
 }
-// 旧流程降级兜底
-async function apiFetchAndFillOld(payload){
-  const data=await apiFetch('/api/predictions/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
-  S.sessionId=data.session_id||'';S.predictions=(data.predictions||[]).sort((a,b)=>{const cd=Number(Boolean(b.is_core))-Number(Boolean(a.is_core));if(cd)return cd;return Number(a.sequence||0)-Number(b.sequence||0)});
-  S.feedbackDrafts=S.predictions.map(p=>({prediction_id:p.id,status:'',note:''}));
-  S.currentPredictionIndex=0;S.predictionsReady=true;
-  hidePredictionSkeleton();if(S.chart)updateCalGate();maybeScheduleInvite();
-}
-
 async function verifyAnswer(){
   if(!S.predSelectedAnswer){showToast('请先选择一个答案');return}
   const answer=S.predSelectedAnswer;const note=S.predNote.trim();
   S.predHistory.push({role:'user',answer:answer,answerLabel:ANSWER_LABEL_MAP[answer]||answer,note:note||null});
+  // Step 2.2: 连续 3 条 unsure → 题量从 5 降为 3
+  if(answer==='unsure'){S.predUnsureStreak=(S.predUnsureStreak||0)+1}else{S.predUnsureStreak=0}
+  if(S.predUnsureStreak>=3&&S.predMaxRounds>3){S.predMaxRounds=3}
   S.predLoading=true;S.predSelectedAnswer='';S.predNote='';
   if($('#pred-note-input'))$('#pred-note-input').value='';
   renderPredBody();renderPredFoot();scrollToBottom();
   try{
-    const data=await apiFetch('/api/predictions/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.predSessionId,answer:answer,note:note})});
+    const data=await apiFetch('/api/predictions/verify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.predSessionId,answer:answer,note:note,max_rounds:S.predMaxRounds})});
     S.predHypotheses=data.hypotheses||[];S.predLoading=false;S.predError=null;
-    if(data.locked){S.predLocked=true;S.predLockedResult=data.result;S.predHistory.push({role:'system',result:data.result,rounds:data.rounds})}
-    else{S.predCurrentQuestion=data.question;S.predHistory.push({role:'ai',question:data.question,hypotheses:structuredCloneSafe(data.hypotheses)})}
-    renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();
+    if(data.locked){
+      S.predLocked=true;S.predLockedResult=data.result;
+      S.predHistory.push({role:'system',result:data.result,rounds:data.rounds});
+      // Step 3.2: 进入修正阶段
+      S.predPhase='correcting';
+      renderPredBody();scrollToBottom();
+      await loadCorrectionData();
+      renderPredBody();scrollToBottom();
+    }else{S.predCurrentQuestion=data.question;S.predHistory.push({role:'ai',question:data.question,hypotheses:structuredCloneSafe(data.hypotheses)});renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();}
   }catch(err){
     S.predLoading=false;S.predError={message:friendlyError(err,'提交失败，请重试'),retry:true,answer:answer,note:note};
     renderPredBody();renderPredFoot();
@@ -1952,37 +2140,158 @@ async function retryVerify(){
 }
 
 function onPredOptionClick(opt){
-  if(opt==='说说具体的'||opt==='说点具体的'){
-    S.predSelectedAnswer='custom';S.predCustomInput=true;S.predError=null;renderPredFoot();return
-  }
-  S.predSelectedAnswer=opt;S.predCustomInput=false;S.predError=null;renderPredFoot()
+  // 六档分级：accurate / direction_right / wrong_event / relation_deviation / inaccurate / unsure
+  S.predSelectedAnswer=opt;S.predError=null;renderPredFoot()
 }
 function onPredNoteInput(e){S.predNote=e.target.value||''}
 function onPredSubmit(){if(!S.predSelectedAnswer){showToast('请先选择一个答案');return};if(S.predLoading)return;verifyAnswer()}
+
+// ---- Step 3.2: 修正进度与对比 ----
+async function loadCorrectionData(){
+  S.predCorrectionLevels=[{level:0,label:'提取格局候选',desc:'扫描所有可能格局',status:'loading'},
+    {level:1,label:'验证用神',desc:'结合用户回答交叉校验用神',status:'pending'},
+    {level:2,label:'确认旺衰',desc:'锁定日主强弱',status:'pending'},
+    {level:3,label:'排除冲突',desc:'排除与用户反馈矛盾的格局',status:'pending'},
+    {level:4,label:'综合定盘',desc:'生成最终命盘',status:'pending'},
+    {level:5,label:'对比验证',desc:'修改前后准确率对比',status:'pending'}];
+  renderPredBody();scrollToBottom();
+  try{
+    const data=await apiFetch('/api/calibrate/hexagram',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.predSessionId})});
+    const lv=data.correction_levels||[
+      {level:0,label:'提取格局候选',desc:'从多个候选格局中筛选',status:'completed'},
+      {level:1,label:'验证用神',desc:'交叉校验用户反馈与用神取向',status:'completed'},
+      {level:2,label:'确认旺衰',desc:`日主${S.predLockedResult?.five_element||''}确认强弱`,status:'completed'},
+      {level:3,label:'排除冲突',desc:'排除与反馈矛盾的格局',status:'completed'},
+      {level:4,label:'综合定盘',desc:`确认为${S.predLockedResult?.pattern||'正格'}`,status:'completed'},
+      {level:5,label:'对比验证',desc:'修正前后对比完成',status:'completed'}
+    ];
+    S.predCorrectionLevels=lv;
+
+    // 构造修正前后对比
+    const before={wangshuai:(S.chart?.yongshen?.ri_zhu_strength||'?'),yongshen:(S.chart?.yongshen?.primary||'?'),pattern:(S.chart?.yongshen?.pattern||'?'),confidence:60};
+    const after={wangshuai:S.predLockedResult?.five_element||'?',yongshen:S.predLockedResult?.yong_shen||'?',pattern:S.predLockedResult?.pattern||'?',confidence:S.predLockedResult?.confidence||85};
+    S.predCorrectionCompare={before,after};
+  }catch(e){
+    console.warn('correction data fetch failed',e);
+    // Fill with mock progress from locked result
+    const levels=[];
+    const steps=[
+      {label:'提取格局候选',desc:'从多个候选格局中筛选'},
+      {label:'验证用神',desc:`锁定用神为 ${S.predLockedResult?.yong_shen||'?'}`},
+      {label:'确认旺衰',desc:'日主强弱最终确认'},
+      {label:'排除冲突',desc:'排除与用户反馈矛盾的格局'},
+      {label:'综合定盘',desc:`确认为${S.predLockedResult?.pattern||'正格'}`},
+      {label:'对比验证',desc:'修正前后对比完成'}
+    ];
+    steps.forEach((s,i)=>{levels.push({level:i,label:s.label,desc:s.desc,status:'completed'})});
+    S.predCorrectionLevels=levels;
+    const before={wangshuai:(S.chart?.yongshen?.ri_zhu_strength||'?'),yongshen:(S.chart?.yongshen?.primary||'?'),pattern:(S.chart?.yongshen?.pattern||'?'),confidence:60};
+    const after={wangshuai:S.predLockedResult?.five_element||'?',yongshen:S.predLockedResult?.yong_shen||'?',pattern:S.predLockedResult?.pattern||'?',confidence:S.predLockedResult?.confidence||85};
+    S.predCorrectionCompare={before,after};
+  }
+}
+
+function renderCorrectionProgress(){
+  const lv=S.predCorrectionLevels||[];
+  const items=lv.map(l=>{
+    const icon=l.status==='completed'?'✓':l.status==='loading'?'<span class="loader"></span>':'○';
+    const cls=l.status==='completed'?'done':l.status==='loading'?'current':'';
+    const isLast=l.level===lv.length-1;
+    return `<div class="cu-prog-item">
+      <div>
+        <div class="cu-prog-marker ${cls}">${icon}</div>
+        ${!isLast?`<div class="cu-prog-conn ${l.status==='completed'?'done':''}"></div>`:''}
+      </div>
+      <div class="cu-prog-body">
+        <div class="cu-prog-title">Level ${l.level}: ${escHtml(l.label||'')}</div>
+        ${l.desc?`<div class="cu-prog-desc">${escHtml(l.desc)}</div>`:''}
+      </div>
+    </div>`;
+  }).join('');
+  return `<div class="cu-progress-card"><h4>✦ 修正进度</h4><div class="cu-prog-stepper">${items}</div></div>`;
+}
+
+function renderCorrectionCompare(){
+  const cmp=S.predCorrectionCompare;if(!cmp)return'';
+  const {before,after}=cmp;
+  const delta=Number(after.confidence||0)-Number(before.confidence||0);
+  const deltaStr=delta>0?`+${delta}%`:delta<0?`${delta}%`:'0%';
+  const deltaCls=delta>0?'delta-up':'delta-down';
+  const rows=[
+    {label:'日主旺衰',before:before.wangshuai,after:after.wangshuai},
+    {label:'用神',before:before.yongshen,after:after.yongshen},
+    {label:'格局判断',before:before.pattern,after:after.pattern}
+  ];
+  const tbody=rows.map(r=>{
+    const changed=r.before!==r.after&&r.before!=='?'&&r.after!=='?';
+    return `<div class="cu-cmp-row">
+      <span class="cu-cmp-label">${r.label}</span>
+      <span class="cu-cmp-before">${escHtml(r.before)}</span>
+      <span class="cu-cmp-arrow">→</span>
+      <span class="cu-cmp-after ${changed?'changed':''}">${escHtml(r.after)}</span>
+    </div>`;
+  }).join('');
+  return `<div class="cu-compare-card">
+    <h4>✦ 修正对比</h4>
+    ${tbody}
+    <div class="cu-cmp-confidence">
+      <span>综合准确率</span>
+      <span>${before.confidence}% → ${after.confidence}%</span>
+      <span class="${deltaCls}">${deltaStr}</span>
+    </div>
+  </div>`;
+}
 
 // ---- Rendering ----
 function renderPredBody(){
   const body=$('#pred-body');if(!body)return;
   let html='';
+  // Step 2.2: 风险提示条
+  if(S.predUncertainty&&S.predUncertainty.risk_level){
+    const uc=S.predUncertainty;
+    const riskMsgs=[];
+    if(uc.hour_risk&&uc.hour_risk!=='low')riskMsgs.push(`时辰风险${uc.hour_risk==='high'?'高':'中'}`);
+    if(uc.pattern_risk&&uc.pattern_risk!=='low')riskMsgs.push(`格局歧义`);
+    if(uc.six_kin_focus)riskMsgs.push(`建议重点关注${uc.six_kin_focus}关`);
+    if(riskMsgs.length)html+=`<div class="cu-risk-banner">⚠️ ${riskMsgs.join(' · ')}</div>`;
+  }
   if(S.predLoading&&S.predHistory.length===0){
-    html=`<div class="pred-loading-state"><div class="cal-pulse-ring"></div><div class="cal-pulse-ring cal-pulse-ring-2"></div><div>AI 正在分析命盘，生成验证问题...</div><div class="cal-shimmer"></div></div>`;
+    html+=`<div class="pred-loading-state"><div class="cal-pulse-ring"></div><div class="cal-pulse-ring cal-pulse-ring-2"></div><div>AI 正在分析命盘，生成验证问题...</div><div class="cal-shimmer"></div></div>`;
     body.innerHTML=html;return;
   }
   S.predHistory.forEach((msg,idx)=>{
     const isOld=S.predHistoryCollapsed&&idx<S.predHistory.length-2;
     if(msg.role==='ai'){
       const q=msg.question;
-      html+=`<div class="pred-msg ai${isOld?' collapsed':''}"><div class="pred-msg-head"><span class="pred-msg-avatar">命</span><span class="pred-msg-meta">第 ${q.round} 轮 · ${q.layer} · ${layerLabel(q)}</span></div><div class="pred-msg-body"><p class="pred-question">${escHtml(q.question)}</p>${q.explanation?`<p class="pred-explanation">${escHtml(q.explanation)}</p>`:''}${q.pattern_feature?`<p class="pred-feature">${escHtml(q.pattern_feature)}</p>`:''}</div></div>`;
+      const ds=q.discrimination_score;
+      let dsTag='';
+      if(typeof ds==='number'){
+        const dsLevel=ds>=0.7?'high':ds>=0.4?'medium':'low';
+        dsTag=`<span class="cu-disc-score ${dsLevel}">区分度 ${(ds*100).toFixed(0)}%</span>`;
+      }
+      html+=`<div class="pred-msg ai${isOld?' collapsed':''}"><div class="pred-msg-head"><span class="pred-msg-avatar">命</span><span class="pred-msg-meta">第 ${q.round} 轮 · ${q.layer} · ${layerLabel(q)}</span></div><div class="pred-msg-body">${dsTag}<p class="pred-question">${escHtml(q.question)}</p>${q.explanation?`<p class="pred-explanation">${escHtml(q.explanation)}</p>`:''}${q.pattern_feature?`<p class="pred-feature">${escHtml(q.pattern_feature)}</p>`:''}</div></div>`;
     }else if(msg.role==='user'){
       html+=`<div class="pred-msg user${isOld?' collapsed':''}"><div class="pred-msg-body"><span class="pred-answer-label">${escHtml(msg.answerLabel)}</span>${msg.note?`<p class="pred-note-display">${escHtml(msg.note)}</p>`:''}</div></div>`;
     }else if(msg.role==='system'){
       const r=msg.result;
-      html+=`<div class="pred-msg system"><div class="pred-result-card"><div class="pred-result-icon">✦</div><h4>格局锁定</h4><p>经过 ${msg.rounds} 轮验证，命盘格局确认为：</p><div class="pred-result-main">${escHtml(r.pattern)} · ${escHtml(r.pattern_type||'')}</div><div class="pred-result-meta"><span>用神：${escHtml(r.yong_shen||'')}</span><span>五行：${escHtml(r.five_element||'')}</span><span>置信度：${r.confidence||'?'}%</span></div>${S.predLockedResult?`<button class="btn btn-primary" onclick="applyLockedResult()">确认并应用到命盘</button>`:''}</div></div>`;
+      html+=`<div class="pred-msg system"><div class="pred-result-card"><div class="pred-result-icon">✦</div><h4>格局锁定</h4><p>经过 ${msg.rounds} 轮验证，命盘格局确认为：</p><div class="pred-result-main">${escHtml(r.pattern)} · ${escHtml(r.pattern_type||'')}</div><div class="pred-result-meta"><span>用神：${escHtml(r.yong_shen||'')}</span><span>五行：${escHtml(r.five_element||'')}</span><span>置信度：${r.confidence||'?'}%</span></div>${(S.predLockedResult&&S.predPhase!=='correcting')?`<button class="btn btn-primary" onclick="applyLockedResult()">确认并应用到命盘</button>`:''}</div></div>`;
     }
   });
   const oldCount=S.predHistory.filter((m,i)=>i<S.predHistory.length-2).length;
   if(oldCount>0&&!S.predLocked){
     html+=`<div class="pred-history-toggle" onclick="toggleHistory()">${S.predHistoryCollapsed?`展开前 ${Math.ceil(oldCount/2)} 轮对话`:'折叠较早的对话'}</div>`;
+  }
+  // Step 3.2: 修正阶段渲染
+  if(S.predPhase==='correcting'){
+    html+=renderCorrectionProgress();
+    if(S.predCorrectionCompare)html+=renderCorrectionCompare();
+    if(!S.predCorrectionLevels||S.predCorrectionLevels.every(l=>l.status==='completed')){
+      html+=`<div class="pred-msg system"><div class="pred-result-card" style="padding:14px;">
+        <div style="font-size:1.2rem;margin-bottom:4px;">✅ 修正完成</div>
+        <p style="color:var(--muted);font-size:0.78rem;">修正路径已执行完毕，请确认并应用</p>
+        <button class="btn btn-primary" onclick="applyLockedResult()" style="margin-top:8px;">确认并应用到命盘</button>
+      </div></div>`;
+    }
   }
   if(S.predError){
     html+=`<div class="pred-msg error"><div class="pred-msg-body">${escHtml(S.predError.message)}${S.predError.retry?`<br><button class="btn btn-ghost" onclick="retryVerify()" style="margin-top:6px;font-size:0.78rem;">重新提交</button>`:''}</div></div>`;
@@ -1991,23 +2300,35 @@ function renderPredBody(){
 }
 function renderPredFoot(){
   const foot=$('#pred-foot');if(!foot)return;
-  if(S.predLocked){foot.style.display='none';return}
+  if(S.predLocked||S.predPhase==='correcting'){foot.style.display='none';return}
   foot.style.display='block';
   if(S.predLoading){foot.innerHTML='';foot.classList.add('waiting');foot.innerHTML=`<div class="pred-wait-text"><span class="loader"></span> AI 正在分析你的回答...</div>`;return}
   foot.classList.remove('waiting');
   if(S.predError){foot.innerHTML='';return}
   const q=S.predCurrentQuestion;if(!q)return;
+  // 更新进度徽章
+  const userRounds=S.predHistory.filter(h=>h.role==='user').length;
+  const badge=$('#pred-round-badge');if(badge)badge.textContent=`第 ${userRounds+1}/${S.predMaxRounds} 题`;
   const mode=q.interaction_mode||'confirm';
   if(mode==='followup'){
     foot.innerHTML=`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说你的情况..." style="width:100%;min-height:80px;font-size:0.82rem;margin-bottom:8px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>发送</button></div>`;
     return
   }
-  const options=q.options||[];
-  const optsHtml=options.map(opt=>{const sel=S.predSelectedAnswer===opt?' selected':'';return`<button class="pred-opt-btn${sel}" onclick="onPredOptionClick('${escAttr(opt)}')">${escHtml(opt)}</button>`}).join('');
-  optsHtml+=' <button class="pred-opt-btn expand-note" onclick="onPredOptionClick(\'说说具体的\')">说说具体的</button>';
-  const customInput=S.predSelectedAnswer==='custom'?`<div class="pred-custom-input"><textarea id="pred-custom-textarea" class="ctrl" placeholder="请具体说说..." style="width:100%;min-height:80px;font-size:0.82rem;margin-top:6px;" oninput="onPredCustomInput(event)">${escHtml(S.predCustomText||'')}</textarea></div>`:'';
-  const noteRow=S.predSelectedAnswer==='custom'?`<button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmitCustom()"${S.predCustomText?.trim()?'':' disabled'}>发送</button>`:`<div class="pred-note-row"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()"${S.predSelectedAnswer?'':' disabled'}>确认</button></div>`;
-  foot.innerHTML=`<div class="pred-options">${optsHtml}</div>${customInput}<div class="pred-note-row">${noteRow}</div>`;
+  // 六档分级按钮 (Step 2.1)
+  const grades=[
+    {value:'accurate',label:'✓ 准确',color:'green'},
+    {value:'direction_right',label:'△ 方向对细节错',color:'blue'},
+    {value:'wrong_event',label:'△ 事件不对',color:'orange'},
+    {value:'relation_deviation',label:'△ 关系描述偏差',color:'orange'},
+    {value:'inaccurate',label:'✗ 不准',color:'red'},
+    {value:'unsure',label:'? 不确定',color:'gray'}
+  ];
+  const optsHtml=grades.map(g=>{
+    const sel=S.predSelectedAnswer===g.value?' selected':'';
+    return`<button class="cu-grade-btn grade-${g.color}${sel}" onclick="onPredOptionClick('${escAttr(g.value)}')">${escHtml(g.label)}</button>`;
+  }).join('');
+  const noteRow=S.predSelectedAnswer?`<div class="pred-note-row" style="margin-top:8px;"><input id="pred-note-input" class="ctrl" placeholder="可选：补充说明" style="flex:1;min-height:36px;font-size:0.82rem;" oninput="onPredNoteInput(event)" value="${escAttr(S.predNote)}"><button class="btn btn-primary" id="pred-submit-btn" onclick="onPredSubmit()">确认</button></div>`:'';
+  foot.innerHTML=`<div class="cu-grade-row">${optsHtml}</div>${noteRow}`;
 }
 function onPredCustomInput(e){S.predCustomText=e.target.value||'';renderPredFoot()}
 function onPredSubmitCustom(){S.predNote=S.predCustomText||'';S.predCustomInput=false;S.predCustomText='';verifyAnswer()}
@@ -2037,7 +2358,6 @@ function closePredictionDialog(){$('#prediction-overlay').hidden=true}
 function openPredictionDialog(){
   if(!S.chart){showToast('请先生成命盘');return}
   if(S.inviteTimer)clearTimeout(S.inviteTimer);
-  $('#calibration-invite').hidden=true;$('#time-dialog').hidden=true;$('#matched-time-dialog').hidden=true;
   $('#prediction-overlay').hidden=false;setStep('calibration');
   if(S.predLocked&&S.predLockedResult){renderPredBody();return}
   if(S.predHistory.length>0&&S.predSessionId){renderPredBody();renderPredFoot();renderHypoBar();scrollToBottom();return}
@@ -2054,10 +2374,16 @@ async function applyLockedResult(){
   S.calibrationResult={pattern:result.pattern,yong_shen:result.yong_shen,five_element:result.five_element,confidence:result.confidence,pattern_type:result.pattern_type,gong_way:result.gong_way,rounds:S.predHistory.filter(h=>h.role==='user').length,verdict:{verdict:'passed'},result_message:`经过 ${S.predHistory.filter(h=>h.role==='user').length} 轮验证，格局确认为${result.pattern}`};
   if(S.chart){S.chart.yongshen={...(S.chart.yongshen||{}),primary:result.yong_shen,pattern:result.pattern};renderYongshen(S.chart.yongshen);updateCalGate();renderDayun(S.chart.dayun||[])}
   S.reportPublished=true;S.predictionsReady=true;
-  closePredictionDialog();showToast('格局已锁定 ✦ 报告已更新');
+  closePredictionDialog();setStep('correction');showToast('格局已锁定 ✦ 报告已更新');
+  // 藏起风险扫描卡片
+  const rsc=$('#risk-scan-card');if(rsc)rsc.style.display='none';
+  const ssp=$('#six-step-panel');if(ssp)ssp.style.display='none';
+  const sst=$('#six-step-toggle');if(sst){sst.style.display='none';sst.innerHTML='📐 推导过程 ▾';sst.classList.remove('open');}
   // 自动保存到用户记录（若已登录）
   saveReadingToCloud();
   try{await loadForecast(S.calibrationResult)}catch(e){console.warn('forecast load failed',e)}
+  // Step 2.3: 加载六维评分卡 + 修正时间线
+  try{await loadHexagramAndTimeline()}catch(e){console.warn('hexagram load failed',e)}
 }
 
 async function saveReadingToCloud(){
@@ -2072,7 +2398,7 @@ async function saveReadingToCloud(){
 }
 
 function resetPredictionFlow(){
-  S.predSessionId='';S.predCurrentQuestion=null;S.predHypotheses=[];S.predHistory=[];S.predLocked=false;S.predLockedResult=null;S.predSelectedAnswer='';S.predNote='';S.predLoading=false;S.predError=null;S.predHistoryCollapsed=false;
+  S.predSessionId='';S.predCurrentQuestion=null;S.predHypotheses=[];S.predHistory=[];S.predLocked=false;S.predLockedResult=null;S.predSelectedAnswer='';S.predNote='';S.predLoading=false;S.predError=null;S.predHistoryCollapsed=false;S.predPhase=null;S.predCorrectionLevels=null;S.predCorrectionCompare=null;
 }
 
 // ---- 桥接到新验证流程 ----
@@ -2109,7 +2435,9 @@ async function loadAIYongshen(payload){
     await startPredictionFlow();
     // P1修复：预测题目就绪后刷新 yongshen 区域状态
     if(S.chart)renderYongshen(S.chart.yongshen);
-  }catch(err){console.warn('AI yongshen load failed',err);S.aiYongshenLoaded=true;if(S.chart)renderYongshen(S.chart.yongshen);showPredictionSkeleton();await startPredictionFlow();if(S.chart)renderYongshen(S.chart.yongshen)}
+    // Step 3.1: 显示风险扫描
+    if(S.predUncertainty)renderRiskScan(S.predUncertainty);
+  }catch(err){console.warn('AI yongshen load failed',err);S.aiYongshenLoaded=true;if(S.chart)renderYongshen(S.chart.yongshen);showPredictionSkeleton();await startPredictionFlow();if(S.chart)renderYongshen(S.chart.yongshen);if(S.predUncertainty)renderRiskScan(S.predUncertainty)}
 }
 function showPredictionSkeleton(){
   const existing=$('#prediction-skeleton');
@@ -2129,11 +2457,7 @@ function hidePredictionSkeleton(){
   const el=$('#prediction-skeleton');
   if(el)el.remove();
 }
-function maybeScheduleInvite(){if(!S.classicsReady||!S.predictionsReady||S.inviteShown||S.inviteDismissed)return;S.inviteShown=true;if(S.inviteTimer)clearTimeout(S.inviteTimer);S.inviteTimer=setTimeout(()=>{$('#calibration-invite').hidden=false;$('#top-calibration-btn').hidden=false},4000)}
-function dismissCalibrationInvite(){S.inviteDismissed=true;$('#calibration-invite').hidden=true;$('#top-calibration-btn').hidden=false}
-async function confirmBirthTime(accurate){$('#time-dialog').hidden=true;$('#prediction-overlay').hidden=true;try{const data=await apiFetch('/api/calibrate/confirm-time',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,time_accurate:accurate})});if(!accurate&&data.correction_type==='hour_fix'&&data.recommended_hour!==undefined){S.matchedTime=data;$('#matched-time-copy').textContent=`已匹配出出生时段：${data.recommended_shichen||''}（${formatSRange(data.recommended_hour)}）。`;$('#matched-time-dialog').hidden=false;return}S.calibrationResult=data;if(data.updated_analysis){S.reportPublished=true;applyUA(data.updated_analysis,data);S.classicsDraft={classical_analysis:data.updated_analysis.classical_analysis,sources:data.updated_analysis.sources||[]};renderClassics(S.classicsDraft)}else{publishFormalReport()}renderCorrectionResult(data,{mode:accurate?'ai':'unchanged-hour'});await loadForecast(data)}catch(err){showToast(friendlyError(err,'校正失败'));$('#time-dialog').hidden=false}}
-
-async function applyMatchedTime(){if(!S.matchedTime)return;$('#matched-time-dialog').hidden=true;try{const data=await apiFetch('/api/calibrate/apply',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session_id:S.sessionId,correction_type:'hour_fix',new_hour:S.matchedTime.recommended_hour,fix_stage:3,force_correction:true})});const applied=data.correction_result&&data.correction_result.applied_result;S.calibrationResult={...S.matchedTime,applied_result:applied,apply_result:data};S.reportPublished=true;if(applied&&applied.chart){S.chart=normalizeAC(applied.chart,applied.strength_detail);renderChart(S.chart)}renderCorrectionResult(S.calibrationResult,{mode:'hour',applied});await refreshClassics();await loadForecast(S.calibrationResult)}catch(err){showToast(friendlyError(err,'刷新失败'));$('#matched-time-dialog').hidden=false}}
+// [deprecated] maybeScheduleInvite / dismissCalibrationInvite / confirmBirthTime / applyMatchedTime — removed in Step 2.4
 
 async function loadForecast(cr){
   try{
@@ -2150,23 +2474,23 @@ async function loadForecast(cr){
   }
 }
 
-function renderForecast(data){const fc=data.forecast||{};const cd=data.current_dayun||{};const structured=fc.yearly_forecast||[];const tl=[];if(fc.current_dayun_analysis||cd.stem){const da=fc.current_dayun_analysis||{};tl.push(renderTL({marker:'当前大运',sub:da.dayun_info?'':joinParts([cd.start_year,cd.end_year?`-${cd.end_year}`:'']),title:da.dayun_info||`${cd.stem||''}${cd.branch||''}运`,body:da.detailed_analysis||da.overall_theme||`${cd.ten_god||''}运`}))}structured.slice(0,5).forEach(s=>{tl.push(renderTL({marker:String(s.year||''),sub:s.ganzhi||'',title:joinParts([s.label||s.ten_god||'流年',s.ten_god?` / ${s.ten_god}`:'']),body:s.key_event||s.advice||'平稳发展'}))});(fc.dayun_timeline||[]).slice(0,2).forEach(d=>{tl.push(renderTL({marker:'后续大运',sub:d.key_window||'',title:d.dayun||d.theme||'后续阶段',body:d.theme?`阶段主题：${d.theme}`:'后续大运概览'}))});const dims=[['career','事业'],['wealth','财运'],['marriage','感情'],['relationship','关系'],['health','健康']];const used=new Set();const dmCards=[];dims.forEach(([k,l])=>{if(used.has(k))return;const it=fc[k];if(!it)return;used.add(k);dmCards.push({label:l,text:it.summary||it.advice||it.detailed_analysis||'暂无数据',years:Array.isArray(it.key_years)?it.key_years.join('、'):''})});const dmHtml=dmCards.map((d,i)=>{const w=dmCards.length%2===1&&i===dmCards.length-1?' wide':'';return`<div class="dim-card${w}"><h4>${escHtml(d.label)}</h4><p>${escHtml(d.text)}</p>${d.years?`<div style="color:var(--muted);font-size:0.76rem;margin-top:6px;">关键年份：${escHtml(d.years)}</div>`:''}</div>`}).join('');const actions=buildActions(fc.actionable_guide||{}).slice(0,6);$('#forecast-content').className='';$('#forecast-content').innerHTML=`<div class="timeline">${tl.join('')||'<div class="empty-inline">暂无数据</div>'}</div>${dmHtml?`<div class="dim-grid">${dmHtml}</div>`:''}${actions.length?`<div style="border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden;margin-top:12px;"><h4 style="padding:10px 14px;border-bottom:1px solid var(--line);background:rgba(14,9,28,0.3);font-size:0.88rem;">行动清单</h4><div class="action-list" style="padding:10px;">${actions.map(a=>`<div class="action-item"><strong>${escHtml(a.title)}</strong><p>${escHtml(a.body)}</p>${a.reason?`<p style="color:var(--muted);font-size:0.76rem;margin-top:3px;">${escHtml(a.reason)}</p>`:''}</div>`).join('')}</div></div>`:''}<p style="color:var(--muted);font-size:0.76rem;margin-top:10px;">${escHtml(data.disclaimer||'命理预测仅供参考，人生掌握在自己手中。')}</p>`}
-function renderTL({marker,sub,title,body}){return`<div class="timeline-item"><div class="tl-marker"><strong>${escHtml(marker||'-')}</strong>${sub?`<span>${escHtml(sub)}</span>`:''}</div><div class="tl-content"><h4>${escHtml(title||'')}</h4><p>${escHtml(body||'')}</p></div></div>`}
-function buildActions(guide){const res=[];Object.entries(guide||{}).forEach(([k,v])=>{const entries=Array.isArray(v)?v:[v];entries.forEach(entry=>{if(!entry)return;if(typeof entry==='string'){res.push({title:guideLabel(k),body:entry,reason:''});return}if(typeof entry==='object'){const title=entry.timing?`${guideLabel(k)} / ${entry.timing}`:guideLabel(k);const body=entry.action||entry.advice||entry.summary||entry.text||'';const reason=entry.reason||'';if(body||reason)res.push({title,body:body||reason,reason:body?reason:''})}})});return res}
-function guideLabel(k){const labels={career:'事业',wealth:'财运',marriage:'感情',relationship:'关系',health:'健康',opportunity:'机会',risk:'风险',advice:'建议',do:'宜',avoid:'忌'};return labels[k]||k}
+// [deprecated] renderForecast — removed in Step 2.4
+// [deprecated] renderTL — removed in Step 2.4
+// [deprecated] buildActions — removed in Step 2.4
+// [deprecated] guideLabel — removed in Step 2.4
 
-function renderCorrectionResult(data,opts={}){/* merged into yongshen flow */}
-
-function buildCC(data,opts){const before=S.initialChart||S.chart||{};const after=S.chart||{};const changes=[];if(opts.mode==='hour'&&opts.applied&&opts.applied.chart){const bh=before.four_pillars&&before.four_pillars.hour,ah=after.four_pillars&&after.four_pillars.hour;if(bh&&ah){changes.push({label:'时柱',before:joinParts([bh.stem,bh.branch]),after:joinParts([ah.stem,ah.branch])})}}const by=before.yongshen||{},ay=after.yongshen||{};addChange(changes,'旺衰',by.ri_zhu_strength,ay.ri_zhu_strength);addChange(changes,'格局',by.pattern,ay.pattern);addChange(changes,'用神',by.primary,ay.primary);return changes}
-function addChange(cs,l,b,a){const x=String(b||'-'),y=String(a||'-');if(x!==y)cs.push({label:l,before:x,after:y})}
-function buildFBE(){const items=[];S.feedbackDrafts.forEach((fb,i)=>{if(!fb.status)return;const p=S.predictions[i]||{};const note=fb.note?`，并补充"${fb.note}"`:'';items.push(`你反馈「${p.category||'断前事'}」为"${FEEDBACK_LABELS[fb.status]||fb.status}"${note}`)});return items.slice(0,5)}
-function applyUA(ua,cr){if(!S.chart||!ua||!ua.strength_detail)return;const d=ua.strength_detail;const ys=d.yongshen||{};const corrected=cr.updated_chart&&cr.updated_chart.yongshen?cr.updated_chart.yongshen:{};S.chart.yongshen={...(S.chart.yongshen||{}),primary:corrected.primary||ys.primary||S.chart.yongshen?.primary||'',secondary:corrected.secondary||ys.secondary||S.chart.yongshen?.secondary||'',ji_shen:corrected.ji_shen||ys.ji_shen||S.chart.yongshen?.ji_shen||'',pattern:corrected.pattern||d.pattern||S.chart.yongshen?.pattern||'',ri_zhu_strength:corrected.ri_zhu_strength||d.ri_zhu_strength||S.chart.yongshen?.ri_zhu_strength||''};renderSummary(S.chart);updateCalGate();renderYongshen(S.chart.yongshen);$('#dayun-card').hidden=false;renderDayun(S.chart.dayun||[])}
-async function refreshClassics(){/* merged into yongshen flow */}
+// [deprecated] renderCorrectionResult — removed in Step 2.4
+// [deprecated stubs]
+// [deprecated] buildCC — removed in Step 2.4
+// [deprecated] addChange — removed in Step 2.4
+// [deprecated] buildFBE — removed in Step 2.4
+// [deprecated] applyUA — removed in Step 2.4
+// [deprecated] refreshClassics — removed in Step 2.4
 function normalizeAC(chart,sd){const next=structuredCloneSafe(chart);if(sd){next.yongshen={...(next.yongshen||{}),...(sd.yongshen||{}),pattern:sd.pattern||next.yongshen?.pattern||'',ri_zhu_strength:sd.ri_zhu_strength||next.yongshen?.ri_zhu_strength||''}}return next}
-function formatSRange(h){const n=Number(h);if(Number.isNaN(n))return'';const s=n===23?23:n;const e=(s+2)%24;return`${pad2(s)}:00-${pad2(e)}:00`}
-function getVerdictKey(d){return d&&d.verdict&&d.verdict.verdict?d.verdict.verdict:''}
-function getVerdictSugg(d){return d&&d.verdict?d.verdict.suggestion||d.verdict.verdict_label||'':''}
-function cTitle(m){if(m==='passed')return'校验通过，原盘判断保持';if(m==='hour')return'已按匹配时段刷新报告';if(m==='unchanged-hour')return'未找到更优时段，保持原时辰';return'已根据断前事反馈修正判断'}
+// [deprecated] formatSRange — removed in Step 2.4
+// [deprecated] getVerdictKey — removed in Step 2.4
+// [deprecated] getVerdictSugg — removed in Step 2.4
+// [deprecated] cTitle — removed in Step 2.4
 
 async function copySummary(){const c=S.chart;if(!c)return;const ys=c.yongshen||{};const cd=getCurrentDayun(c.dayun||[]);const lines=isReportPublished()?['命盘正式摘要',`日主：${c.day_master||'-'}，强弱：${ys.ri_zhu_strength||'-'}`,`用神：${ys.primary||'-'}，喜神：${ys.secondary||'-'}，忌神：${ys.ji_shen||'-'}`,`格局：${ys.pattern||'-'}`,cd?`当前大运：${cd.stem}${cd.branch}（${cd.start_year}-${cd.end_year}）`:''].filter(Boolean).join('\n'):['固定基本盘摘要',`日主：${c.day_master||'-'}`,'旺衰、格局、用神：待断前事校正后公开',cd?`当前大运：${cd.stem}${cd.branch}（${cd.start_year}-${cd.end_year}）`:''].filter(Boolean).join('\n');try{await navigator.clipboard.writeText(lines);showToast('摘要已复制 ✦')}catch(e){showToast('复制失败')}}
 

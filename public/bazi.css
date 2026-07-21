@@ -864,3 +864,346 @@ body {
   color: #f87171; font-size: 0.82rem;
 }
 
+/* ============================================================
+   cu- 前缀：六档分级反馈按钮 (Step 2.1)
+   ============================================================ */
+.cu-grade-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+.cu-grade-btn {
+  min-height: 38px; padding: 6px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--line-strong);
+  background: rgba(14,9,28,0.4);
+  color: var(--ink-2); font-weight: 700;
+  font-size: 0.78rem; cursor: pointer;
+  transition: all 0.2s ease; text-align: center;
+  line-height: 1.3;
+}
+.cu-grade-btn:hover {
+  border-color: var(--accent);
+  background: rgba(139,92,246,0.08);
+  color: var(--ink);
+  transform: translateY(-1px);
+}
+.cu-grade-btn.selected { box-shadow: 0 0 8px rgba(139,92,246,0.2); }
+/* 绿色 — 准确 */
+.cu-grade-btn.grade-green { border-color: rgba(74,222,128,0.3); }
+.cu-grade-btn.grade-green:hover { border-color: #4ade80; background: rgba(74,222,128,0.08); }
+.cu-grade-btn.grade-green.selected { background: rgba(74,222,128,0.2); border-color: #4ade80; color: #4ade80; }
+/* 蓝色 — 方向对细节错 */
+.cu-grade-btn.grade-blue { border-color: rgba(56,189,248,0.3); }
+.cu-grade-btn.grade-blue:hover { border-color: #38bdf8; background: rgba(56,189,248,0.08); }
+.cu-grade-btn.grade-blue.selected { background: rgba(56,189,248,0.2); border-color: #38bdf8; color: #38bdf8; }
+/* 橙色 — 事件不对 / 关系描述偏差 */
+.cu-grade-btn.grade-orange { border-color: rgba(251,191,36,0.3); }
+.cu-grade-btn.grade-orange:hover { border-color: #fbbf24; background: rgba(251,191,36,0.08); }
+.cu-grade-btn.grade-orange.selected { background: rgba(251,191,36,0.2); border-color: #fbbf24; color: #fbbf24; }
+/* 红色 — 不准 */
+.cu-grade-btn.grade-red { border-color: rgba(248,113,113,0.3); }
+.cu-grade-btn.grade-red:hover { border-color: #f87171; background: rgba(248,113,113,0.08); }
+.cu-grade-btn.grade-red.selected { background: rgba(248,113,113,0.2); border-color: #f87171; color: #f87171; }
+/* 灰色 — 不确定 */
+.cu-grade-btn.grade-gray { border-color: rgba(139,122,170,0.3); }
+.cu-grade-btn.grade-gray:hover { border-color: var(--muted); background: rgba(139,122,170,0.08); }
+.cu-grade-btn.grade-gray.selected { background: rgba(139,122,170,0.2); border-color: var(--muted); color: var(--muted); }
+
+/* 区分度评分标签 */
+.cu-disc-score {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px; border-radius: 999px;
+  font-size: 0.64rem; font-weight: 700;
+  background: rgba(139,92,246,0.1); color: var(--accent);
+  margin-bottom: 6px;
+}
+.cu-disc-score.high { background: rgba(74,222,128,0.12); color: #4ade80; }
+.cu-disc-score.medium { background: rgba(251,191,36,0.12); color: #fbbf24; }
+.cu-disc-score.low { background: rgba(248,113,113,0.12); color: #f87171; }
+
+/* 风险提示条 (Step 2.2) */
+.cu-risk-banner {
+  padding: 8px 12px; margin: 0 14px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(251,191,36,0.3);
+  background: rgba(251,191,36,0.08);
+  font-size: 0.72rem; color: #fbbf24;
+  line-height: 1.5;
+}
+
+/* ============================================================
+   cu- 前缀：五维风险扫描卡片 (Step 3.1)
+   ============================================================ */
+.cu-risk-card { padding: 18px 20px; }
+.cu-risk-header {
+  font-size: 0.92rem; font-weight: 800; margin-bottom: 14px;
+  background: linear-gradient(135deg, #fbbf24, #f59e0b);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cu-risk-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 7px 0; border-bottom: 1px solid var(--line);
+}
+.cu-risk-item:last-child { border-bottom: none; }
+.cu-risk-label {
+  width: 80px; flex-shrink: 0;
+  font-size: 0.74rem; font-weight: 700; color: var(--ink-2);
+}
+.cu-risk-bar-track {
+  flex: 1; height: 10px; border-radius: 5px;
+  background: rgba(20,14,35,0.5); border: 1px solid var(--line);
+  overflow: hidden; position: relative;
+}
+.cu-risk-bar-fill {
+  height: 100%; border-radius: 5px; transition: width 0.6s ease;
+}
+.cu-risk-bar-fill.low    { background: linear-gradient(90deg, #4ade80, #22c55e); }
+.cu-risk-bar-fill.medium { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.cu-risk-bar-fill.high   { background: linear-gradient(90deg, #f87171, #ef4444); }
+.cu-risk-tag {
+  width: 28px; text-align: center; flex-shrink: 0;
+  font-size: 0.68rem; font-weight: 800; border-radius: 3px;
+  padding: 1px 0;
+}
+.cu-risk-tag.low    { color: #4ade80; background: rgba(74,222,128,0.12); }
+.cu-risk-tag.medium { color: #fbbf24; background: rgba(251,191,36,0.12); }
+.cu-risk-tag.high   { color: #f87171; background: rgba(248,113,113,0.12); }
+.cu-risk-desc {
+  font-size: 0.66rem; color: var(--muted); margin-top: 2px;
+  padding-left: 90px; line-height: 1.4;
+}
+.cu-risk-summary-wrap {
+  margin-top: 14px; padding-top: 12px;
+  border-top: 1px solid var(--line-strong);
+  display: flex; align-items: center; gap: 16px;
+}
+.cu-risk-ring {
+  width: 64px; height: 64px; flex-shrink: 0;
+}
+.cu-risk-ring circle {
+  fill: none; stroke-width: 6;
+}
+.cu-risk-ring .bg { stroke: rgba(20,14,35,0.5); }
+.cu-risk-ring .fg { stroke-linecap: round; transition: stroke-dashoffset 0.8s ease; }
+.cu-risk-ring .fg.low    { stroke: #4ade80; }
+.cu-risk-ring .fg.medium { stroke: #fbbf24; }
+.cu-risk-ring .fg.high   { stroke: #f87171; }
+.cu-risk-ring-text {
+  font-size: 0.65rem; font-weight: 800; fill: var(--ink-2);
+}
+.cu-risk-questions {
+  flex: 1; font-size: 0.72rem; color: var(--ink-2); line-height: 1.5;
+}
+.cu-risk-questions strong { color: var(--accent); font-size: 0.68rem; display: block; margin-bottom: 4px; }
+.cu-risk-questions li { color: var(--muted); margin: 2px 0; }
+.cu-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-height: 36px; padding: 8px 16px; margin-top: 10px;
+  border-radius: var(--radius-sm); font-weight: 700; font-size: 0.82rem;
+  cursor: pointer; border: 1px solid var(--accent);
+  background: rgba(139,92,246,0.12); color: var(--accent);
+  transition: all 0.2s ease;
+}
+.cu-btn:hover { background: rgba(139,92,246,0.25); box-shadow: 0 0 16px rgba(139,92,246,0.25); transform: translateY(-1px); }
+
+/* ============================================================
+   cu- 前缀：六维评分卡 (Step 2.3)
+   ============================================================ */
+.cu-hex-score {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-card); backdrop-filter: var(--backdrop);
+  -webkit-backdrop-filter: var(--backdrop);
+  padding: 16px; margin-top: 10px;
+}
+.cu-hex-score h4 {
+  font-size: 0.9rem; font-weight: 800; margin-bottom: 12px;
+  background: linear-gradient(135deg, #c4b5fd, #e8e0f0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cu-hex-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.cu-hex-row:last-child { border-bottom: none; }
+.cu-hex-label {
+  width: 72px; flex-shrink: 0;
+  font-size: 0.78rem; font-weight: 700; color: var(--ink-2);
+}
+.cu-hex-track {
+  flex: 1; height: 8px; border-radius: 4px;
+  background: rgba(20,14,35,0.5);
+  border: 1px solid var(--line);
+  overflow: hidden; position: relative;
+}
+.cu-hex-fill {
+  height: 100%; border-radius: 4px;
+  transition: width 0.6s ease;
+}
+.cu-hex-fill.high { background: linear-gradient(90deg, #4ade80, #22c55e); }
+.cu-hex-fill.mid  { background: linear-gradient(90deg, #fbbf24, #f59e0b); }
+.cu-hex-fill.low  { background: linear-gradient(90deg, #f87171, #ef4444); }
+.cu-hex-score-val {
+  width: 36px; text-align: right;
+  font-size: 0.78rem; font-weight: 800; flex-shrink: 0;
+}
+.cu-hex-status {
+  width: 20px; text-align: center; font-size: 0.75rem; flex-shrink: 0;
+}
+.cu-hex-status.pass { color: #4ade80; }
+.cu-hex-status.fail { color: #f87171; }
+.cu-hex-discount {
+  font-size: 0.6rem; color: var(--muted); margin-left: 2px;
+  background: rgba(251,191,36,0.12); color: #fbbf24;
+  padding: 0px 4px; border-radius: 3px;
+}
+
+/* ============================================================
+   cu- 前缀：修正路径时间线 (Step 2.3)
+   ============================================================ */
+.cu-timeline {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--surface-card); backdrop-filter: var(--backdrop);
+  -webkit-backdrop-filter: var(--backdrop);
+  padding: 16px; margin-top: 10px;
+}
+.cu-timeline h4 {
+  font-size: 0.9rem; font-weight: 800; margin-bottom: 14px;
+  background: linear-gradient(135deg, #c4b5fd, #e8e0f0);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+.cu-tl-item {
+  display: flex; align-items: flex-start; gap: 14px;
+  padding: 8px 0; position: relative;
+}
+.cu-tl-marker {
+  width: 28px; height: 28px; display: grid; place-items: center;
+  border-radius: 50%; flex-shrink: 0;
+  font-size: 0.75rem; font-weight: 800;
+  border: 2px solid var(--line-strong);
+  background: rgba(20,14,35,0.5); color: var(--muted);
+}
+.cu-tl-marker.done {
+  border-color: #34d399; background: rgba(52,211,153,0.12); color: #34d399;
+}
+.cu-tl-marker.current {
+  border-color: var(--accent); background: rgba(139,92,246,0.2); color: var(--accent);
+  box-shadow: 0 0 12px rgba(139,92,246,0.3);
+}
+.cu-tl-connector {
+  width: 2px; background: var(--line); min-height: 16px; margin-left: 13px;
+}
+.cu-tl-connector.done { background: #34d399; }
+.cu-tl-content { flex: 1; padding-bottom: 8px; }
+.cu-tl-title { font-size: 0.82rem; font-weight: 700; color: var(--ink); }
+.cu-tl-desc { font-size: 0.72rem; color: var(--muted); margin-top: 2px; line-height: 1.5; }
+
+/* ============================================================
+   cu- 前缀：修正进度 + 对比卡片 (Step 3.2)
+   ============================================================ */
+.cu-progress-card {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: rgba(139,92,246,0.04); padding: 14px;
+  margin-top: 6px;
+}
+.cu-progress-card h4 {
+  font-size: 0.82rem; font-weight: 800; margin-bottom: 12px;
+  color: var(--accent);
+}
+.cu-prog-stepper { display: flex; flex-direction: column; gap: 0; }
+.cu-prog-item { display: flex; gap: 12px; align-items: flex-start; }
+.cu-prog-marker {
+  width: 24px; height: 24px; display: grid; place-items: center;
+  border-radius: 50%; flex-shrink: 0; font-size: 0.7rem; font-weight: 800;
+  border: 2px solid var(--line); background: rgba(20,14,35,0.4); color: var(--muted);
+  transition: all 0.3s ease;
+}
+.cu-prog-marker.done { border-color: #34d399; background: rgba(52,211,153,0.12); color: #34d399; }
+.cu-prog-marker.current { border-color: var(--accent); background: rgba(139,92,246,0.2); color: var(--accent); box-shadow: 0 0 12px rgba(139,92,246,0.3); animation: progPulse 1.5s ease infinite; }
+@keyframes progPulse { 0%,100%{box-shadow:0 0 8px rgba(139,92,246,0.2)} 50%{box-shadow:0 0 20px rgba(139,92,246,0.4)} }
+.cu-prog-conn { width: 2px; min-height: 14px; background: var(--line); margin-left: 11px; transition: background 0.5s ease; }
+.cu-prog-conn.done { background: #34d399; }
+.cu-prog-body { flex: 1; padding-bottom: 8px; }
+.cu-prog-title { font-size: 0.78rem; font-weight: 700; color: var(--ink); }
+.cu-prog-desc { font-size: 0.68rem; color: var(--muted); margin-top: 1px; line-height: 1.4; }
+
+/* 修正对比卡片 */
+.cu-compare-card {
+  border: 1px solid var(--line-strong); border-radius: var(--radius-sm);
+  background: rgba(20,14,35,0.35); padding: 14px;
+  margin-top: 6px;
+}
+.cu-compare-card h4 {
+  font-size: 0.82rem; font-weight: 800; margin-bottom: 10px;
+  color: #fbbf24;
+}
+.cu-cmp-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 0; border-bottom: 1px solid var(--line);
+  font-size: 0.78rem;
+}
+.cu-cmp-row:last-child { border-bottom: none; }
+.cu-cmp-label { width: 70px; flex-shrink: 0; font-weight: 700; color: var(--muted); }
+.cu-cmp-before { color: var(--faint); text-decoration: line-through; text-decoration-color: rgba(248,113,113,0.3); }
+.cu-cmp-arrow { color: var(--accent); font-weight: 800; font-size: 0.9rem; }
+.cu-cmp-after { color: var(--ink-2); font-weight: 700; }
+.cu-cmp-after.changed { color: #4ade80; }
+.cu-cmp-confidence {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px solid var(--line-strong);
+  font-size: 0.76rem; color: var(--muted);
+}
+.cu-cmp-confidence .delta-up { color: #4ade80; font-weight: 800; }
+.cu-cmp-confidence .delta-down { color: #f87171; font-weight: 800; }
+
+/* ============================================================
+   cu- 前缀：六步推导面板 (Step 3.3)
+   ============================================================ */
+.cu-six-step-toggle {
+  text-align: center; padding: 8px; margin-top: 8px;
+  cursor: pointer; user-select: none;
+  color: var(--muted); font-size: 0.74rem; font-weight: 700;
+  border-top: 1px solid var(--line);
+  transition: color 0.2s;
+}
+.cu-six-step-toggle:hover { color: var(--accent); }
+.cu-six-step-toggle.open { color: var(--accent); }
+
+.cu-six-step-panel {
+  border: 1px solid var(--line); border-radius: var(--radius-sm);
+  background: rgba(14,9,28,0.35); padding: 12px 14px;
+  margin-top: 4px; animation: sixStepIn 0.25s ease;
+}
+@keyframes sixStepIn { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 600px; } }
+
+.cu-step-item {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 8px 0; border-bottom: 1px solid var(--line);
+}
+.cu-step-item:last-child { border-bottom: none; }
+.cu-step-num {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border-radius: 8px; flex-shrink: 0;
+  background: linear-gradient(135deg, rgba(139,92,246,0.25), rgba(236,72,153,0.15));
+  border: 1px solid rgba(139,92,246,0.3);
+  color: var(--accent); font-size: 0.7rem; font-weight: 900;
+  font-family: var(--font-ming);
+}
+.cu-step-info { flex: 1; min-width: 0; }
+.cu-step-title {
+  font-size: 0.78rem; font-weight: 800; color: var(--ink-2);
+  margin-bottom: 2px;
+}
+.cu-step-conclusion {
+  font-size: 0.8rem; font-weight: 700; color: var(--accent);
+  margin-bottom: 2px;
+}
+.cu-step-detail {
+  font-size: 0.68rem; color: var(--muted); line-height: 1.5;
+}
+

@@ -1040,3 +1040,197 @@ def _mock_generate_single(
 
     # 所有类别都问过了（理论上不应到达这里）
     return None
+
+
+# ============================================================
+# P0 Module 8: 高区分度断事智能选取
+# ============================================================
+
+
+class SmartPredictionSelector:
+    """高区分度断事智能选取器
+
+    三方评分：理论区分度(5分) + 参数覆盖度(3分) + 用户友好度(2分)，满分10分。
+
+    理论依据：
+    - "过三关"：《渊海子平》传统验证方法论，父母关/兄弟关/婚姻关 是命理检验的核心
+    - 高区分度优先：优先选择理论区隔度高的类别验证命盘
+    - 动态题量：连续3条"不确定" → 降为3题，降低用户疲劳度
+
+    使用方式：
+        selector = SmartPredictionSelector()
+        selected = selector.select_top_predictions(candidates, uncertainty, history)
+    """
+
+    BASE_DISCRIMINATION = {
+        "父母关": 8,
+        "兄弟关": 7,
+        "婚姻关": 7,
+        "学历": 6,
+        "事业": 5,
+        "关键年份": 5,
+        "性格": 3,
+    }
+
+    # "过三关"加成：父母关/兄弟关/婚姻关 +0.5 理论分
+    CORE_GATE_BONUS = {"父母关": 0.5, "兄弟关": 0.5, "婚姻关": 0.5}
+
+    # 每个类别的大致回答时间（分钟）
+    ESTIMATED_TIME = {
+        "父母关": 2.0,
+        "兄弟关": 1.5,
+        "婚姻关": 2.0,
+        "学历": 1.0,
+        "事业": 1.5,
+        "关键年份": 2.5,
+        "性格": 1.0,
+    }
+
+    def calculate_discrimination_score(
+        self,
+        prediction: dict,
+        uncertainty: dict = None,
+        history: dict = None,
+    ) -> dict:
+        """计算单个预测的综合区分度得分。
+
+        三方评分：
+        - 理论区分度(5分)：基于 BASE_DISCRIMINATION + 过三关加成
+        - 参数覆盖度(3分)：基于不确定性参数覆盖
+        - 用户友好度(2分)：基于回答难度和用时
+
+        Args:
+            prediction: 单条预测 dict，含 "category" 字段
+            uncertainty: 不确定性报告 dict（可选）
+            history: 历史反馈 dict（可选）
+
+        Returns:
+            dict: {"category": str, "total": float, "detail": {...}}
+        """
+        if uncertainty is None:
+            uncertainty = {}
+        if history is None:
+            history = {}
+
+        category = prediction.get("category", "")
+
+        # 1. 理论区分度 (max 5)
+        base = self.BASE_DISCRIMINATION.get(category, 5)
+        # 归一化到 0-5
+        theory_score = min(5.0, base / 10.0 * 5.0)
+
+        # 过三关加成 (+0.5 for core gates)
+        gate_bonus = self.CORE_GATE_BONUS.get(category, 0.0)
+        theory_score = min(5.0, theory_score + gate_bonus)
+
+        # 2. 参数覆盖度 (max 3)
+        uncertainty_score = self._calc_uncertainty_coverage(
+            category, uncertainty
+        )
+
+        # 3. 用户友好度 (max 2)
+        friendliness_score = self._calc_friendliness(category, history)
+
+        total = theory_score + uncertainty_score + friendliness_score
+
+        return {
+            "category": category,
+            "total": round(total, 2),
+            "detail": {
+                "theory": round(theory_score, 2),
+                "uncertainty_coverage": round(uncertainty_score, 2),
+                "friendliness": round(friendliness_score, 2),
+            },
+        }
+
+    def _calc_uncertainty_coverage(
+        self, category: str, uncertainty: dict
+    ) -> float:
+        """计算该类别覆盖了多少不确定参数维度。
+
+        参数覆盖度满分 3 分，根据类别的溯源依赖匹配不确定性维度。
+        """
+        from services.precheck.uncertainty_labeler import UncertaintyReport
+
+        overall_risk = uncertainty.get("overall_risk", 0.0)
+
+        # 基于 overall_risk 计算覆盖分
+        # overall_risk 越高 → 该预测越有验证价值 → 得分越高
+        score = min(3.0, overall_risk * 3.0)
+        return round(score, 2)
+
+    def _calc_friendliness(
+        self, category: str, history: dict = None
+    ) -> float:
+        """计算用户友好度，基于回答难度和时间。
+
+        用户友好度满分 2 分：
+        - 越容易回答的类别得分越高
+        - 已经被问过的类别得分降低
+        """
+        if history is None:
+            history = {}
+
+        time = self.ESTIMATED_TIME.get(category, 2.0)
+        # 时间越短越友好：用 1/time 归一化
+        # max_time = 2.5 (关键年份), so 1.0/2.5 = 0.4, 2*0.4 = 0.8
+        # min_time = 1.0 (学历/性格), so 1.0/1.0 = 1.0, 2*1.0 = 2.0
+        raw_score = (1.0 / max(time, 0.5)) * 2.0
+        score = min(2.0, raw_score)
+
+        # 历史惩罚：如果该类已被问过，略微降低
+        asked_count = history.get("asked_counts", {}).get(category, 0)
+        if asked_count > 0:
+            score = max(0.5, score - asked_count * 0.3)
+
+        return round(score, 2)
+
+    def select_top_predictions(
+        self,
+        candidates: list[dict],
+        uncertainty: dict = None,
+        history: dict = None,
+        max_count: int = 5,
+    ) -> list[dict]:
+        """从候选中选取高分预测，最多 max_count 条。
+
+        动态题量：
+        - 连续3条"不确定"(supplement) → max_count 降为3
+
+        Args:
+            candidates: 候选预测列表 [{"id": "pred_01", "category": "父母关", ...}]
+            uncertainty: 不确定性报告 dict
+            history: 历史反馈 dict {
+                "supplement_streak": int,  # 连续不确定次数
+                "asked_counts": dict,       # 各分类已被问次数
+            }
+            max_count: 最大选取数量
+
+        Returns:
+            list[dict]: 按综合得分降序排列的预测列表
+        """
+        if uncertainty is None:
+            uncertainty = {}
+        if history is None:
+            history = {}
+
+        # 动态题量：连续3条"不确定" → 降为3题
+        supplement_streak = history.get("supplement_streak", 0)
+        if supplement_streak >= 3:
+            max_count = 3
+
+        # 计算每个候选项的得分
+        scored = []
+        for candidate in candidates:
+            score = self.calculate_discrimination_score(
+                candidate, uncertainty, history
+            )
+            scored.append((candidate, score))
+
+        # 按得分降序排列
+        scored.sort(key=lambda x: x[1]["total"], reverse=True)
+
+        # 选取前 max_count 条
+        selected = [s[0] for s in scored[:max_count]]
+        return selected
+

@@ -409,6 +409,28 @@ async def analyze_chart(request: dict):
     return {"method": "unavailable", "message": "AI 分析返回空"}
 
 
+@app.post("/api/precheck/uncertainty")
+async def precheck_uncertainty(chart_data: dict):
+    """五维风险预标注
+
+    对排盘结果进行五维不确定性分析：
+    - shichen（时辰风险）
+    - yongshen（用神争议度）
+    - wangshuai（旺衰模糊度）
+    - pattern（格局多解性）
+    - congge（从格真假）
+
+    返回 UncertaintyReport 结构（5 维 + overall_risk + suggested_questions）
+    """
+    try:
+        from services.precheck.uncertainty_labeler import UncertaintyLabeler
+        labeler = UncertaintyLabeler()
+        report = labeler.generate_uncertainty_report(chart_data)
+        return report
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"预标注失败: {str(e)}")
+
+
 @app.post("/api/analysis")
 async def get_analysis(birth: BirthInfo, session_id: str = ""):
     """
@@ -871,6 +893,22 @@ async def predictions_next(request: dict):
 
     # 将新推断加入动态预测列表，并同步到主 predictions（兼容其他端点）
     pred_dict = next_pred.model_dump()
+
+    # SmartPredictionSelector: 计算区分度评分并附加到预测上
+    try:
+        from services.predictions import SmartPredictionSelector
+        selector = SmartPredictionSelector()
+        score_info = selector.calculate_discrimination_score(pred_dict)
+        pred_dict["discrimination_score"] = score_info["total"]
+        pred_dict["rationale"] = (
+            f"理论区分度={score_info['detail']['theory']:.1f}/5, "
+            f"参数覆盖度={score_info['detail']['uncertainty_coverage']:.1f}/3, "
+            f"用户友好度={score_info['detail']['friendliness']:.1f}/2, "
+            f"类别={score_info['category']}"
+        )
+    except Exception:
+        pass  # 旧版兼容：回退到不添加区分度字段
+
     dynamic_predictions.append(pred_dict)
     session["predictions"] = dynamic_predictions  # 同步，确保 downstream 端点读到正确数据
 
@@ -996,6 +1034,59 @@ async def predictions_verify(request: dict):
         pred_session["locked_source"] = result.get("pattern_source")
 
     return result
+
+
+@app.post("/api/calibrate/hexagram")
+async def calibrate_hexagram(feedbacks: list, predictions: list, bazi_data: dict):
+    """六维验证评分 + 三重判定
+
+    对断前事反馈进行六维交叉验证，输出评分卡和最终判定。
+
+    请求参数：
+    - feedbacks: 反馈列表 [{"prediction_id": "...", "status": "accurate|partial|inaccurate", ...}]
+    - predictions: 推断列表 [{"id": "...", "category": "...", ...}]
+    - bazi_data: 排盘数据
+
+    返回：
+    - hexagram_report: 六维评分卡
+    - verdict: 三重判定结果 (PASS/CONDITIONAL_PASS/INDETERMINATE/FAIL)
+    """
+    try:
+        from services.calibration import HexagramValidator, ValidationJudge
+
+        # 构建反馈统计
+        accurate_count = sum(1 for f in feedbacks if f.get("status") == "accurate")
+        inaccurate_count = sum(1 for f in feedbacks if f.get("status") == "inaccurate")
+        total_count = len(feedbacks)
+
+        feedback_stats = {
+            "accurate_count": accurate_count,
+            "inaccurate_count": inaccurate_count,
+            "total_count": total_count,
+            "feedbacks": feedbacks,
+        }
+
+        # 提取用神和格局数据
+        yongshen_data = bazi_data.get("yongshen", {})
+        pattern_data = {"pattern": bazi_data.get("pattern", ""),
+                        "yongshen": yongshen_data}
+
+        validator = HexagramValidator()
+        report = validator.generate_hexagram_report(
+            feedback_stats=feedback_stats,
+            yongshen_data=yongshen_data,
+            pattern_data=pattern_data,
+            bazi_data=bazi_data,
+            dayun_data={"dayun": bazi_data.get("dayun", [])},
+            prediction_data={"predictions": predictions},
+        )
+
+        judge = ValidationJudge()
+        verdict = judge.final_verdict(report, feedback_stats)
+
+        return {"hexagram_report": report, "verdict": verdict}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"六维验证失败: {str(e)}")
 
 
 # ── 旧端点保留（兼容） ──
@@ -2382,7 +2473,187 @@ async def save_user_reading(
     }
 
 
-# 静态文件服务（放在路由定义之后，避免覆盖 API 路由）
+# ============================================================
+# 断前事验证 V2：事件追溯 + 对账 + 递进修正
+# ============================================================
+
+from services.event_tracer import EventTracer, build_trace_report
+from services.reconciler import Reconciler, run_reconciliation
+from services.correction_v2 import CorrectionEngine, CorrectionResult, explain_correction
+
+
+@app.post("/api/trace-events")
+async def api_trace_events(request: dict):
+    """
+    断前事 V2 — 主动追溯过去事件
+
+    输入：user_id, birth_info, chart_data（可选，无则重新排盘）
+    输出：追溯报告，含逐年预期事件、关键年份列表
+
+    大师机制：不是"问你问题"，而是"推到脸上让你点头或摇头"
+    """
+    user_id = request.get("user_id", "")
+    birth_info_dict = request.get("birth_info")
+    chart_data = request.get("chart_data")
+
+    if not chart_data:
+        if birth_info_dict:
+            birth_info = BirthInfo(**birth_info_dict)
+            params, _ = process_birth_info(birth_info)
+            chart = calculate_bazi(**params)
+            chart_data = chart.dict()
+        else:
+            return {"ok": False, "error": "请提供 birth_info 或 chart_data"}
+
+    # 确保 chart_data 包含大运信息
+    if "dayun" not in chart_data or not chart_data["dayun"]:
+        birth_info = BirthInfo(**birth_info_dict) if birth_info_dict else None
+        if birth_info:
+            params, _ = process_birth_info(birth_info)
+            full_chart = calculate_bazi(**params)
+            chart_data = full_chart.dict()
+
+    # 需要 enrichment：格局、用神等
+    chart_data = _ensure_framework(chart_data)
+
+    # 构建追溯报告
+    report = build_trace_report(chart_data)
+
+    if asyncio.iscoroutine(report):
+        report = await report
+
+    return {
+        "ok": True,
+        "trace_report": report,
+        "chart_data": chart_data,
+    }
+
+
+@app.post("/api/trace-events/reconcile")
+async def api_trace_reconcile(request: dict):
+    """
+    断前事 V2 — 对账验证
+
+    输入：trace_report（追溯报告）, user_feedback（用户对各年份的确认/纠正）
+    输出：对账结果（匹配度、是否需要修正、修正层级建议）
+    """
+    trace_report = request.get("trace_report")
+    user_feedback = request.get("user_feedback", [])
+    chart_data = request.get("chart_data")
+
+    if not trace_report:
+        return {"ok": False, "error": "请提供 trace_report"}
+
+    reconciler = Reconciler(trace_report)
+    result = await reconciler.reconcile(user_feedback)
+
+    return {
+        "ok": True,
+        "reconciliation": result,
+        "chart_data": chart_data,
+    }
+
+
+@app.post("/api/trace-events/correct")
+async def api_trace_correct(request: dict):
+    """
+    断前事 V2 — 执行修正
+
+    输入：chart_data, reconciliation（对账结果）, user_feedback
+    输出：修正结果（修正后的 chart_data、修正说明、典籍出处）
+    """
+    chart_data = request.get("chart_data")
+    reconciliation = request.get("reconciliation", {})
+    user_feedback = request.get("user_feedback", [])
+    force_level = request.get("force_level")  # 可选：强制从某级开始
+
+    if not chart_data:
+        return {"ok": False, "error": "请提供 chart_data"}
+
+    if not reconciliation.get("needs_correction") and force_level is None:
+        return {
+            "ok": True,
+            "corrected": False,
+            "message": "框架匹配度较高，无需修正",
+            "chart_data": chart_data,
+        }
+
+    engine = CorrectionEngine(chart_data, user_feedback)
+    result = await engine.correct(
+        reconciliation=reconciliation,
+        max_level=force_level if force_level is not None else 5,
+    )
+
+    # 生成修正解释
+    explanation = await explain_correction(result) if result.success else result.detail
+
+    return {
+        "ok": True,
+        "corrected": result.success,
+        "correction": result.dict(),
+        "explanation": explanation,
+        "chart_data": result.chart if result.success else chart_data,
+        "history": engine.history,
+    }
+
+
+def _ensure_framework(chart_data: dict) -> dict:
+    """确保 chart_data 包含格局框架信息"""
+    # 如果已经有 pattern 和 yongshen，直接返回
+    if chart_data.get("pattern") and chart_data.get("yongshen"):
+        return chart_data
+
+    from rules.pattern import determine_pattern_type
+    from rules.yongshen import calculate_strength_detail
+
+    day_master = chart_data.get("day_master", {})
+    dm_stem = day_master.get("stem", "")
+
+    # 四柱
+    pillars = {}
+    for pos in ["year", "month", "day", "hour"]:
+        pillars[pos] = chart_data.get(pos, {})
+
+    month_branch = pillars.get("month", {}).get("branch", "")
+
+    # 格局
+    pattern = determine_pattern_type(dm_stem, month_branch)
+    chart_data["pattern"] = pattern
+
+    # 旺衰
+    # 从四柱中提取藏干数据
+    hidden_stems = []
+    for pos in ["year", "month", "day", "hour"]:
+        pillar = chart_data.get(pos, {})
+        for hs in pillar.get("hidden_stems", []):
+            if isinstance(hs, dict):
+                hidden_stems.append({"branch": pillar.get("branch", ""), "stem": hs.get("stem", ""), "wuxing": hs.get("wuxing", "")})
+
+    strength = calculate_strength_detail(
+        dm_stem, pillars, hidden_stems
+    )
+    chart_data["wangshuai"] = strength.get("level", "中和")
+    chart_data["strength_detail"] = strength
+
+    # 用神/喜神/忌神
+    yongshen_wx = strength.get("yongshen", strength.get("primary", ""))
+    xishen_wx = strength.get("xishen", strength.get("secondary", ""))
+    jishen_wx = strength.get("jishen", strength.get("ji_shen", ""))
+
+    chart_data["yongshen"] = {
+        "wuxing": yongshen_wx,
+        "primary": yongshen_wx,
+        "xiti": xishen_wx if isinstance(xishen_wx, str) else "",
+        "jishen": jishen_wx if isinstance(jishen_wx, (str, list)) else [],
+    }
+
+    return chart_data
+
+
+# ============================================================
+# 静态文件
+# ============================================================
+
 app.mount("/", StaticFiles(directory="public", html=True), name="static")
 
 

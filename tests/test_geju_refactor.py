@@ -14,6 +14,7 @@ import sys
 import os
 import asyncio
 import json
+import pytest
 
 # 添加项目根目录到 path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -152,6 +153,7 @@ async def simulate_flow(session_id, answers, label="", verbose=True):
 # 测试用例
 # ============================================================
 
+@pytest.mark.asyncio
 async def test_1_zhengguan_weak():
     """场景1: 正官格身弱"""
     print("\n" + "#"*60)
@@ -188,6 +190,7 @@ async def test_1_zhengguan_weak():
     return True
 
 
+@pytest.mark.asyncio
 async def test_2_qisha_strong():
     """场景2: 七杀格身旺"""
     print("\n" + "#"*60)
@@ -217,6 +220,7 @@ async def test_2_qisha_strong():
     return True
 
 
+@pytest.mark.asyncio
 async def test_3_shishen():
     """场景3: 食神格"""
     print("\n" + "#"*60)
@@ -246,6 +250,7 @@ async def test_3_shishen():
     return True
 
 
+@pytest.mark.asyncio
 async def test_4_jianlu():
     """场景4: 建禄格"""
     print("\n" + "#"*60)
@@ -274,6 +279,7 @@ async def test_4_jianlu():
     return True
 
 
+@pytest.mark.asyncio
 async def test_5_congruo():
     """场景5: 从弱格"""
     print("\n" + "#"*60)
@@ -302,6 +308,7 @@ async def test_5_congruo():
     return True
 
 
+@pytest.mark.asyncio
 async def test_6_llm_delta():
     """场景6: 混合框架 LLM delta"""
     print("\n" + "#"*60)
@@ -355,6 +362,7 @@ async def test_6_llm_delta():
     return True
 
 
+@pytest.mark.asyncio
 async def test_7_convergence():
     """场景7: 收敛测试"""
     print("\n" + "#"*60)

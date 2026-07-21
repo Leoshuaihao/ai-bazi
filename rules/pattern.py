@@ -415,6 +415,8 @@ _TONGGUAN_MAP = {
 
 def _extract_dm_stem(chart_data: dict) -> str:
     dm = chart_data.get("day_master", "")
+    if isinstance(dm, dict):
+        return dm.get("stem", "甲")
     return dm[-1] if dm else "甲"
 
 
@@ -1835,3 +1837,466 @@ def judge_pattern_quality_v2(
         return "中下格"
     else:
         return "下格"
+
+
+# ============================================================
+# 化气格五要素验证表
+# 基于《子平真诠·论十干配合性情》
+# ============================================================
+
+HUAHUAGE_CONDITIONS = {
+    "戊癸合火": {
+        "合化天干": ("戊", "癸"),
+        "化神五行": "火",
+        "化神当令（月令）": ["巳", "午", "寅", "戌"],
+        "透干条件": "戊或癸透于月干或时干，日干参与合化",
+        "通根条件": "化神火在月支有本气或中气根",
+        "无克破条件": "无水（壬癸）强力克化神火",
+        "真化标志": "日主无强根（无本气根）",
+        "source": "《子平真诠·论十干配合性情》",
+    },
+    "甲己合化土": {
+        "合化天干": ("甲", "己"),
+        "化神五行": "土",
+        "化神当令（月令）": ["辰", "戌", "丑", "未", "巳", "午"],
+        "透干条件": "甲或己透于月干或时干，日干参与合化",
+        "通根条件": "化神土在月支有本气或中气根",
+        "无克破条件": "无木（甲乙）强力克化神土",
+        "真化标志": "日主无强根（无本气根）",
+        "source": "《子平真诠·论十干配合性情》",
+    },
+    "乙庚合化金": {
+        "合化天干": ("乙", "庚"),
+        "化神五行": "金",
+        "化神当令（月令）": ["申", "酉", "戌", "丑"],
+        "透干条件": "乙或庚透于月干或时干，日干参与合化",
+        "通根条件": "化神金在月支有本气或中气根",
+        "无克破条件": "无火（丙丁）强力克化神金",
+        "真化标志": "日主无强根（无本气根）",
+        "source": "《子平真诠·论十干配合性情》",
+    },
+    "丙辛合化水": {
+        "合化天干": ("丙", "辛"),
+        "化神五行": "水",
+        "化神当令（月令）": ["亥", "子", "申", "辰"],
+        "透干条件": "丙或辛透于月干或时干，日干参与合化",
+        "通根条件": "化神水在月支有本气或中气根",
+        "无克破条件": "无土（戊己）强力克化神水",
+        "真化标志": "日主无强根（无本气根）",
+        "source": "《子平真诠·论十干配合性情》",
+    },
+    "丁壬合化木": {
+        "合化天干": ("丁", "壬"),
+        "化神五行": "木",
+        "化神当令（月令）": ["寅", "卯", "亥", "未"],
+        "透干条件": "丁或壬透于月干或时干，日干参与合化",
+        "通根条件": "化神木在月支有本气或中气根",
+        "无克破条件": "无金（庚辛）强力克化神木",
+        "真化标志": "日主无强根（无本气根）",
+        "source": "《子平真诠·论十干配合性情》",
+    },
+}
+
+# ============================================================
+# 增强版从格检测
+# ============================================================
+
+def check_congge_detailed(chart_data: dict, dm_stem: str) -> dict:
+    """详细从格判断（增强版）
+
+    假从三要素量化：
+    1. 根浅力薄：仅余气通根（非本气/中气）
+    2. 生扶＜20%：全局比劫印绶力量 < 20%
+    3. 自顾不暇：虽有劫印，但被克/被泄/被合
+
+    《滴天髓·从化》：
+    '真从之象有几人，假从亦可发其身'
+
+    Args:
+        chart_data: 排盘数据（含 four_pillars）
+        dm_stem: 日主天干
+
+    Returns:
+        {
+            "is_congge": bool,
+            "cong_type": "真从"|"假从"|"非从",
+            "cong_subtype": "从杀"|"从财"|"从儿"|"从强"|...,
+            "root_detail": {...},
+            "support_ratio": float,
+            "restricted_support": bool,
+            "detail": str,
+            "classical_source": str,
+        }
+    """
+    dm_wx = WUXING_MAP.get(dm_stem, "")
+    fp = chart_data.get("four_pillars", {})
+
+    # === 1. 根气量化 ===
+    root_detail = _quantify_roots_detailed(dm_wx, fp)
+    has_benzhi_root = root_detail["has_benzhi_root"]
+    has_zhongqi_root = root_detail["has_zhongqi_root"]
+    has_yuqi_root = root_detail["has_yuqi_root"]
+    total_root_weight = root_detail["total_weight"]
+
+    # === 2. 全局生扶力量占比 ===
+    bi_jie_yin_force = _calc_support_force_detailed(dm_wx, fp, dm_stem)
+    total_force = _calc_total_force_detailed(dm_wx, fp)
+    support_ratio = bi_jie_yin_force / max(total_force, 1)
+
+    # === 3. 比劫印绶"自顾不暇"检查 ===
+    restricted_support = _check_restricted_support_detailed(dm_wx, fp, dm_stem)
+
+    # === 从格类型判定 ===
+    if total_root_weight == 0 and support_ratio < 0.10:
+        cong_type = "真从"
+        cong_subtype = _determine_cong_subtype_detailed(fp, dm_stem)
+        detail = "日主无根无气，全局无生扶，真从"
+    elif (has_yuqi_root or total_root_weight < 0.3) and support_ratio < 0.20:
+        cong_type = "假从"
+        cong_subtype = _determine_cong_subtype_detailed(fp, dm_stem)
+        if restricted_support:
+            detail = (
+                f"日主根浅力薄（根重{total_root_weight}），"
+                "劫印自顾不暇，假从"
+            )
+        else:
+            detail = (
+                f"日主有微根（根重{total_root_weight}），"
+                f"但印比力量不足（占比{support_ratio:.0%}），假从"
+            )
+    elif support_ratio < 0.15 and restricted_support:
+        cong_type = "假从"
+        cong_subtype = _determine_cong_subtype_detailed(fp, dm_stem)
+        detail = "日主虽略有根气，但劫印自顾不暇，从局成立"
+    else:
+        cong_type = "非从"
+        cong_subtype = ""
+        detail = (
+            f"不满足从格条件"
+            f"（根重{total_root_weight}，"
+            f"印比占比{support_ratio:.0%}）"
+        )
+
+    return {
+        "is_congge": cong_type in ("真从", "假从"),
+        "cong_type": cong_type,
+        "cong_subtype": cong_subtype,
+        "root_detail": root_detail,
+        "support_ratio": round(support_ratio, 2),
+        "restricted_support": restricted_support,
+        "detail": detail,
+        "classical_source": (
+            "《滴天髓·从化》：'真从之象有几人，假从亦可发其身'"
+        ),
+    }
+
+
+def _quantify_roots_detailed(dm_wx: str, fp: dict) -> dict:
+    """量化日主在各柱藏干中的根气"""
+    has_benzhi = False
+    has_zhongqi = False
+    has_yuqi = False
+    total = 0.0
+
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.0) if isinstance(hs, dict) else 0.3
+            if WUXING_MAP.get(s, "") == dm_wx:
+                total += w
+                if w >= 0.5:
+                    has_benzhi = True
+                elif w >= 0.3:
+                    has_zhongqi = True
+                else:
+                    has_yuqi = True
+
+    return {
+        "has_benzhi_root": has_benzhi,
+        "has_zhongqi_root": has_zhongqi,
+        "has_yuqi_root": has_yuqi,
+        "total_weight": round(total, 1),
+    }
+
+
+def _calc_support_force_detailed(dm_wx: str, fp: dict, dm_stem: str) -> float:
+    """计算全局生扶力量（印比总和）"""
+    force = 0.0
+
+    # 天干权重
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if not stem or stem == dm_stem:
+            continue
+        tg = _calc_ten_god(dm_stem, stem)
+        if tg in ("正印", "偏印", "比肩", "劫财"):
+            force += 1.5
+
+    # 地支藏干权重
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s:
+                tg = _calc_ten_god(dm_stem, s)
+                if tg in ("正印", "偏印", "比肩", "劫财") and s != dm_stem:
+                    force += w
+
+    return force
+
+
+def _calc_total_force_detailed(dm_wx: str, fp: dict) -> float:
+    """计算全局十神力量总和"""
+    dm_stem = _extract_dm_stem({"four_pillars": fp, "day_master": ""})
+    if not dm_stem:
+        # 从fp推断日主天干
+        day_stem = fp.get("day", {}).get("stem", "")
+        if day_stem:
+            dm_stem = day_stem
+        else:
+            dm_stem = "甲"  # fallback
+
+    force = 0.0
+
+    # 天干权重
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            force += 1.5
+
+    # 地支藏干权重
+    for pos in ["year", "month", "day", "hour"]:
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            force += w
+
+    return max(force, 1.0)
+
+
+def _check_restricted_support_detailed(dm_wx: str, fp: dict, dm_stem: str) -> bool:
+    """检查比劫印绶是否'自顾不暇'（被克/被泄/被合）
+
+    如果生扶日主的印比被克制或泄气，则它们自身难保，
+    无力有效生扶日主——这是假从的重要条件。
+    """
+    # 收集所有印比十神对应的天干
+    support_stems = []
+    for pos in ["year", "month", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            if tg in ("正印", "偏印", "比肩", "劫财") and stem != dm_stem:
+                support_stems.append((stem, tg, pos))
+
+    if not support_stems:
+        return True  # 无支持力量 = 自顾不暇
+
+    # 检查每个支持力量是否被克
+    restricted_count = 0
+    for s_stem, s_tg, s_pos in support_stems:
+        s_wx = WUXING_MAP.get(s_stem, "")
+
+        # 是否被克
+        ke_wx = _KE.get(s_wx, "")  # 克s_wx的五行
+        if ke_wx:
+            for pos in ["year", "month", "hour"]:
+                if pos == s_pos:
+                    continue
+                other_stem = fp.get(pos, {}).get("stem", "")
+                if other_stem and WUXING_MAP.get(other_stem, "") == ke_wx:
+                    restricted_count += 1
+                    break
+
+    # 超过一半的支持力量被限制 → 自顾不暇
+    return restricted_count >= len(support_stems) / 2
+
+
+def _determine_cong_subtype_detailed(fp: dict, dm_stem: str) -> str:
+    """确定从格子类型：从杀/从财/从儿/从强"""
+    tg_counts = {}
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and stem != dm_stem:
+            tg = _calc_ten_god(dm_stem, stem)
+            tg_counts[tg] = tg_counts.get(tg, 0) + 1
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s and s != dm_stem:
+                tg = _calc_ten_god(dm_stem, s)
+                tg_counts[tg] = tg_counts.get(tg, 0) + w
+
+    priority_order = ["七杀", "正官", "正财", "偏财", "食神", "伤官"]
+    best_tg = ""
+    best_score = 0
+    for tg in priority_order:
+        score = tg_counts.get(tg, 0)
+        if score > best_score:
+            best_score = score
+            best_tg = tg
+
+    subtype_map = {
+        "七杀": "从杀", "正官": "从杀",
+        "正财": "从财", "偏财": "从财",
+        "食神": "从儿", "伤官": "从儿",
+    }
+    return subtype_map.get(best_tg, "从弱")
+
+
+# ============================================================
+# 化气格五要素验证
+# ============================================================
+
+def check_huaqi_ge_5elements(dm_stem: str, chart_data: dict) -> dict:
+    """化气格五要素完整验证
+
+    五要素：
+    1. 合化：日干与月干/时干形成天干五合
+    2. 当令：化神五行在月令得气（月令本气或藏干与化神同类）
+    3. 透干：化神五行在天干透出
+    4. 通根：化神五行在地支有根（本气或中气）
+    5. 无克破：化神五行不被强力克制
+
+    五要素全满足 → 真化（is_zhen=True）
+    要素不全部满足 → condition_met列表记录，is_zhen=False
+
+    Args:
+        dm_stem: 日主天干
+        chart_data: 排盘数据
+
+    Returns:
+        {
+            "is_huaqi": bool,
+            "score": int,  # 满足条件数 0-5
+            "conditions_met": [...],
+            "conditions_missing": [...],
+            "is_zhen": bool,
+            "huaqi_wuxing": str,
+            "detail": str,
+            "classical_source": str,
+        }
+    """
+    from rules.pattern import _check_tian_gan_he
+
+    fp = chart_data.get("four_pillars", {})
+    month_stem = fp.get("month", {}).get("stem", "")
+    hour_stem = fp.get("hour", {}).get("stem", "")
+    month_branch = fp.get("month", {}).get("branch", "")
+
+    conditions_met = []
+    conditions_missing = []
+    huaqi_wx = ""
+
+    # === 要素1：合化 ===
+    has_he = False
+    for partner in [month_stem, hour_stem]:
+        if partner and partner != dm_stem:
+            hw = _TIAN_GAN_HE.get((dm_stem, partner))
+            if hw:
+                huaqi_wx = hw
+                has_he = True
+                conditions_met.append("要素1: 合化成立")
+                break
+
+    if not has_he:
+        return {
+            "is_huaqi": False,
+            "score": 0,
+            "conditions_met": [],
+            "conditions_missing": ["要素1: 日干未与月干/时干五合"],
+            "is_zhen": False,
+            "huaqi_wuxing": "",
+            "detail": "日干未参与天干五合，不构成化气格",
+            "classical_source": "《子平真诠·论十干配合性情》",
+        }
+
+    # === 要素2：化神当令 ===
+    if huaqi_wx and month_branch:
+        month_stems_list = get_month_stems(month_branch)
+        month_wx_list = [WUXING_MAP.get(s, "") for s in month_stems_list]
+        if huaqi_wx in month_wx_list:
+            conditions_met.append("要素2: 化神当令（月令得气）")
+        else:
+            conditions_missing.append(
+                f"要素2: 化神{huaqi_wx}不在月令{month_branch}当令"
+            )
+
+    # === 要素3：透干 ===
+    has_tougan = False
+    for pos in ["year", "month", "day", "hour"]:
+        stem = fp.get(pos, {}).get("stem", "")
+        if stem and WUXING_MAP.get(stem, "") == huaqi_wx:
+            has_tougan = True
+            break
+    if has_tougan:
+        conditions_met.append("要素3: 化神透干")
+    else:
+        conditions_missing.append("要素3: 化神未透干")
+
+    # === 要素4：通根 ===
+    has_tonggen = False
+    for pos in ["year", "month", "day", "hour"]:
+        branch = fp.get(pos, {}).get("branch", "")
+        if branch and WUXING_MAP.get(branch, "") == huaqi_wx:
+            has_tonggen = True
+            break
+        # 也检查藏干
+        for hs in fp.get(pos, {}).get("hidden_stems", []):
+            s = hs.get("stem", "") if isinstance(hs, dict) else hs
+            w = hs.get("weight", 0.3) if isinstance(hs, dict) else 0.3
+            if s and WUXING_MAP.get(s, "") == huaqi_wx and w >= 0.3:
+                has_tonggen = True
+                break
+        if has_tonggen:
+            break
+    if has_tonggen:
+        conditions_met.append("要素4: 化神通根")
+    else:
+        conditions_missing.append("要素4: 化神未通根")
+
+    # === 要素5：无克破 ===
+    ke_wx = _KE.get(huaqi_wx, "")
+    has_kepo = False
+    if ke_wx:
+        for pos in ["year", "month", "day", "hour"]:
+            stem = fp.get(pos, {}).get("stem", "")
+            # 排除日主和合化伙伴（合化伙伴本身是化气格的参与者）
+            if stem and WUXING_MAP.get(stem, "") == ke_wx and stem != dm_stem:
+                # 检查是否是合化伙伴
+                is_partner = False
+                for partner in [month_stem, hour_stem]:
+                    if partner and partner != dm_stem:
+                        hw = _TIAN_GAN_HE.get((dm_stem, partner))
+                        if hw and stem == partner:
+                            is_partner = True
+                            break
+                if not is_partner:
+                    has_kepo = True
+                    conditions_missing.append(
+                        f"要素5: 化神被{ke_wx}（{stem}）克制"
+                    )
+                    break
+            # 检查地支
+            branch = fp.get(pos, {}).get("branch", "")
+            if branch and WUXING_MAP.get(branch, "") == ke_wx:
+                has_kepo = True
+                conditions_missing.append(
+                    f"要素5: 化神被{ke_wx}克制（地支{branch}）"
+                )
+                break
+    if not has_kepo:
+        conditions_met.append("要素5: 化神无克破")
+
+    score = len(conditions_met)
+    is_zhen = score == 5
+
+    return {
+        "is_huaqi": score >= 3,  # 至少3个条件满足才视为有化气倾向
+        "score": score,
+        "conditions_met": conditions_met,
+        "conditions_missing": conditions_missing,
+        "is_zhen": is_zhen,
+        "huaqi_wuxing": huaqi_wx,
+        "detail": f"化气格五要素验证：{score}/5 满足",
+        "classical_source": "《子平真诠·论十干配合性情》",
+    }
