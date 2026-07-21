@@ -750,132 +750,18 @@ def submit_feedback(feedback: FeedbackItem):
 @app.post("/api/predictions/next")
 async def predictions_next(request: dict):
     """
-    动态题量：获取下一条断事推断
-
-    逐条获取，AI 动态判断何时信息充足。
-
-    请求参数：
-    - session_id: 会话ID
-    - feedbacks: 当前轮次所有已完成的反馈列表 [{"prediction_id": "...", "status": "...", "note": "..."}]
-
-    返回：
-    - done: true（信息已充足，可以提交）/ false（继续回答下一条）
-    - next_prediction: 下一条推断（done=false 时）
-    - message: 提示文案
-    - asked_count: 已问条数
-    - sufficient_reason: 信息充足的原因（done=true 时）
+    [已废弃 V2 §3.3] 动态题量端点。
+    
+    V2 中问题序列在初始化时由 discrimination.py 排定，
+    不再需要逐条动态生成。此端点保留向后兼容但返回 410 Gone。
     """
-    session_id = request.get("session_id", "")
-    if not session_id:
-        raise HTTPException(status_code=400, detail="缺少 session_id 参数")
-
-    session = _prediction_sessions.get(session_id)
-    if not session:
-        raise HTTPException(status_code=404, detail=f"未找到会话: {session_id}")
-
-    # 获取当前 session 中通过 /next 已服务过的预测（动态题量）
-    # 使用独立 key "_dynamic_predictions" 与 /generate 的 predictions 分开
-    if "_dynamic_predictions" not in session:
-        # 首次调用：初始化动态预测列表为空
-        session["_dynamic_predictions"] = []
-    dynamic_predictions = session["_dynamic_predictions"]
-
-    # 合并反馈
-    incoming_feedbacks = request.get("feedbacks", [])
-    existing_feedbacks = session.get("feedbacks", [])
-    existing_ids = {f.get("prediction_id") for f in existing_feedbacks}
-    for fb in incoming_feedbacks:
-        if fb.get("prediction_id") not in existing_ids:
-            existing_feedbacks.append(fb)
-    session["feedbacks"] = existing_feedbacks
-
-    # 当前已问条数和类别（只看动态预测）
-    asked_categories = {p.get("category", "") for p in dynamic_predictions}
-
-    # 1. 判断信息是否充足
-    sufficiency = judge_info_sufficient(
-        chart_data=session.get("chart_data", {}),
-        asked_predictions=dynamic_predictions,
-        feedbacks=existing_feedbacks,
-    )
-
-    # 如果标注需要AI判断（有API Key且>=3条），执行异步判断
-    if sufficiency.get("_needs_ai"):
-        ai_result = await run_ai_judge_sufficient(dynamic_predictions, existing_feedbacks)
-        sufficiency = ai_result
-
-    # 2. 如果信息充足且不是首次调用（至少有一条），返回 done=true
-    if sufficiency.get("sufficient") and len(dynamic_predictions) > 0:
-        session["predictions"] = dynamic_predictions  # 同步
-        return {
-            "done": True,
-            "message": "信息已充足，可以生成校准分析了",
-            "asked_count": len(dynamic_predictions),
-            "sufficient_reason": sufficiency.get("reason", ""),
-        }
-
-    # 3. 信息不足，生成下一条推断
-    birth_info = session.get("birth_info", {})
-    chart_data = session.get("chart_data", {})
-
-    # 重建 BaziChart 对象
-    try:
-        hour = birth_info.get("_processed_hour", birth_info.get("hour", 12))
-        minute = birth_info.get("_processed_minute", birth_info.get("minute", 0))
-        chart = calculate_bazi(
-            year=birth_info.get("year", 1990),
-            month=birth_info.get("month", 6),
-            day=birth_info.get("day", 15),
-            hour=hour,
-            minute=minute,
-            gender=birth_info.get("gender", "male"),
+    raise HTTPException(
+        status_code=410,
+        detail=(
+            "此端点已废弃。V2 使用 /api/predictions/start 一次性生成问题序列，"
+            "通过 /api/predictions/verify 提交反馈后由 feedback_adjuster.py 自适应调整。"
         )
-    except Exception:
-        raise HTTPException(status_code=500, detail="重新排盘失败")
-
-    next_pred = await generate_single_prediction(
-        chart, chart_data,
-        asked_categories=asked_categories,
-        feedbacks=existing_feedbacks,
     )
-
-    if next_pred is None:
-        # 无法生成新推断，直接判定充足
-        return {
-            "done": True,
-            "message": "信息已充足，可以生成校准分析了",
-            "asked_count": len(dynamic_predictions),
-            "sufficient_reason": "所有类别已覆盖",
-        }
-
-    # 将新推断加入动态预测列表，并同步到主 predictions（兼容其他端点）
-    pred_dict = next_pred.model_dump()
-
-    # SmartPredictionSelector: 计算区分度评分并附加到预测上
-    try:
-        from services.predictions import SmartPredictionSelector
-        selector = SmartPredictionSelector()
-        score_info = selector.calculate_discrimination_score(pred_dict)
-        pred_dict["discrimination_score"] = score_info["total"]
-        pred_dict["rationale"] = (
-            f"理论区分度={score_info['detail']['theory']:.1f}/5, "
-            f"参数覆盖度={score_info['detail']['uncertainty_coverage']:.1f}/3, "
-            f"用户友好度={score_info['detail']['friendliness']:.1f}/2, "
-            f"类别={score_info['category']}"
-        )
-    except Exception:
-        pass  # 旧版兼容：回退到不添加区分度字段
-
-    dynamic_predictions.append(pred_dict)
-    session["predictions"] = dynamic_predictions  # 同步，确保 downstream 端点读到正确数据
-
-    return {
-        "done": False,
-        "next_prediction": pred_dict,
-        "asked_count": len(dynamic_predictions),
-        "message": sufficiency.get("next_suggestion", ""),
-    }
-
 
 # ============================================================
 # P1 Phase 2: 校验判定 + 双路径修正
@@ -2080,7 +1966,18 @@ async def forecast_endpoint(request: dict):
             predictions=predictions,
             dayun_start_age=dayun_start_age,
         )
+        # V2-5.4: 安全边界校验 — 断未来必须通过 SafeState 隔离
+        safe_state = build_safe_state(chart_data, calibration_result)
+        pred = Prediction(raw_prediction=result)
+        validation = validate_prediction(pred, safe_state)
+        if not validation.is_valid:
+            raise HTTPException(
+                status_code=403,
+                detail=f"安全校验拒绝: {validation.rejection_reason}"
+            )
         return result
+    except HTTPException:
+        raise
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"断未来预测错误: {str(e)}")
 

@@ -91,8 +91,12 @@ _GAMMA_DEFAULTS: dict[str, float] = {
     "性格特征":   0.20,   # 日常琐事→情感负载低
 }
 
-# 消除阈值：U(answer) 低于此值 → 硬排除；高于此值 → 降权
-_ELIMINATION_THRESHOLD = 0.40
+# V2-4.4: 双阈值消除策略
+# U(answer) < 0.30 → 高可信度，冲突时硬排除候选
+# U(answer) ∈ [0.30, 0.50) → 中等可信度，冲突时仅降权
+# U(answer) ≥ 0.50 → 不可信，使用默认值 0.5 不作贝叶斯更新
+_EXCLUDE_THRESHOLD = 0.30
+_DOWNWEIGHT_THRESHOLD = 0.50
 
 
 def compute_unreliability(
@@ -290,13 +294,13 @@ def process_feedback_v2(
     adjustment = None
     rollback_required = False
 
-    if answer != "unclear" and u_answer < _ELIMINATION_THRESHOLD:
+    if answer != "unclear" and u_answer < _EXCLUDE_THRESHOLD:
         conflict_level = _determine_conflict_level(category, answer)
         if conflict_level is not None:
             rollback_required = True
             reset_mode = "partial" if conflict_level <= 3 else "full"
 
-            # 构建调整结果
+            # 构建调整结果 — 硬排除
             chart_data = session.chart_data
             dm = chart_data.get("day_master", "")
             mb = chart_data.get("four_pillars", {}).get("month", {}).get("branch", "")
@@ -312,6 +316,25 @@ def process_feedback_v2(
                 updated_yongshen=chart_data.get("_yongshen", {}),
             )
             session.adjustment_history.append(adjustment)
+    elif answer != "unclear" and u_answer < _DOWNWEIGHT_THRESHOLD:
+        # 中等可信度区间 [0.30, 0.50)：冲突时仅降权，不硬排除
+        conflict_level = _determine_conflict_level(category, answer)
+        if conflict_level is not None:
+            # 降权：confidence 乘以 0.5 因子
+            old_conf = session.lock_state.confidence
+            session.lock_state.confidence = max(0.05, old_conf * 0.5)
+            session.adjustment_history.append(
+                AdjustmentResult(
+                    lock_state=session.lock_state,
+                    rollback_flag=False,  # 不触发回查
+                    reset_mode="none",
+                    rollback_level=None,
+                    confidence_interval=(0.3, 0.7),
+                    degraded=False,
+                    updated_pattern="",
+                    updated_yongshen={},
+                )
+            )
 
     # Step 5: 进度计算
     progress = _compute_progress(session)
