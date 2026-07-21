@@ -250,12 +250,9 @@ _FALLBACK_V2_APPENDIX = """
 - 大运效应标注"运过即止"
 - 性格推断注意防范巴纳姆效应"""
 
-try:
-    from .six_step_prompt import build_full_pipeline_prompt
-    _v2_prompt = build_full_pipeline_prompt({})
-    SYSTEM_PROMPT_V2 = SYSTEM_PROMPT + "\n\n" + _v2_prompt
-except ImportError:
-    SYSTEM_PROMPT_V2 = SYSTEM_PROMPT + _FALLBACK_V2_APPENDIX
+# ============================================================
+# SYSTEM_PROMPT_V2 — 已删除（Phase 0: V2 在 discrimination.py 中管理独立 prompt）
+# ============================================================
 
 
 def _has_llm():
@@ -277,149 +274,23 @@ async def _llm_ask(system: str, prompt: str, max_tokens: int = 300) -> str | Non
 # ============================================================
 # L1 格局特征问题（V3升级：区分旺衰两版）
 # ============================================================
-PATTERN_L1_QUESTIONS = {
-    "正官格": {
-        "strong": {"question": "你工作中是否更倾向于在规则和秩序下发挥，不太喜欢冒险和自由发挥？",
-                   "explanation": "正官格身旺者重视规则带来的安全感和成就。",
-                   "pattern_feature": "官星当令，为人正直守法，重名节讲信用"},
-        "weak": {"question": "你是否在工作中感到规则和制度对你有较大的约束，想突破又常常被拉回来？",
-                 "explanation": "正官格身弱者容易被外界制度压制，需要身旺方能承载官贵。",
-                 "pattern_feature": "官星当令但日主偏弱，制度感强但承载吃力"},
-    },
-    "七杀格": {
-        "strong": {"question": "你人生中是否经历过较大的压力或挑战，但事后回头看，那些压力反而促成了你的成长？",
-                   "explanation": "七杀格身旺者把压力当跳板，愈挫愈勇。",
-                   "pattern_feature": "七杀当令身旺，有魄力敢担当，经历磨难后成长"},
-        "weak": {"question": "你是否长期承受比较大的压力或制约，感觉自己被压得比较紧，很多事想做但力不从心？",
-                 "explanation": "七杀格身弱者杀星攻身，需要印星化杀或食神制杀来缓解。",
-                 "pattern_feature": "七杀当令但日主偏弱，杀旺攻身，需制化方显其功"},
-    },
-    "正财格": {
-        "strong": {"question": "你对机会特别是赚钱机会的嗅觉是否敏锐，做事务实注重结果？",
-                   "explanation": "正财格身旺者能驾驭财富，务实稳重。",
-                   "pattern_feature": "财星当令身旺，务实稳重，善于理财和把握机会"},
-        "weak": {"question": "你是否对赚钱机会很在意，但常常感觉自己抓不住、或者机会来了又错过了？",
-                 "explanation": "正财格身弱者财多身弱，能看见但难抓住。",
-                 "pattern_feature": "财星当令但日主偏弱，财多身弱，需比劫分财或印星扶持"},
-    },
-    "偏财格": {
-        "strong": {"question": "你是否属于那种直觉很强、做事不拘一格、善于抓住稍纵即逝机会的类型？",
-                   "explanation": "偏财格身旺者灵活善变，善于抓住商业机会。",
-                   "pattern_feature": "偏财当令身旺，灵活变通，善抓机会"},
-        "weak": {"question": "你是否经常有一些好想法或看到好机会，但落地执行的时候却总是差一口气？",
-                 "explanation": "偏财格身弱者想法多变但执行力跟不上。",
-                 "pattern_feature": "偏财当令但日主偏弱，机会多而承载难"},
-    },
-    "正印格": {
-        "strong": {"question": "你是否从小就受长辈喜爱，学习能力较强，愿意花时间深入钻研一件事？",
-                   "explanation": "正印格身旺者贵人运好，学有所成。",
-                   "pattern_feature": "印星当令身旺，爱学习有贵人，性格温和良善"},
-        "weak": {"question": "你是否渴望有好的引路人来指点自己，但总觉得遇到的人帮助力度不够、或者一直没有遇到对的人？",
-                 "explanation": "正印格身弱者需要印生扶但印星无力，求学之路多波折。",
-                 "pattern_feature": "印星当令但日主偏弱，贵人助力有但不够"},
-    },
-    "偏印格": {
-        "strong": {"question": "你是否对某些特定领域有超乎常人的钻研精神，但容易沉浸在自己的世界里？",
-                   "explanation": "偏印格身旺者偏才突出，思维独特。",
-                   "pattern_feature": "偏印当令身旺，思维独特，偏才突出"},
-        "weak": {"question": "你是否对某个领域有深入兴趣，但感觉外界不太理解你、或者你的想法很难得到认可？",
-                 "explanation": "偏印格身弱者才华有但被埋没的感觉较强。",
-                 "pattern_feature": "偏印当令但日主偏弱，独特才华难被认可"},
-    },
-    "食神格": {
-        "strong": {"question": "你的才华创意在生活或工作中是否占据了重要位置，常有人夸你有才华？",
-                   "explanation": "食神格身旺者创造力和艺术感自然流露。",
-                   "pattern_feature": "食神当令身旺，有才华创造力，性格温和乐观"},
-        "weak": {"question": "你是否内心其实有很多才华和想法，但总觉得表达出来或者把它们变成实际的东西比较困难？",
-                 "explanation": "食神格身弱者才华内秀但输出困难。",
-                 "pattern_feature": "食神当令但日主偏弱，才华内秀而输出不足"},
-    },
-    "伤官格": {
-        "strong": {"question": "你是否属于想法很多、不喜被约束、常有出人意料的好点子的人？",
-                   "explanation": "伤官格身旺者思维敏捷，锋芒毕露。",
-                   "pattern_feature": "伤官当令身旺，聪明敏捷，创造力强但有时锋芒太露"},
-        "weak": {"question": "你是否有很多想法但常常被人否定或环境不允许你做出来，导致内心比较压抑？",
-                 "explanation": "伤官格身弱者才华被压，容易愤世嫉俗。",
-                 "pattern_feature": "伤官当令但日主偏弱，想法多而施展难"},
-    },
-    "从弱格": {
-        "strong": {"question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
-                   "explanation": "从弱格的人不宜独立抗衡，顺势而为反而能有不错的成就。",
-                   "pattern_feature": "日主极弱，顺势从格，忌印比扶身"},
-        "weak": {"question": "你是否感觉自己的人生很多时候是被环境推着走，但反而顺势而为的时候结果更好？",
-                 "explanation": "从弱格本身为极弱，只有顺势版本。若身弱不从则需重新审视格局。",
-                 "pattern_feature": "日主极弱，顺势从格；若不从则破格"},
-    },
-    "专旺格": {
-        "strong": {"question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
-                   "explanation": "专旺格的人气势强盛，有领导力和主导欲，宜食伤泄秀。",
-                   "pattern_feature": "日主极旺，气势强盛，宜泄不宜克"},
-        "weak": {"question": "你是否有一种强烈的自我意识和主见，做事情喜欢掌控全局而非被人安排？",
-                 "explanation": "专旺格本身为极旺，只有顺势版本。若有官杀犯旺则破格。",
-                 "pattern_feature": "日主极旺，气势强盛；官杀犯旺则破格"},
-    },
-    "建禄格": {
-        "strong": {"question": "你是否从小就有较强的自主意识和独立性，做事喜欢靠自己，不太依赖别人？",
-                   "explanation": "建禄格身旺者自我意识强，独立自主，需官杀制或食伤泄方能成器。",
-                   "pattern_feature": "月令为禄，日主乘旺，自主性强"},
-        "weak": {"question": "你是否虽然独立性较强，但常常感觉一个人扛着很累，希望有好的机会或帮手来配合？",
-                 "explanation": "建禄格身弱者虽自立但力有不逮，需印星扶身。",
-                 "pattern_feature": "月令为禄但日主偏弱，自立而力不足"},
-    },
-    "月刃格": {
-        "strong": {"question": "你是否性格刚强果断，做事有冲劲不怕竞争，但有时也会因为太刚而与人起冲突？",
-                   "explanation": "月刃格身旺者刚强好胜，需官杀制刃方成大器。",
-                   "pattern_feature": "月令为刃，刚强好胜，需制化方显其功"},
-        "weak": {"question": "你是否性格中有刚硬的一面，但常常感觉压力和挫折让你难以充分发挥自己的能力？",
-                 "explanation": "月刃格身弱者刚中带弱，需制刃且扶身。",
-                 "pattern_feature": "月令为刃但日主偏弱，刚中有弱"},
-    },
-}
+# ============================================================
+# PATTERN_L1_QUESTIONS — 已删除（Phase 0: V2 不用格局特征问题模板，约100行）
+# ============================================================
 
 
-def _get_l1_question(pattern: str, wangshuai_level: str) -> dict:
-    """根据旺衰选择L1问题版本"""
-    entry = PATTERN_L1_QUESTIONS.get(pattern, PATTERN_L1_QUESTIONS.get("正官格", {}))
-    is_strong = wangshuai_level in ("极旺", "身旺", "中和")
-    if isinstance(entry, dict) and "strong" in entry:
-        return entry["strong"] if is_strong else entry["weak"]
-    return entry  # 兼容旧格式
+# ============================================================
+# PATTERN_L1_QUESTIONS / _get_l1_question — 已删除（Phase 0: V2 不用格局特征问题模板）
+# ============================================================
 
-# 诊断问题模板
-DIAGNOSIS_QUESTIONS = {
-    "D1_chong": "你是否觉得自己性格或人生方向发生过比较突然的转变？",
-    "D2_he": "你是否在不同环境或人生阶段下，会表现出完全不同的性格特质？",
-    "D4_jiuying": "你是否觉得自己有些潜力被某些因素限制住了，没有完全发挥出来？",
-    "D5_time": "前面几个方向似乎都不太符合。你的出生时间是准确的吗？",
-}
+# ============================================================
+# DIAGNOSIS_QUESTIONS — 已删除（Phase 0: V2 不用诊断问题模板）
+# ============================================================
 
 # 品质问题模板
-QUALITY_QUESTIONS = {
-    "youqing": {
-        "食神": "在压力大的时候，你是否有某种宣泄或舒缓的方式——比如创作、运动，或者其他让你释放的渠道——来帮你把压力转化为动力？",
-        "伤官": "在压力大的时候，你是否有某种宣泄或舒缓的方式——比如创作、运动，或者其他让你释放的渠道——来帮你把压力转化为动力？",
-        "正印": "你是否容易得到长辈或老师的欣赏和帮助，让你在困难时有人指点？",
-        "偏印": "你是否容易得到长辈或老师的欣赏和帮助，让你在困难时有人指点？",
-        "比肩": "你是否经常能得到朋友或同事的实质性帮助？",
-        "劫财": "你是否经常能得到朋友或同事的实质性帮助？",
-        "正财": "你是否有稳定的财源或资源渠道来支撑你的发展？",
-        "偏财": "你是否有稳定的财源或资源渠道来支撑你的发展？",
-        "正官": "你是否有权威人士或制度在背后支持你的发展？",
-        "七杀": "你是否有权威人士或制度在背后支持你的发展？",
-    },
-    "youli": {
-        "食神": "你的才华或创造力是否在实际生活或工作中产生了比较实在的、别人能看到的成果——而不是只停留在想法或爱好层面？",
-        "伤官": "你的才华或创造力是否在实际生活或工作中产生了比较实在的、别人能看到的成果——而不是只停留在想法或爱好层面？",
-        "正印": "你的学习和积累是否转化为了实际的能力提升或职业发展？",
-        "偏印": "你的学习和积累是否转化为了实际的能力提升或职业发展？",
-        "比肩": "你的朋友或同伴对你的人生产生了实质性的积极影响吗？",
-        "劫财": "你的朋友或同伴对你的人生产生了实质性的积极影响吗？",
-        "正财": "你的理财能力是否给你带来了相当的财富积累？",
-        "偏财": "你的理财能力是否给你带来了相当的财富积累？",
-        "正官": "规则和秩序是否真正让你在事业上获得了进步？",
-        "七杀": "规则和秩序是否真正让你在事业上获得了进步？",
-    },
-}
+# ============================================================
+# QUALITY_QUESTIONS — 已删除（Phase 0: V2 不用品质问题模板）
+# ============================================================
 
 
 # ============================================================
@@ -479,9 +350,9 @@ def _get_delta(session, answer, defaults=None):
     return d.get(answer, 0)
 
 
-def _get_quality_question(qtype: str, tg: str) -> str:
-    return QUALITY_QUESTIONS.get(qtype, {}).get(tg,
-           "请描述这个方面在你生活中的体现。")
+# ============================================================
+# _get_quality_question / QUALITY_QUESTIONS — 已删除（Phase 0: V2 不用品质问题模板）
+# ============================================================
 
 
 # ============================================================
@@ -545,17 +416,14 @@ def init_verification(chart_data: dict, user_id: str = None, uncertainty: dict =
     xiangshen_candidates = generate_xiangshen_candidates(final_pattern, dm_stem, chart_data)
     step_results["xiangshen_candidates"] = xiangshen_candidates
 
-    # L1 question (旺衰自适应)
+    # Phase 0: L1 问题生成已删除。V2 使用 discrimination.py 替代。
     final_pattern = step_results["pattern"]
-    l1 = _get_l1_question(final_pattern, wangshuai["level"])
 
     first_question = {
         "round": 1, "layer": "L1",
-        "question": l1["question"],
-        "explanation": l1.get("explanation", ""),
-        "pattern_feature": l1.get("pattern_feature", ""),
-        "target_pattern": final_pattern,
-        "options": ["很像", "有点出入", "完全不像"],
+        "question": f"系统判定你的格局为{final_pattern}（旺衰={wangshuai['level']}），请使用 V2 断前事流程进行验证。",
+        "explanation": "V2 已废弃旧 L1 问题模板",
+        "options": ["是", "不是", "记不清了"],
     }
 
     session = {
@@ -666,22 +534,17 @@ async def process_verification(session_id: str, answer: str, note: str = "") -> 
             # LLM 解读失败 → 降级为 partial（中间值，不偏不倚）
             answer = "partial"
 
-    # 2. 静态 handler 执行（流程控制 — 永远执行）
-    #    confidence 调整、收敛检查、阶段推进都在这里
-    sub = session.get("sub_stage", "L1")
-    result = await _dispatch_static(session, sub, answer)
+    # 2. V2 已废弃旧 handler。旧流程不再走 dispatch_static。
+    #    新流程请使用 services/discrimination.py::init_verification_v2()
+    result = {
+        "locked": True,
+        "stage": "done",
+        "message": "V2 已废弃旧验证流程。请使用 POST /api/predictions/start (V2) 启动新流程。",
+        "question": None,
+    }
 
-    # 3. 清理 LLM 临时数据（delta 已被 handler 消费）
+    # 3. 清理 LLM 临时数据
     session.pop("_llm_delta", None)
-
-    # 4. LLM 增强问题内容（只改文本，不控制流程）
-    if _has_llm() and result and not result.get("locked"):
-        question = result.get("question")
-        if question and not question.get("llm_generated"):
-            enhanced = await _llm_enhance_question(session, result)
-            if enhanced:
-                result["question"] = enhanced
-                session["current_question"] = enhanced
 
     return result
 
@@ -757,84 +620,9 @@ delta含义:
         return {"mapped_answer": answer, "delta": 0, "extracted_facts": [note]}
 
 
-async def _llm_enhance_question(session, result):
-    """LLM 增强问题内容 — 只生成文本，不控制流程
-
-    混合框架：静态 handler 已经生成了问题和推进了阶段，
-    LLM 在此基础上改写问题文本和选项，使其更自然。
-    LLM 永远不返回 action，不决定何时推进。
-    """
-    question = result.get("question", {})
-    if not question:
-        return None
-
-    sub = session.get("sub_stage", "L1")
-
-    # 某些阶段不增强（末轮/时辰校验等用静态即可）
-    if sub in ("diag_D5", "quality_2"):
-        return None
-
-    history = _format_chat_history(session)
-    sr = session.get("step_results", {})
-    wangshuai = sr.get("wangshuai", {})
-    pattern = session.get("pattern", "")
-    classical = _get_classical_reference(session, sub)
-    yongshen = session.get("yongshen", {})
-
-    # 相神阶段传入候选列表
-    candidates_info = ""
-    if sub.startswith("xs_"):
-        cands = session.get("xiangshen_candidates", [])
-        target = question.get("target_xiangshen", "")
-        candidates_info = "\n".join([
-            f"- {c['ten_god']}({c['five_element']}): confidence={c['confidence']}, way={c.get('gong_way','')}"
-            + (" ← 当前验证" if c['ten_god'] == target else "")
-            for c in cands[:5]
-        ])
-
-    static_question = question.get("question", "")
-    static_options = question.get("options", [])
-
-    candidates_line = f"当前候选:\n{candidates_info}" if candidates_info else ""
-    prompt = f"""你正在验证一个八字命盘。
-
-命盘: {pattern}格, 日主{session['chart_data'].get('day_master','')}, 旺衰={wangshuai.get('level','?')}(方向={wangshuai.get('yongshen_direction','')})
-透干: {sr.get('gan_touchu',{})}
-
-典籍参考:
-{classical}
-
-对话历史:
-{history}
-
-当前阶段: {sub}
-{candidates_line}
-
-静态模板问题: {static_question}
-静态模板选项: {static_options}
-
-请基于以上信息，用生活化语言改写问题（不含命理术语），让用户更容易理解。
-输出JSON(不要markdown标记):
-{{"question":"你的问题","options":["选项1","选项2","选项3"],"explanation":"简短解释"}}
-
-规则:
-- 问题必须用生活化语言，不含命理术语
-- 选项应该是用户容易理解的日常表达
-- 可以增加"说说具体的"作为自由文本入口选项
-- 保持自然对话感"""
-    content = await _llm_ask(SYSTEM_PROMPT, prompt, 300)
-    if not content:
-        return None
-    try:
-        llm = json.loads(content)
-        enhanced = dict(question)
-        enhanced["question"] = llm.get("question", static_question)
-        enhanced["options"] = llm.get("options", static_options)
-        enhanced["explanation"] = llm.get("explanation", question.get("explanation", ""))
-        enhanced["llm_generated"] = True
-        return enhanced
-    except Exception:
-        return None
+# ============================================================
+# _llm_enhance_question — 已删除（Phase 0: V2 由 discrimination.py 统一管理 AI 出题）
+# ============================================================
 
 
 def _clean_classical_text(text: str) -> str:
@@ -931,628 +719,24 @@ def _format_chat_history(session):
     return "\n".join(lines)
 
 
-async def _dispatch_static(session, sub, answer):
-    """V3 静态 handler — 当 LLM 不可用时降级到此"""
-    if sub == "L1":
-        return await _handle_L1(session, answer)
-    elif sub == "purity":
-        return await _handle_purity(session, answer)
-    elif sub.startswith("xs_"):
-        # 格局派重构：相神验证
-        return await _handle_xiangshen(session, answer)
-    elif sub.startswith("jiuying_") or sub == "chengbai":
-        # 格局派重构：成败救应
-        return await _handle_chengbai(session, answer)
-    elif sub.startswith("quality_"):
-        # 格局派重构：格局高低
-        return await _handle_quality(session, answer)
-    elif sub.startswith("diag_"):
-        return await _handle_diagnosis(session, answer)
-    else:
-        return {"error": f"未知子阶段: {sub}"}
+# ============================================================
+# _dispatch_static — 已删除（Phase 0: V2 不使用旧路由）
+# ============================================================
 
 
 # ============================================================
-# L1 Handler
+# L1 / Purity Handler — 已删除（Phase 0: V2 不使用旧的 L1 格局特征问答）
 # ============================================================
-
-async def _handle_L1(session, answer):
-    session["l1_answer"] = "High" if answer == "accurate" else ("Medium" if answer == "partial" else "Low")
-
-    # 混合框架：优先用 LLM delta，否则固定值
-    delta = _get_delta(session, answer)
-    if delta != 0:
-        session["confidence"] = max(1, min(99, session["confidence"] + delta))
-
-    session["diagnosis_path"].append({"step": "L1", "action": f"格局特征验证-{session['pattern']}",
-                                       "answer": session["l1_answer"]})
-
-    if session["l1_answer"] == "Low":
-        # 纯杂检查
-        purity = check_purity(session["pattern"], session["chart_data"])
-        session["purity_result"] = purity
-        if purity["is_mixed"]:
-            session["sub_stage"] = "purity"
-            session["round"] += 1
-            q = {
-                "round": session["round"], "layer": f"L{session['round']}",
-                "question": f"你是否感觉自己性格中有矛盾的两面——{purity['mix_stems'][0]}和{purity['mix_stems'][1]}的特征同时存在？",
-                "explanation": f"检测到{purity['mix_type']}，可能使格局特征模糊。",
-                "options": ["是", "不太确定", "不是"],
-            }
-            session["current_question"] = q
-            return {"locked": False, "stage": "pattern", "sub_stage": "purity",
-                    "question": q, "purity_check": purity}
-        else:
-            # 不混杂 → 直接进诊断链
-            return await _enter_diagnosis(session)
-
-    # 进 Phase 2
-    # Fix: L1 B(有点出入) → 先静默检查是否有混杂或待确认合局
-    if session["l1_answer"] == "Medium":
-        purity = check_purity(session["pattern"], session["chart_data"])
-        heju = session.get("step_results", {}).get("zhi_heju", {})
-        session["purity_result"] = purity
-        if purity["is_mixed"] or heju.get("pending"):
-            session["purity"] = "杂" if purity["is_mixed"] else "纯"
-            session["diagnosis_path"].append({"step": "L1", "action": "有点出入-检测混杂/合局",
-                                               "mixed": purity["is_mixed"], "heju_pending": heju.get("pending")})
-        else:
-            session["diagnosis_path"].append({"step": "L1", "action": "有点出入-无特殊检测"})
-    # 格局派重构：L1 accurate/partial → 进入相神验证（替代旧 Phase2）
-    return await _enter_xiangshen(session)
-
-
-async def _handle_purity(session, answer):
-    if answer == "accurate":
-        session["purity"] = "杂"
-        session["confidence"] = max(1, session["confidence"] * 0.7)
-        return await _enter_xiangshen(session)
-    else:
-        session["purity"] = "纯"
-        return await _enter_diagnosis(session)
 
 
 # ============================================================
-# 格局派重构：相神验证 → 成败救应 → 格局高低
-# 替代旧 Phase2 品质判断 + Phase3 用神验证
+# 相神验证 / 成败救应 / 格局高低 — 已删除（Phase 0: V2 由 discrimination.py + feedback_adjuster.py 替代）
 # ============================================================
-
-async def _enter_xiangshen(session):
-    """相神验证入口：按优先级逐一验证相神候选"""
-    session["stage"] = "xiangshen"
-    session["sub_stage"] = "xs_1"
-    session["round"] += 1
-
-    chart = session["chart_data"]
-    dm_stem = _extract_dm_stem(chart)
-    month_branch = _extract_month_branch(chart)
-    wangshuai = session.get("step_results", {}).get("wangshuai", {})
-    wangshuai_level = wangshuai.get("level", "中和")
-    pattern = session["pattern"]
-
-    candidates = session.get("xiangshen_candidates") or generate_xiangshen_candidates(pattern, dm_stem, chart)
-
-    # 应用调候/扶抑加权因子
-    for c in candidates:
-        th_weight = get_tiaohou_weight(dm_stem, month_branch, c)
-        fy_weight = get_fuyi_weight(wangshuai_level, c)
-        c["confidence"] = max(1, min(99, c["confidence"] + th_weight + fy_weight))
-
-    candidates.sort(key=lambda x: x["confidence"], reverse=True)
-
-    # SmartPredictionSelector 集成：用区分度评分对候选重新排序
-    uncertainty = session.get("uncertainty")
-    candidates = _smart_rerank_candidates(candidates, uncertainty, asked_list=[])
-
-    session["xiangshen_candidates"] = candidates
-    session["_xs_asked"] = []
-
-    if not candidates:
-        session["confirmed_xiangshen"] = None
-        return await _enter_chengbai(session)
-
-    top = candidates[0]
-    session["_xs_asked"].append(top["ten_god"])
-
-    q = {
-        "round": session["round"], "layer": f"L{session['round']}",
-        "question": top.get("question", _get_xiangshen_question(top["ten_god"], top.get("gong_way", ""))),
-        "explanation": f"验证相神 {top['ten_god']}({top['five_element']}) — {top.get('gong_way', '')}",
-        "options": ["是的", "不太确定", "不是"],
-        "target_xiangshen": top["ten_god"],
-    }
-    session["current_question"] = q
-
-    return {"locked": False, "stage": "xiangshen", "sub_stage": "xs_1",
-            "question": q, "xiangshen_candidates": candidates,
-            "yongshen": session.get("yongshen", {})}
-
-
-async def _handle_xiangshen(session, answer):
-    """相神验证问答处理"""
-    candidates = session.get("xiangshen_candidates", [])
-    cq = session.get("current_question", {})
-    target = cq.get("target_xiangshen", "")
-    sub = session.get("sub_stage", "xs_1")
-
-    # 混合框架：目标候选用 LLM delta（有 guardrail），其他候选用固定值
-    target_delta = _get_delta(session, answer)
-
-    for c in candidates:
-        is_target = c["ten_god"] == target
-        if is_target:
-            c["confidence"] = max(1, min(99, c["confidence"] + target_delta))
-        else:
-            if answer == "accurate":
-                c["confidence"] = max(1, c["confidence"] - 5)
-            elif answer == "inaccurate":
-                c["confidence"] = min(99, c["confidence"] + 3)
-
-    candidates.sort(key=lambda x: x["confidence"], reverse=True)
-
-    # SmartPredictionSelector 集成：用区分度评分对候选重新排序（考虑已问过的惩罚）
-    uncertainty = session.get("uncertainty")
-    asked = session.get("_xs_asked", [])
-    candidates = _smart_rerank_candidates(candidates, uncertainty, asked_list=asked)
-
-    session["xiangshen_candidates"] = candidates
-
-    # 收敛判断
-    top = candidates[0] if candidates else None
-    if top and top["confidence"] >= 65 and (len(candidates) < 2 or top["confidence"] - candidates[1]["confidence"] >= 20):
-        session["confirmed_xiangshen"] = top
-        session["diagnosis_path"].append({"step": "xiangshen", "action": "相神收敛",
-                                           "result": top["ten_god"], "confidence": top["confidence"]})
-        return await _enter_chengbai(session)
-
-    # 继续问下一个候选
-    asked = session.get("_xs_asked", [])
-    next_xs = None
-    for c in candidates:
-        if c["ten_god"] not in asked:
-            next_xs = c
-            break
-
-    if not next_xs or len(asked) >= 3:
-        # 已问完3个候选或无新候选 → 取最高分为相神
-        session["confirmed_xiangshen"] = top
-        session["diagnosis_path"].append({"step": "xiangshen", "action": "相神遍历完毕",
-                                           "result": top["ten_god"] if top else "无",
-                                           "confidence": top["confidence"] if top else 0})
-        return await _enter_chengbai(session)
-
-    asked.append(next_xs["ten_god"])
-    session["_xs_asked"] = asked
-    session["sub_stage"] = f"xs_{len(asked)}"
-    session["round"] += 1
-
-    q = {
-        "round": session["round"], "layer": f"L{session['round']}",
-        "question": next_xs.get("question", _get_xiangshen_question(next_xs["ten_god"], next_xs.get("gong_way", ""))),
-        "explanation": f"验证相神 {next_xs['ten_god']}({next_xs['five_element']}) — {next_xs.get('gong_way', '')}",
-        "options": ["是的", "不太确定", "不是"],
-        "target_xiangshen": next_xs["ten_god"],
-    }
-    session["current_question"] = q
-
-    return {"locked": False, "stage": "xiangshen", "sub_stage": session["sub_stage"],
-            "question": q, "xiangshen_candidates": candidates,
-            "yongshen": session.get("yongshen", {})}
-
-
-async def _enter_chengbai(session):
-    """成败救应检测"""
-    session["stage"] = "chengbai"
-    session["round"] += 1
-
-    pattern = session["pattern"]
-    yongshen = session.get("yongshen") or {}
-    xiangshen = session.get("confirmed_xiangshen") or {}
-    chart_data = session["chart_data"]
-
-    # 静态检测败因
-    chengbai = check_chengbai(pattern, yongshen, xiangshen, chart_data)
-    session["chengbai_result"] = chengbai
-
-    if not chengbai["is_defeated"]:
-        # 无败因 → 成格，直接进格局高低
-        session["chengbai_status"] = "成格"
-        session["diagnosis_path"].append({"step": "chengbai", "action": "成败检测",
-                                           "result": "成格", "defeat_causes": []})
-        return await _enter_quality_v2(session)
-
-    # 有败因 → 检测救应
-    jiuying = check_jiuying_v2(pattern, chengbai["defeat_causes"], chart_data)
-    session["jiuying_result"] = jiuying
-
-    if jiuying["has_jiuying"]:
-        # 有救应 → 问用户验证救应特征
-        causes_text = "、".join(chengbai["defeat_causes"])
-        q = {
-            "round": session["round"], "layer": f"L{session['round']}",
-            "question": f"你的命局中有{causes_text}的隐患，但有{jiuying['jiuying_shen']}可以化解。你是否觉得在困境中总有某种力量帮你转危为安？",
-            "explanation": f"救应检测：{jiuying['mechanism']}",
-            "options": ["是的，确实如此", "偶尔会有", "没有这种感觉"],
-        }
-        session["current_question"] = q
-        session["sub_stage"] = "jiuying_1"
-        return {"locked": False, "stage": "chengbai", "sub_stage": "jiuying_1",
-                "question": q, "chengbai_result": chengbai, "jiuying_result": jiuying}
-    else:
-        # 无救应 → 败格
-        session["chengbai_status"] = "败格无救"
-        session["diagnosis_path"].append({"step": "chengbai", "action": "成败检测",
-                                           "result": "败格无救",
-                                           "defeat_causes": chengbai["defeat_causes"]})
-        return await _enter_quality_v2(session)
-
-
-async def _handle_chengbai(session, answer):
-    """成败救应问答处理"""
-    jiuying = session.get("jiuying_result") or {}
-
-    if answer == "accurate":
-        session["chengbai_status"] = "败格有救"
-    elif answer == "partial":
-        session["chengbai_status"] = "败格有救"
-        # 弱救应，降低等级
-        if jiuying.get("jiuying_level") == "上等":
-            jiuying["jiuying_level"] = "中等"
-        elif jiuying.get("jiuying_level") == "中等":
-            jiuying["jiuying_level"] = "下等"
-        session["jiuying_result"] = jiuying
-    else:
-        session["chengbai_status"] = "败格无救"
-        session["jiuying_result"]["has_jiuying"] = False
-
-    session["diagnosis_path"].append({"step": "chengbai", "action": "救应验证",
-                                       "result": session["chengbai_status"]})
-    return await _enter_quality_v2(session)
-
-
-async def _enter_quality_v2(session):
-    """格局高低评判（在用神+成败救应之后）"""
-    session["stage"] = "quality"
-    session["sub_stage"] = "quality_1"
-    session["round"] += 1
-
-    pattern = session["pattern"]
-    yongshen = session.get("yongshen") or {}
-    xiangshen = session.get("confirmed_xiangshen") or {}
-    chengbai = session.get("chengbai_result") or {}
-    jiuying = session.get("jiuying_result") or {}
-    chart_data = session["chart_data"]
-
-    # 静态评判格局高低
-    quality = judge_pattern_quality_v2(
-        pattern, yongshen, xiangshen, chengbai, jiuying, chart_data
-    )
-    session["quality"] = quality
-
-    # 问用户验证有情
-    ys_tg = yongshen.get("ten_god", "")
-    xs_tg = xiangshen.get("ten_god", "") if xiangshen else ys_tg
-    q_text = _get_quality_question("youqing", xs_tg)
-    q = {
-        "round": session["round"], "layer": f"L{session['round']}",
-        "question": q_text,
-        "explanation": f"验证{pattern}的有情程度",
-        "options": ["很像", "有点出入", "完全不像"],
-    }
-    session["current_question"] = q
-    return {"locked": False, "stage": "quality", "sub_stage": "quality_1",
-            "question": q, "static_quality": quality}
-
-
-async def _handle_quality(session, answer):
-    """格局高低问答处理"""
-    sub = session.get("sub_stage", "quality_1")
-
-    if sub == "quality_1":
-        session["quality_youqing"] = answer == "accurate"
-        # 问有力
-        session["sub_stage"] = "quality_2"
-        session["round"] += 1
-        yongshen = session.get("yongshen", {})
-        xiangshen = session.get("confirmed_xiangshen", {})
-        xs_tg = xiangshen.get("ten_god", "") if xiangshen else yongshen.get("ten_god", "")
-        q_text = _get_quality_question("youli", xs_tg)
-        q = {
-            "round": session["round"], "layer": f"L{session['round']}",
-            "question": q_text,
-            "explanation": f"验证{xs_tg}是否有实体力量支撑",
-            "options": ["很像", "有点出入", "完全不像"],
-        }
-        session["current_question"] = q
-        return {"locked": False, "stage": "quality", "sub_stage": "quality_2",
-                "question": q}
-
-    elif sub == "quality_2":
-        session["quality_youli"] = answer == "accurate"
-
-        # 结合静态评判 + 用户反馈，最终确定格局高低
-        static_quality = session.get("quality", "中格")
-        youqing = session.get("quality_youqing", False)
-        youli = session.get("quality_youli", False)
-
-        # 用户反馈微调
-        if youqing and youli and static_quality in ("中格", "中下格"):
-            final_quality = "上格"
-        elif not youqing and not youli and static_quality in ("上格", "中格"):
-            final_quality = "中下格"
-        else:
-            final_quality = static_quality
-
-        session["quality"] = final_quality
-        session["diagnosis_path"].append({"step": "quality", "action": "格局高低",
-                                           "result": final_quality,
-                                           "youqing": youqing, "youli": youli})
-        return _finalize_locked_v2(session)
-
-    return {"error": f"未知 quality 子阶段: {sub}"}
-
-
-def _finalize_locked_v2(session):
-    """新版输出：区分用神和相神"""
-    session["stage"] = "locked"
-
-    yongshen = session.get("yongshen") or {}
-    xiangshen = session.get("confirmed_xiangshen") or {}
-    chengbai = session.get("chengbai_result") or {}
-    jiuying = session.get("jiuying_result") or {}
-
-    return {
-        "locked": True, "stage": "done",
-        "rounds": session["round"],
-        "result": {
-            "pattern": session["pattern"],
-            "pattern_confidence": session["confidence"],
-            # 用神 = 月令定格之物
-            "yong_shen": yongshen.get("ten_god", ""),
-            "yong_shen_element": yongshen.get("five_element", ""),
-            "yong_shen_mode": yongshen.get("mode", ""),  # 顺用/逆用
-            # 相神 = 辅佐用神成格之物
-            "xiang_shen": xiangshen.get("ten_god", "") if xiangshen else "",
-            "xiang_shen_element": xiangshen.get("five_element", "") if xiangshen else "",
-            "xiang_shen_way": xiangshen.get("gong_way", "") if xiangshen else "",
-            "xiangshen_confidence": xiangshen.get("confidence", 0) if xiangshen else 0,
-            # 成败救应
-            "chengbai_status": session.get("chengbai_status", "成格"),
-            "defeat_causes": chengbai.get("defeat_causes", []),
-            "jiuying_shen": jiuying.get("jiuying_shen", ""),
-            "jiuying_level": jiuying.get("jiuying_level", ""),
-            # 兼容旧字段
-            "five_element": yongshen.get("five_element", ""),
-            "gong_way": xiangshen.get("gong_way", "") if xiangshen else "",
-            "yongshen_confidence": xiangshen.get("confidence", 0) if xiangshen else 0,
-            "pattern_type": "正格",
-        },
-        "quality": session.get("quality", "中格"),
-        "purity": session.get("purity", "纯"),
-        "pattern_source": session.get("step_results", {}).get("pattern_source", "月令本气"),
-        "diagnosis_path": session.get("diagnosis_path", []),
-        "credibility": "high" if session.get("quality") in ("上格", "中格") else "medium",
-        "expansion_attempted": session.get("diagnosis_count", 0) > 0,
-        "total_rounds": session["round"],
-    }
 
 
 # ============================================================
-# 诊断链
+# 诊断链 — 已删除（Phase 0: V2 不使用旧诊断/相神/成败 handler）
 # ============================================================
-
-async def _enter_diagnosis(session):
-    session["stage"] = "diagnosis"
-    session["diagnosis_count"] = 0
-    session["diagnosis_sub_stage"] = 1
-    session["round"] += 1
-
-    # SmartPredictionSelector 集成：预检查适用步骤并用区分度重新排序
-    chart = session["chart_data"]
-    dm_stem = _extract_dm_stem(chart)
-    month_branch = _extract_month_branch(chart)
-    fp = chart.get("four_pillars", {})
-    uncertainty = session.get("uncertainty")
-
-    applicable_steps = []
-    # D1: 月令被冲
-    if _check_month_branch_chong(fp, month_branch)["is_chong"]:
-        applicable_steps.append(1)
-    # D2: 月令被合
-    if _check_month_branch_he(fp, month_branch)["is_he"]:
-        applicable_steps.append(2)
-    # D3: 中气格局
-    stems = _get_month_hidden_stems(month_branch)
-    if len(stems) >= 2:
-        tg2 = _calc_ten_god(dm_stem, stems[1])
-        alt_pattern = _TG_TO_PATTERN.get(tg2, "")
-        if alt_pattern and alt_pattern != session["pattern"]:
-            applicable_steps.append(3)
-    # D4: 救应（总是适用）
-    applicable_steps.append(4)
-    # D5: 时辰（总是适用）
-    applicable_steps.append(5)
-
-    # 用 SmartPredictionSelector 重新排序（仅当有 uncertainty 数据时）
-    if uncertainty and len(applicable_steps) > 1:
-        applicable_steps = _smart_rank_diag_steps(applicable_steps, uncertainty)
-
-    session["_diag_order"] = applicable_steps
-    session["_diag_order_idx"] = 0
-
-    first_step = applicable_steps[0] if applicable_steps else 1
-    return await _run_diagnosis_step(session, first_step)
-
-
-async def _run_diagnosis_step(session, step_num):
-    session["diagnosis_sub_stage"] = step_num
-    chart = session["chart_data"]
-    dm_stem = _extract_dm_stem(chart)
-    month_branch = _extract_month_branch(chart)
-    fp = chart.get("four_pillars", {})
-
-    # 辅助函数：从 _diag_order 中找到下一个适用步骤
-    def _next_step(current):
-        order = session.get("_diag_order")
-        if not order:
-            return current + 1
-        try:
-            idx = order.index(current)
-            if idx + 1 < len(order):
-                return order[idx + 1]
-        except ValueError:
-            pass
-        return current + 1
-
-    if step_num == 1:
-        # D1: 月令被冲
-        d1 = _check_month_branch_chong(fp, month_branch)
-        if d1["is_chong"]:
-            q = {"round": session["round"], "layer": f"L{session['round']}",
-                 "question": DIAGNOSIS_QUESTIONS["D1_chong"],
-                 "explanation": "检测月令是否被冲",
-                 "options": ["是", "不太确定", "不是"],
-                 "diag_step": "D1", "diag_data": d1}
-            session["current_question"] = q
-            session["sub_stage"] = "diag_D1"
-            return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D1",
-                    "question": q, "diagnosis_step": "D1"}
-        else:
-            session["round"] += 1
-            return await _run_diagnosis_step(session, _next_step(1))
-
-    elif step_num == 2:
-        d2 = _check_month_branch_he(fp, month_branch)
-        if d2["is_he"]:
-            q = {"round": session["round"], "layer": f"L{session['round']}",
-                 "question": DIAGNOSIS_QUESTIONS["D2_he"],
-                 "explanation": "检测月令是否被合",
-                 "options": ["是", "不太确定", "不是"],
-                 "diag_step": "D2", "diag_data": d2}
-            session["current_question"] = q
-            session["sub_stage"] = "diag_D2"
-            return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D2",
-                    "question": q, "diagnosis_step": "D2"}
-        else:
-            session["round"] += 1
-            return await _run_diagnosis_step(session, _next_step(2))
-
-    elif step_num == 3:
-        stems = _get_month_hidden_stems(month_branch)
-        if len(stems) >= 2:
-            tg2 = _calc_ten_god(dm_stem, stems[1])
-            alt_pattern = _TG_TO_PATTERN.get(tg2, "")
-            if alt_pattern and alt_pattern != session["pattern"]:
-                l1_q = PATTERN_L1_QUESTIONS.get(alt_pattern, {})
-                q_text = f"之前的方向不太符合。换个角度——{l1_q.get('question', '请描述你的特点')}"
-                q = {"round": session["round"], "layer": f"L{session['round']}",
-                     "question": q_text,
-                     "explanation": f"尝试中气格局: {alt_pattern}",
-                     "options": ["很像", "有点出入", "完全不像"],
-                     "diag_step": "D3", "alt_pattern": alt_pattern}
-                session["current_question"] = q
-                session["sub_stage"] = "diag_D3"
-                return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D3",
-                        "question": q, "diagnosis_step": "D3"}
-        session["round"] += 1
-        return await _run_diagnosis_step(session, _next_step(3))
-
-    elif step_num == 4:
-        q = {"round": session["round"], "layer": f"L{session['round']}",
-             "question": DIAGNOSIS_QUESTIONS["D4_jiuying"],
-             "explanation": "检测用神救应是否到位",
-             "options": ["是", "不太确定", "不是"],
-             "diag_step": "D4"}
-        session["current_question"] = q
-        session["sub_stage"] = "diag_D4"
-        return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D4",
-                "question": q, "diagnosis_step": "D4"}
-
-    elif step_num == 5:
-        q = {"round": session["round"], "layer": f"L{session['round']}",
-             "question": DIAGNOSIS_QUESTIONS["D5_time"],
-             "explanation": "时辰校验",
-             "options": ["准确", "不太确定", "不准"],
-             "diag_step": "D5"}
-        session["current_question"] = q
-        session["sub_stage"] = "diag_D5"
-        return {"locked": False, "stage": "diagnosis", "sub_stage": "diag_D5",
-                "question": q, "diagnosis_step": "D5"}
-
-    return {"error": "无效诊断步骤"}
-
-
-async def _handle_diagnosis(session, answer):
-    sub = session.get("sub_stage")
-    step_num = session.get("diagnosis_sub_stage", 1)
-
-    session["diagnosis_path"].append({"step": f"D{step_num}", "answer": answer})
-
-    if answer == "accurate":
-        if sub == "diag_D1":
-            d1 = session.get("current_question", {}).get("diag_data", {})
-            if d1.get("has_rescue"):
-                session["confidence"] = max(1, session["confidence"] * 0.7)
-                return await _enter_xiangshen(session)
-            else:
-                session["round"] += 1
-                # 冲散→中气, 但之后也要静默检查救应
-                session["_from_chong_san"] = True
-                return await _run_diagnosis_step(session, 3)  # 冲散→中气
-        elif sub == "diag_D2":
-            session["round"] += 1
-            session["sub_stage"] = "L1"
-            session["confidence"] = 20
-            return {"locked": False, "stage": "pattern", "sub_stage": "L1",
-                    "question": session["current_question"], "pattern_changed": True}
-        elif sub == "diag_D3":
-            alt = session.get("current_question", {}).get("alt_pattern", "")
-            if alt:
-                session["pattern"] = alt
-                session["confidence"] = 25
-                session["purity"] = None
-                session["quality"] = None
-                # 格局派重构：重新确定用神和相神候选
-                dm_stem = _extract_dm_stem(session["chart_data"])
-                month_branch = _extract_month_branch(session["chart_data"])
-                session["yongshen"] = determine_yongshen(alt, dm_stem, month_branch, session["chart_data"])
-                session["xiangshen_candidates"] = generate_xiangshen_candidates(alt, dm_stem, session["chart_data"])
-                # 冲散路径: 静默注入救应数据
-                if session.get("_from_chong_san"):
-                    session["_from_chong_san"] = False
-                    session["diagnosis_path"].append({"step": "D4_silent", "action": "救应静默检测(跳过)"})
-                return await _enter_xiangshen(session)
-        elif sub == "diag_D4":
-            return await _enter_xiangshen(session)
-        elif sub == "diag_D5":
-            session["confidence"] = max(1, session["confidence"] * 0.6)
-            return await _enter_xiangshen(session)
-    else:
-        if sub == "diag_D5" and answer == "partial":
-            return {"locked": True, "stage": "done", "result": None,
-                    "message": "无法确认，请重新确认出生时间"}
-        if sub == "diag_D5" and answer == "inaccurate":
-            return {"locked": True, "stage": "done", "result": None,
-                    "message": "请回到首页重新录入"}
-        session["diagnosis_count"] = session.get("diagnosis_count", 0) + 1
-        if session["diagnosis_count"] >= 3:
-            session["round"] += 1
-            return await _run_diagnosis_step(session, 5)  # 跳至时辰
-        session["round"] += 1
-        # 使用 _diag_order 中的顺序跳到下一个诊断步骤
-        _order = session.get("_diag_order")
-        _next = step_num + 1
-        if _order:
-            try:
-                _idx = _order.index(step_num)
-                if _idx + 1 < len(_order):
-                    _next = _order[_idx + 1]
-            except ValueError:
-                pass
-        return await _run_diagnosis_step(session, _next)
-
-    return await _enter_xiangshen(session)
 
 
 def _check_month_branch_chong(fp, month_branch):

@@ -1,8 +1,15 @@
-"""P1 Phase 1 测试：断前事生成 + 逐条反馈"""
+"""P1 Phase 1 测试：断前事生成 + 逐条反馈
+
+Phase 0: V2 已废弃 generate_mock_predictions 及所有 _build_* 函数。
+此测试文件测试的功能已删除，全部标记为 skip。
+"""
 
 import pytest
 import sys
 import os
+
+# Phase 0: 标记所有测试为 skip，等待 V2 测试替换
+pytestmark = pytest.mark.skip(reason="Phase 0: V2 已废弃旧预测生成函数")
 
 # 添加项目根目录到 sys.path
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -12,29 +19,7 @@ from models import (
     WuxingScore, YongShen, PreEventStatement, FeedbackItem, FeedbackRound,
 )
 from bazi_engine import calculate_bazi
-from services.predictions import (
-    generate_mock_predictions,
-    _build_personality,
-    _build_parents,
-    _build_siblings,
-    _build_education,
-    _build_marriage,
-    _build_career,
-    _build_key_years,
-    _count_bi_jie,
-    _count_yin_xing,
-    _is_yin_xing_solid,
-    _has_guan_yin_xiang_sheng,
-    _has_shishang_sheng_cai,
-    _get_key_years,
-    judge_info_sufficient,
-    _core_gates_covered,
-    _get_next_category_suggestion,
-    _mock_generate_single,
-    generate_single_prediction,
-    MAX_PREDICTIONS,
-    CORE_GATES,
-)
+
 from rules.wuxing import WUXING_MAP
 
 

@@ -26,8 +26,6 @@ from services.feedback_weights import review_feedback, get_user_weights, reset_w
 from services.ai_explainer import generate_strength_explanation
 from services.classical_judge import judge_from_classics, mock_classical_judge, judge_wangshuai_from_classics
 from services.predictions import (
-    generate_predictions,
-    generate_mock_predictions,
     judge_info_sufficient,
     run_ai_judge_sufficient,
     generate_single_prediction,
@@ -679,65 +677,13 @@ _prediction_sessions: dict[str, dict] = {}
 @app.post("/api/predictions/generate")
 async def generate_predictions_endpoint(birth: BirthInfo):
     """
-    断前事生成接口
-
-    流程：
-    1. 排盘
-    2. 生成 7 条断前事推断
-    3. 返回 chart + predictions
-
-    请求参数同 /api/chart
+    [已废弃 Phase 0] V2 不再使用此端点。
+    请使用 POST /api/predictions/start（V2）替代。
     """
-    _validate_birth_info(birth)
-
-    try:
-        # 处理出生信息
-        params, true_solar_info = process_birth_info(birth)
-
-        # 1. 排盘
-        chart = calculate_bazi(**params)
-
-        # 2. 生成断事，包含当前年龄信息
-        chart_data = chart.model_dump()
-        import datetime
-        current_year = datetime.datetime.now().year
-        chart_data["current_year"] = current_year
-        chart_data["current_age"] = current_year - params["year"]
-        chart_data["birth_year"] = params["year"]
-        predictions = await generate_predictions(chart, chart_data)
-
-        # 3. 创建会话记录（含出生信息用于后续修正）
-        session_id = f"{params['year']}{params['month']:02d}{params['day']:02d}_{params['hour']:02d}{params['minute']:02d}_{params['gender']}"
-        # 保存原始 birth 信息（用于修正流程中的重新排盘）
-        session_birth_info = birth.model_dump()
-        # 同时保存处理后的参数
-        session_birth_info["_processed_hour"] = params["hour"]
-        session_birth_info["_processed_minute"] = params["minute"]
-        _prediction_sessions[session_id] = {
-            "predictions": [p.model_dump() for p in predictions],
-            "feedbacks": [],
-            "birth_info": session_birth_info,
-            "chart_data": chart_data,  # 保存排盘数据供修正使用
-        }
-
-        core_count = sum(1 for p in predictions if p.is_core)
-
-        result = {
-            "session_id": session_id,
-            "chart": chart_data,
-            "predictions": [p.model_dump() for p in predictions],
-            "total": len(predictions),
-            "core_count": core_count,
-        }
-
-        if true_solar_info:
-            result["true_solar_info"] = true_solar_info
-        result["birth_display"] = _build_birth_display(birth, params, true_solar_info)
-
-        return result
-
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"断事生成错误: {str(e)}")
+    return {
+        "deprecated": True,
+        "message": "此端点已废弃。请使用 POST /api/predictions/start (V2) 启动新验证流程。",
+    }
 
 
 @app.post("/api/predictions/feedback")

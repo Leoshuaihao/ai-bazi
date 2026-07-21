@@ -141,19 +141,8 @@ async def try_candidate_hours(
                 gender=birth_info.get("gender", "male"),
             )
 
-            # 生成推断（AI + Mock 双模式）
-            if has_api_key:
-                from services.predictions import generate_ai_predictions
-                chart_data = chart.model_dump()
-                ai_preds = await generate_ai_predictions(chart, chart_data)
-                if ai_preds and len(ai_preds) == 7:
-                    candidate_preds = ai_preds
-                else:
-                    from services.predictions import generate_mock_predictions
-                    candidate_preds = generate_mock_predictions(chart)
-            else:
-                from services.predictions import generate_mock_predictions
-                candidate_preds = generate_mock_predictions(chart)
+            # Phase 0: V2 已废弃 AI+Mock 预测生成。correction.py 暂时返回空列表。
+            candidate_preds = []
 
             candidate_preds_dict = [p.model_dump() for p in candidate_preds]
             core_result_ch = judge_core_gates(feedbacks, candidate_preds_dict)
@@ -259,7 +248,6 @@ async def apply_correction(
     from bazi_engine import calculate_bazi
     from rules.yongshen import calculate_strength_detail
     from rules.wuxing import WUXING_MAP, HIDDEN_STEMS_MAP
-    from services.predictions import generate_mock_predictions, generate_ai_predictions
 
     chart = calculate_bazi(
         year=birth_info["year"],
@@ -288,16 +276,8 @@ async def apply_correction(
         hidden_stems_list=all_hidden_stems,
     )
 
-    # 重新生成推断（AI + Mock 双模式）
-    chart_data = chart.model_dump()
-    if os.getenv("DEEPSEEK_API_KEY"):
-        ai_preds = await generate_ai_predictions(chart, chart_data)
-        if ai_preds and len(ai_preds) == 7:
-            new_predictions = ai_preds
-        else:
-            new_predictions = generate_mock_predictions(chart)
-    else:
-        new_predictions = generate_mock_predictions(chart)
+    # Phase 0: V2 已废弃预测生成。返回空列表。
+    new_predictions = []
 
     new_predictions_dict = [p.model_dump() for p in new_predictions]
 
