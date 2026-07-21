@@ -736,7 +736,9 @@ def _build_ai_question_prompt(
 3. 将典籍概念映射为日常可验证的事件
 4. 问题控制在80字以内
 5. 必须包含具体年份（如"{year}年前后"）
-6. 只输出问题文本，不要解释""".replace("{year}", str(event_year) if event_year else "某"))
+6. 用户今年{age}岁，所有问题只能涉及已经历的时间段，
+   不要问"{age}+"岁之后的未来事件
+7. 只输出问题文本，不要解释""".replace("{year}", str(event_year) if event_year else "某").replace("{age}", str(skeleton.get("current_age", 30))))
 
     return "\n\n".join(parts)
 
