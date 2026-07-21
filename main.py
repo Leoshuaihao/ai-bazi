@@ -1967,7 +1967,15 @@ async def forecast_endpoint(request: dict):
             dayun_start_age=dayun_start_age,
         )
         # V2-5.4: 安全边界校验 — 断未来必须通过 SafeState 隔离
-        safe_state = build_safe_state(chart_data, calibration_result)
+        # 优先从 V2 会话获取，回退到 calibration_result 构建
+        pred_session = _prediction_sessions.get(session_id, {}) if session_id else {}
+        v2_session = pred_session.get("v2_session")
+        if v2_session and v2_session.lock_state:
+            safe_state = build_safe_state_from_session(v2_session)
+        elif calibration_result:
+            safe_state = build_safe_state(calibration_result)
+        else:
+            raise HTTPException(status_code=400, detail="缺少锁定参数或校准结果，无法进行安全校验")
         pred = Prediction(raw_prediction=result)
         validation = validate_prediction(pred, safe_state)
         if not validation.is_valid:

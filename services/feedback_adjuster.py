@@ -320,9 +320,10 @@ def process_feedback_v2(
         # 中等可信度区间 [0.30, 0.50)：冲突时仅降权，不硬排除
         conflict_level = _determine_conflict_level(category, answer)
         if conflict_level is not None:
-            # 降权：confidence 乘以 0.5 因子
-            old_conf = session.lock_state.confidence
-            session.lock_state.confidence = max(0.05, old_conf * 0.5)
+            # 降权：confidence 乘以 0.5 因子（空安全）
+            old_conf = getattr(session.lock_state, 'confidence', 0.5) if session.lock_state else 0.5
+            if session.lock_state:
+                session.lock_state.confidence = max(0.05, old_conf * 0.5)
             session.adjustment_history.append(
                 AdjustmentResult(
                     lock_state=session.lock_state,
