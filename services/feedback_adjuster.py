@@ -282,6 +282,11 @@ def process_feedback_v2(
     )
     session.answered.append(answered)
 
+    # 去重：记录已答问题 ID，防止 _get_next_question 返回重复题
+    if not hasattr(session, '_answered_ids'):
+        session._answered_ids = set()
+    session._answered_ids.add(question_id)
+
     # Step 3: 计算 U(answer)
     u_answer = compute_unreliability(
         question=question,
@@ -394,36 +399,19 @@ def _compute_progress(session: VerificationSessionV2) -> float:
 
 def _get_next_question(session: VerificationSessionV2,
                        current_question, answer: str):
-    """获取下一道问题。
+    """获取下一道问题。自动跳过已答过的题。
 
     根据证伪分叉结构：
     - "yes" → if_true_next
     - "no" → if_false_next
     - "unclear" → if_unclear_next
     """
-    if current_question is None:
-        return session.question_sequence[0] if session.question_sequence else None
-
-    # 根据回答选择下一题
-    if answer == "yes":
-        next_id = getattr(current_question, 'if_true_next', None)
-    elif answer == "no":
-        next_id = getattr(current_question, 'if_false_next', None)
-    else:
-        next_id = getattr(current_question, 'if_unclear_next', None)
-
-    if next_id:
-        return _find_question(session, next_id)
-
-    # Fallback: 取序列中的下一题
-    current_idx = -1
-    for i, q in enumerate(session.question_sequence):
-        if hasattr(q, 'id') and q.id == getattr(current_question, 'id', ''):
-            current_idx = i
-            break
-
-    if current_idx >= 0 and current_idx + 1 < len(session.question_sequence):
-        return session.question_sequence[current_idx + 1]
+    # 从 sequence 中找第一个未答题（去重）
+    answered_ids = getattr(session, '_answered_ids', set())
+    for q in session.question_sequence:
+        qid = getattr(q, 'id', '')
+        if qid and qid not in answered_ids:
+            return q
 
     return None
 
