@@ -400,9 +400,14 @@ async def analyze_chart(request: dict):
     if not _os.getenv("DEEPSEEK_API_KEY"):
         return {"method": "unavailable", "message": "AI 服务未配置"}
     try:
-        from services.correction import _ai_fix_unified
-        result = await _ai_fix_unified(chart_data, feedbacks, predictions)
-        if result:
+        result = None
+        try:
+            from services.correction import _ai_fix_unified
+            result = await _ai_fix_unified(chart_data, feedbacks, predictions)
+        except (ImportError, AttributeError):
+            # V2: _ai_fix_unified 已废弃，降级到规则引擎
+            pass
+        if result is not None:
             return {
                 "method": "ai",
                 "ri_zhu_strength": result.get("ri_zhu_strength", ""),
@@ -1976,7 +1981,8 @@ async def forecast_endpoint(request: dict):
             safe_state = build_safe_state(calibration_result)
         else:
             raise HTTPException(status_code=400, detail="缺少锁定参数或校准结果，无法进行安全校验")
-        pred = Prediction(raw_prediction=result)
+        forecast_text = result.get('forecast', str(result)) if isinstance(result, dict) else str(result)
+        pred = Prediction(content=forecast_text)
         validation = validate_prediction(pred, safe_state)
         if not validation.is_valid:
             raise HTTPException(
