@@ -280,6 +280,7 @@ async def apply_correction(
     new_predictions = []
 
     new_predictions_dict = [p.model_dump() for p in new_predictions]
+    chart_data = chart.model_dump() if hasattr(chart, "model_dump") else chart
 
     return {
         "chart": chart_data,

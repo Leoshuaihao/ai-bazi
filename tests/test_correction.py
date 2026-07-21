@@ -613,13 +613,13 @@ class TestApplyCorrection:
 
     @pytest.mark.asyncio
     async def test_returns_predictions(self, sample_birth_info):
-        """应返回7条新推断"""
+        """V2: Phase 0 废弃预测生成，应返回空列表"""
         feedbacks = [
             {"prediction_id": f"pred_{i:02d}", "status": "accurate", "note": ""}
             for i in range(1, 8)
         ]
         result = await apply_correction(sample_birth_info, new_hour=10, original_feedbacks=feedbacks)
-        assert len(result["predictions"]) == 7
+        assert len(result["predictions"]) == 0  # V2: 旧预测生成已废弃
 
 
 # ============================================================
