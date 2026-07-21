@@ -270,7 +270,7 @@ def _liuqin_quality_factor(
 # 问题序列编排 (V2 算法 §10.6)
 # ============================================================
 
-def generate_question_sequence(
+async def generate_question_sequence(
     chart_data: dict,
     liuqin_assessment: LiuqinAssessment,
     uncertainty=None,  # UncertaintyReport | None
@@ -358,7 +358,7 @@ def generate_question_sequence(
     selected = candidate_pool[:question_count]
     questions: list = []
     for i, (category, dq) in enumerate(selected):
-        q = _build_question_from_category(
+        q = await _build_question_from_category(
             category=category,
             chart_data=chart_data,
             liuqin_assessment=liuqin_assessment,
@@ -430,7 +430,7 @@ def _build_fork_structure(questions: list) -> list:
     return questions
 
 
-def _build_question_from_category(
+async def _build_question_from_category(
     category: QuestionCategory,
     chart_data: dict,
     liuqin_assessment: Optional[LiuqinAssessment],
@@ -443,9 +443,9 @@ def _build_question_from_category(
     # 生成问题骨架
     skeleton = _generate_question_skeleton(category, chart_data, liuqin_assessment)
 
-    # 生成问题文本（模板路径，AI 路径留待 §9 集成）
+    # 生成问题文本（模板路径，AI 路径集成已实现）
     if use_ai:
-        question_text = _try_ai_generate_question(skeleton, category, chart_data)
+        question_text = await _try_ai_generate_question(skeleton, category, chart_data)
     else:
         question_text = _template_generate_question(skeleton, category, chart_data)
 
@@ -474,17 +474,31 @@ def _generate_question_skeleton(
     chart_data: dict,
     liuqin_assessment: Optional[LiuqinAssessment],
 ) -> dict:
-    """生成问题骨架（不含典籍引用，由调用方注入）。"""
+    """生成问题骨架（含事件年份、十神上下文、大运阶段）。V2-9.3"""
+    import datetime
     day_master = chart_data.get("day_master", "")
+    current_year = datetime.datetime.now().year
+    birth_year = chart_data.get("birth_year", chart_data.get("year", current_year - 30))
+    current_age = current_year - birth_year if birth_year else 0
 
     skeleton = {
         "template_id": category.value,
         "category": category.value,
         "day_master": day_master,
+        "birth_year": birth_year,
+        "current_age": current_age,
         "targets": {},
+        "event_year": None,
+        "event_type": "",
+        "ten_god_context": "",
+        "dayun_stage": "",
+        "stem": "",
     }
 
     if category == QuestionCategory.LIUQIN_SURVIVAL:
+        skeleton["event_type"] = "父母存亡"
+        skeleton["ten_god_context"] = "偏财为父+正印为母"
+        skeleton["event_year"] = current_year  # 当前状态
         if liuqin_assessment:
             parent = liuqin_assessment.parents
             skeleton["six_kin_type"] = "parents"
@@ -494,30 +508,83 @@ def _generate_question_skeleton(
         skeleton["targets"]["dimension"] = "liuqin_parents"
 
     elif category == QuestionCategory.DAYUN_EVENT:
+        # 根据年龄定位大运阶段
+        skeleton["event_type"] = "大运变动"
+        skeleton["ten_god_context"] = "官星+财星引动"
+        if 20 <= current_age <= 40:
+            skeleton["event_year"] = birth_year + 25
+            skeleton["dayun_stage"] = f"{current_age-5}-{current_age+5}岁事业运"
+        else:
+            skeleton["event_year"] = birth_year + int(current_age * 0.6)
+        skeleton["stem"] = _extract_dominant_stem(chart_data, "财|官")
         skeleton["targets"]["dimension"] = "dayun_career"
         skeleton["focus"] = "career_change"
 
     elif category == QuestionCategory.LIUQIN_RELATION:
-        skeleton["targets"]["dimension"] = "liuqin_siblings"
+        skeleton["event_type"] = "比劫兄弟"
+        skeleton["ten_god_context"] = "比肩劫财"
+        skeleton["event_year"] = birth_year + 15  # 青少年期
+        skeleton["dayun_stage"] = "学龄运"
         if liuqin_assessment:
             skeleton["sibling_consistency"] = liuqin_assessment.siblings.consistency
+        skeleton["targets"]["dimension"] = "liuqin_siblings"
 
     elif category == QuestionCategory.JISHEN_YEAR:
+        skeleton["event_type"] = "忌神流年"
+        skeleton["ten_god_context"] = "偏印透干+忌神发力"
+        # 从最近几年中选忌神年份
+        js_year = _find_jishen_year(chart_data, birth_year, current_year)
+        skeleton["event_year"] = js_year or (current_year - 3)
+        skeleton["stem"] = _extract_dominant_stem(chart_data, "偏印|七杀")
         skeleton["targets"]["dimension"] = "jishen_year"
         skeleton["focus"] = "pressure_event"
 
     elif category == QuestionCategory.WANGSHUAI_SOMATIC:
+        skeleton["event_type"] = "日主体感"
+        skeleton["ten_god_context"] = "日主旺衰"
         skeleton["targets"]["dimension"] = "wangshuai"
         skeleton["focus"] = "health_perception"
 
     elif category == QuestionCategory.XIANGSHEN_VERIFY:
+        skeleton["event_type"] = "相神流年"
+        skeleton["ten_god_context"] = "相神发力+贵人相助"
+        skeleton["event_year"] = current_year - 5
+        skeleton["stem"] = _extract_dominant_stem(chart_data, "食神|正印")
         skeleton["targets"]["dimension"] = "xiangshen"
         skeleton["focus"] = "help_from_others"
 
     elif category == QuestionCategory.PATTERN_QUALITY:
+        skeleton["event_type"] = "格局高低"
+        skeleton["ten_god_context"] = "有情有力"
         skeleton["targets"]["dimension"] = "pattern_quality"
 
     return skeleton
+
+
+def _extract_dominant_stem(chart_data: dict, pattern: str = "") -> str:
+    """从四柱中提取与指定十神模式匹配的显眼天干。"""
+    import re
+    four_pillars = chart_data.get("four_pillars", {})
+    for pos in ["month", "year", "hour"]:
+        pillar = four_pillars.get(pos, {})
+        stem = pillar.get("stem", "")
+        if stem:
+            return stem
+    return ""
+
+
+def _find_jishen_year(chart_data: dict, birth_year: int, current_year: int) -> Optional[int]:
+    """从大运流年中找一个可能的忌神年份。"""
+    dayun = chart_data.get("dayun", [])
+    for d in dayun[:6]:
+        start = d.get("start_year", d.start_year if hasattr(d, 'start_year') else 0)
+        end = d.get("end_year", d.end_year if hasattr(d, 'end_year') else 0)
+        # 找十神为忌神的大运
+        tg = d.get("ten_god", getattr(d, 'ten_god', ''))
+        if tg in ("偏印", "七杀", "伤官") and start > 0 and start < current_year:
+            return start
+    # 默认返回 3 年前
+    return current_year - 3
 
 
 def _build_targets(category: QuestionCategory, skeleton: dict) -> dict:
@@ -526,64 +593,243 @@ def _build_targets(category: QuestionCategory, skeleton: dict) -> dict:
 
 
 # ============================================================
-# 问题文本生成：模板路径
+# 问题文本生成：AI 路径 + 典籍 RAG (V2 §9.2-9.3)
 # ============================================================
 
-_TEMPLATE_QUESTIONS: dict[QuestionCategory, str] = {
-    QuestionCategory.LIUQIN_SURVIVAL:
-        "您的父母是否健在？或者年轻时父母关系中是否有过重大变故（如离异、长期分离等）？",
-    QuestionCategory.DAYUN_EVENT:
-        "在您 20-40 岁之间，是否经历过比较重大的职业变动或人生转折（如换工作/搬家/创业/结婚等）？",
-    QuestionCategory.LIUQIN_RELATION:
-        "您与兄弟姐妹的关系是否密切？他们是否在您的人生中起过重要作用？",
-    QuestionCategory.JISHEN_YEAR:
-        "在过去的某些年份，您是否感到压力特别大、诸事不顺？如果是，大概是哪几年？",
-    QuestionCategory.WANGSHUAI_SOMATIC:
-        "总体而言，您觉得自己的体质偏强还是偏弱？是否容易生病或感到疲劳？",
-    QuestionCategory.XIANGSHEN_VERIFY:
-        "在您遇到困难的时候，是否总能得到他人的帮助（如贵人、长辈、朋友）？",
-    QuestionCategory.PATTERN_QUALITY:
-        "您觉得自己的人生是顺利偏多、波折偏多、还是比较平淡？",
-    QuestionCategory.PERSONALITY_TRAIT:
-        "您觉得自己的性格偏外向还是内向？",
+# 类别 → RAG 检索阶段映射
+_CATEGORY_TO_STAGE: dict[QuestionCategory, str] = {
+    QuestionCategory.LIUQIN_SURVIVAL:   "liuqin",
+    QuestionCategory.LIUQIN_RELATION:   "liuqin",
+    QuestionCategory.DAYUN_EVENT:       "dayun",
+    QuestionCategory.JISHEN_YEAR:       "chengbai",
+    QuestionCategory.WANGSHUAI_SOMATIC: "wangshuai",
+    QuestionCategory.XIANGSHEN_VERIFY:  "yongshen",
+    QuestionCategory.PATTERN_QUALITY:   "pattern",
+    QuestionCategory.PERSONALITY_TRAIT: "shishen",
 }
 
+# 类别 → RAG 关键词 (V2 §9.3.3)
+_CATEGORY_KW: dict[QuestionCategory, list[str]] = {
+    QuestionCategory.LIUQIN_SURVIVAL:   ["六亲", "父母", "宫位"],
+    QuestionCategory.LIUQIN_RELATION:   ["兄弟", "夫妻", "十神"],
+    QuestionCategory.DAYUN_EVENT:       ["大运", "流年", "应期"],
+    QuestionCategory.JISHEN_YEAR:       ["忌神", "败因", "救应"],
+    QuestionCategory.XIANGSHEN_VERIFY:  ["相神", "顺用", "逆用"],
+    QuestionCategory.PATTERN_QUALITY:   ["有情", "有力", "格局", "通根"],
+    QuestionCategory.WANGSHUAI_SOMATIC: ["旺衰", "得令", "得地"],
+    QuestionCategory.PERSONALITY_TRAIT: ["性情", "五行"],
+}
+
+
+def _build_retrieval_keywords(skeleton: dict) -> list[str]:
+    """V2-9.3.3: 从问题骨架生成 RAG 检索关键词。
+
+    策略: 事件类型拆解 + 十神上下文 + 类别关键词 + 固定书签
+    """
+    keywords = []
+
+    # Layer 1: 事件类型
+    event_type = skeleton.get("event_type", "")
+    if event_type:
+        keywords.extend(event_type.replace(" ", "").replace("+", " ").split())
+
+    # Layer 2: 十神上下文
+    ten_god_context = skeleton.get("ten_god_context", "")
+    if ten_god_context:
+        keywords.extend(ten_god_context.replace("+", " ").replace("为", " ").split())
+
+    # Layer 3: 类别关键词
+    category_name = skeleton.get("category", "")
+    for cat, kws in _CATEGORY_KW.items():
+        if cat.value == category_name or cat == category_name:
+            keywords.extend(kws)
+            break
+
+    # Layer 4: 固定典籍书签
+    keywords.extend(["子平真诠", "滴天髓"])
+
+    # 去重 + 限制 12 个
+    seen = set()
+    result = []
+    for kw in keywords:
+        if kw and kw not in seen:
+            seen.add(kw)
+            result.append(kw)
+    return result[:12]
+
+
+def _fetch_classical_context(skeleton: dict) -> str:
+    """V2-9.3.1: 典籍 RAG 检索 + 清洗。"""
+    try:
+        from services.rag_retriever import retrieve_by_keywords
+        from services.verification import _clean_classical_text
+
+        keywords = _build_retrieval_keywords(skeleton)
+        if not keywords:
+            return ""
+
+        results = retrieve_by_keywords(keywords, top_k=5)
+        if not results:
+            return ""
+
+        texts = []
+        for item in results[:3]:
+            text = item.get("text", item.get("content", ""))
+            if text:
+                cleaned = _clean_classical_text(text)
+                if cleaned:
+                    texts.append(cleaned)
+
+        return "\n\n".join(texts[:3])
+
+    except ImportError:
+        return ""
+    except Exception as e:
+        # RAG 失败静默降级
+        return ""
+
+
+def _build_ai_question_prompt(
+    skeleton: dict,
+    classical_context: str,
+) -> str:
+    """V2-9.3.2: 构建 AI 出题 Prompt——典籍原文 + 问题骨架 + 指令。"""
+    event_year = skeleton.get("event_year", "")
+    dayun_stage = skeleton.get("dayun_stage", "")
+    event_type = skeleton.get("event_type", "")
+    ten_god = skeleton.get("ten_god_context", "")
+    stem = skeleton.get("stem", "")
+    category = skeleton.get("category", "")
+
+    parts = []
+
+    if classical_context:
+        parts.append(f"## 典籍原文（必须援引关键句）\n\n{classical_context[:800]}")
+
+    parts.append(f"""## 问题骨架
+
+- 验证类别：{category}
+- 事件类型：{event_type}
+- 十神上下文：{ten_god}
+- 目标年份：{event_year}年""" + (f" ({dayun_stage})" if dayun_stage else "") + (f"""
+- 关键天干：{stem}透干""" if stem else ""))
+
+    parts.append("""## 指令
+
+请基于以上典籍原文和问题骨架，生成一个自然语言问题。
+要求：
+1. 必须援引典籍原文的一句话（如"《子平真诠》有云：..."）
+2. 用生活化语言提问，不含"十神""格局"等命理术语
+3. 将典籍概念映射为日常可验证的事件
+4. 问题控制在80字以内
+5. 必须包含具体年份（如"{year}年前后"）
+6. 只输出问题文本，不要解释""".replace("{year}", str(event_year) if event_year else "某"))
+
+    return "\n\n".join(parts)
+
+
+async def _try_ai_generate_question(
+    skeleton: dict,
+    category: QuestionCategory,
+    chart_data: dict,
+) -> str:
+    """V2-9.2 调用点 1: AI + 典籍 RAG 生成自然语言问题。
+
+    流程:
+    1. RAG 检索典籍原文 → classical_context
+    2. 构建 Prompt（典籍+骨架+指令）
+    3. 调用 LLM → 自然语言问题
+    4. 失败降级 → 模板
+
+    Returns:
+        自然语言问题文本
+    """
+    # 检查 LLM 可用性
+    try:
+        from services.verification import _has_llm, _llm_ask, SYSTEM_PROMPT
+        if not _has_llm():
+            return _template_generate_question(skeleton, category, chart_data)
+    except ImportError:
+        return _template_generate_question(skeleton, category, chart_data)
+
+    # Step 1: RAG 检索
+    classical_context = _fetch_classical_context(skeleton)
+
+    # Step 2: 构建 Prompt
+    prompt = _build_ai_question_prompt(skeleton, classical_context)
+
+    # Step 3: LLM 调用
+    try:
+        ai_system = SYSTEM_PROMPT + "\n你是一个精通《子平真诠》和《滴天髓》的命理师。用户看不到你的内部推理，只看到你生成的问题。"
+        result = await _llm_ask(ai_system, prompt, 300)
+        if result and len(result.strip()) >= 10 and not result.startswith("[API_"):
+            return result.strip()
+    except Exception:
+        pass
+
+    # Step 4: 降级 → 模板
+    return _template_generate_question(skeleton, category, chart_data)
+
+
+# ============================================================
+# 模板降级路径 (V2-9.5)
+# ============================================================
 
 def _template_generate_question(
     skeleton: dict,
     category: QuestionCategory,
     chart_data: dict = None,
 ) -> str:
-    """模板降级路径 (V2-9.5)：直接使用预定义模板文本。"""
-    return _TEMPLATE_QUESTIONS.get(category, "请描述您的基本情况。")
+    """V2-9.5 模板降级: 用骨架中的事件年份和十神拼装具体问题。
 
-
-def _try_ai_generate_question(
-    skeleton: dict,
-    category: QuestionCategory,
-    chart_data: dict,
-) -> str:
-    """AI 出题路径 (V2-9.2)。
-
-    TODO: 集成典籍 RAG 检索 + LLM 调用。当前降级到模板。
+    相比旧版固定模板，此版本会使用 skeleton.event_year 生成具体年份。
     """
-    # 检查是否可用
-    try:
-        from services.verification import _has_llm
-        if not _has_llm():
-            return _template_generate_question(skeleton, category)
-    except ImportError:
-        return _template_generate_question(skeleton, category)
+    event_year = skeleton.get("event_year")
+    dayun_stage = skeleton.get("dayun_stage", "")
 
-    # AI 路径预留（Phase 2 暂用模板，后续 §9 集成再实现）
-    return _template_generate_question(skeleton, category)
+    # 有具体年份时生成精确问题
+    if event_year:
+        year_info = f"{event_year}年"
+        if dayun_stage:
+            year_info += f"（{dayun_stage}）"
+
+        if category == QuestionCategory.JISHEN_YEAR:
+            stem = skeleton.get("stem", "")
+            return f"《子平真诠》有云：'忌神无制则祸生。' 在{year_info}前后，您是否遇到过较大的压力或困境？（比如工作变动、人际关系紧张、健康问题等）"
+        elif category == QuestionCategory.DAYUN_EVENT:
+            return f"在{year_info}左右，您是否经历过比较重大的职业变动或人生转折？（如换城市、换工作、创业、结婚等）"
+        elif category == QuestionCategory.XIANGSHEN_VERIFY:
+            return f"《滴天髓》云：'用神得助，富贵可期。' 在{year_info}前后，您是否得到过贵人相助或意外的好机会？"
+        elif category == QuestionCategory.LIUQIN_RELATION:
+            return f"在{year_info}（青少年时期），您的兄弟姐妹或密友是否对您的人生有较大影响？"
+
+    # 无具体年份用固定模板
+    _FIXED_TEMPLATES: dict[QuestionCategory, str] = {
+        QuestionCategory.LIUQIN_SURVIVAL:
+            "您的父母是否健在？或者年轻时父母关系中是否有过重大变故（如离异、长期分离等）？",
+        QuestionCategory.DAYUN_EVENT:
+            "在您 20-40 岁之间，是否经历过比较重大的职业变动或人生转折？",
+        QuestionCategory.LIUQIN_RELATION:
+            "您与兄弟姐妹的关系是否密切？他们是否在您的人生中起过重要作用？",
+        QuestionCategory.JISHEN_YEAR:
+            "在过去的某些年份，您是否感到压力特别大、诸事不顺？如果是，大概是哪几年？",
+        QuestionCategory.WANGSHUAI_SOMATIC:
+            "总体而言，您觉得自己的体质偏强还是偏弱？是否容易生病或感到疲劳？",
+        QuestionCategory.XIANGSHEN_VERIFY:
+            "在您遇到困难的时候，是否总能得到他人的帮助（如贵人、长辈、朋友）？",
+        QuestionCategory.PATTERN_QUALITY:
+            "您觉得自己的人生是顺利偏多、波折偏多、还是比较平淡？",
+        QuestionCategory.PERSONALITY_TRAIT:
+            "您觉得自己的性格偏外向还是内向？",
+    }
+    return _FIXED_TEMPLATES.get(category, "请描述您的基本情况。")
 
 
 # ============================================================
 # V2 验证入口 (V2 报告 §5.3 Step 2)
 # ============================================================
 
-def init_verification_v2(
+async def init_verification_v2(
     chart_data: dict,
     user_id: Optional[str] = None,
     uncertainty=None,
@@ -626,7 +872,7 @@ def init_verification_v2(
     liuqin_assessment = assess_liuqin(chart_data, pattern, yongshen)
 
     # 问题序列编排
-    questions, count = generate_question_sequence(
+    questions, count = await generate_question_sequence(
         chart_data=chart_data,
         liuqin_assessment=liuqin_assessment,
         uncertainty=uncertainty,
@@ -657,7 +903,7 @@ def init_verification_v2(
     return session
 
 
-def regenerate_questions(
+async def regenerate_questions(
     session: VerificationSessionV2,
     adjustment: dict,
 ) -> list:
@@ -682,7 +928,7 @@ def regenerate_questions(
 
     liuqin_assessment = assess_liuqin(session.chart_data, pattern, yongshen)
 
-    questions, count = generate_question_sequence(
+    questions, count = await generate_question_sequence(
         chart_data=session.chart_data,
         liuqin_assessment=liuqin_assessment,
         uncertainty=None,

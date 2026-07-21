@@ -941,7 +941,7 @@ async def predictions_start(request: dict, authorization: str = Header(None)):
             pass
 
     # V2: 使用 init_verification_v2()
-    session = init_verification_v2(chart_data, user_id=user_id, uncertainty=uncertainty)
+    session = await init_verification_v2(chart_data, user_id=user_id, uncertainty=uncertainty)
 
     # 保存到全局 sessions (兼容旧校准流程)
     _prediction_sessions[session.session_id] = {
